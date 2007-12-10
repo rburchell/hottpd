@@ -317,14 +317,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	char AdminNick[MAXBUF];
 
-	/** The admin-configured /DIE password
-	 */
-	char diepass[MAXBUF];
-
-	/** The admin-configured /RESTART password
-	 */
-	char restartpass[MAXBUF];
-
 	/** The pathname and filename of the message of the
 	 * day file, as defined by the administrator.
 	 */

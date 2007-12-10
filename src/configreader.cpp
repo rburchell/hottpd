@@ -36,7 +36,7 @@ ServerConfig::ServerConfig(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	this->ClearStack();
 	*ServerName = *Network = *ServerDesc = *AdminName = '\0';
-	*HideWhoisServer = *AdminEmail = *AdminNick = *diepass = *restartpass = *FixedQuit = *HideKillsServer = '\0';
+	*HideWhoisServer = *AdminEmail = *AdminNick = *FixedQuit = *HideKillsServer = '\0';
 	*DefaultModes = *CustomVersion = *motd = *rules = *PrefixQuit = *DieValue = *DNSServer = '\0';
 	*UserStats = *ModPath = *MyExecutable = *DisabledCommands = *PID = *SuffixQuit = '\0';
 	WhoWasGroupSize = WhoWasMaxGroups = WhoWasMaxKeep = 0;
@@ -643,7 +643,7 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	errstr.clear();
 
 	/* These tags MUST occur and must ONLY occur once in the config file */
-	static char* Once[] = { "server", "admin", "files", "power", "options", NULL };
+	static char* Once[] = { "server", "admin", "files", "options", NULL };
 
 	/* These tags can occur ONCE or not at all */
 	InitialConfig Values[] = {
@@ -659,9 +659,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 		{"admin",	"nick",		"Misconfigured",	new ValueContainerChar (this->AdminNick),		DT_CHARPTR,  NoValidation},
 		{"files",	"motd",		"",			new ValueContainerChar (this->motd),			DT_CHARPTR,  ValidateMotd},
 		{"files",	"rules",	"",			new ValueContainerChar (this->rules),			DT_CHARPTR,  ValidateRules},
-		{"power",	"diepass",	"",			new ValueContainerChar (this->diepass),			DT_CHARPTR,  ValidateNotEmpty},
-		{"power",	"pause",	"",			new ValueContainerInt  (&this->DieDelay),		DT_INTEGER,  NoValidation},
-		{"power",	"restartpass",	"",			new ValueContainerChar (this->restartpass),		DT_CHARPTR,  ValidateNotEmpty},
 		{"options",	"prefixquit",	"",			new ValueContainerChar (this->PrefixQuit),		DT_CHARPTR,  NoValidation},
 		{"options",	"suffixquit",	"",			new ValueContainerChar (this->SuffixQuit),		DT_CHARPTR,  NoValidation},
 		{"options",	"fixedquit",	"",			new ValueContainerChar (this->FixedQuit),		DT_CHARPTR,  NoValidation},
