@@ -22,9 +22,6 @@
 void FloodQuitUserHandler::Call(User* current)
 {
 	Server->Log(DEFAULT,"Excess flood from: %s@%s", current->ident, current->host);
-	Server->SNO->WriteToSnoMask('f',"Excess flood from: %s%s%s@%s",
-			current->registered == REG_ALL ? current->nick : "",
-			current->registered == REG_ALL ? "!" : "", current->ident, current->host);
 	User::QuitUser(Server, current, "Excess flood");
 
 	if (current->registered != REG_ALL)

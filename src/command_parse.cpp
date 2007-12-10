@@ -155,10 +155,7 @@ bool CommandParser::IsValidCommand(const std::string &commandname, int pcnt, Use
 		{
 			if (IS_LOCAL(user) && n->second->flags_needed)
 			{
-				if (user->IsModeSet(n->second->flags_needed))
-				{
-					return (user->HasPermission(commandname));
-				}
+				return (user->HasPermission(commandname));
 			}
 			else
 			{
@@ -194,12 +191,9 @@ CmdResult CommandParser::CallHandler(const std::string &commandname,const char**
 			{
 				/* if user is local, and flags are needed .. */
 
-				if (user->IsModeSet(n->second->flags_needed))
-				{
-					/* if user has the flags, and now has the permissions, go ahead */
-					if (user->HasPermission(commandname))
-						bOkay = true;
-				}
+				/* if user has the flags, and now has the permissions, go ahead */
+				if (user->HasPermission(commandname))
+					bOkay = true;
 			}
 			else
 			{
@@ -311,25 +305,15 @@ bool CommandParser::ProcessCommand(User *user, std::string &cmd)
 	if (user->MyClass)
 		user->nping = ServerInstance->Time() + user->MyClass->GetPingTime();
 
-	if (cm->second->flags_needed)
+	if (!user->HasPermission(command))
 	{
-		if (!user->IsModeSet(cm->second->flags_needed))
-		{
-			user->WriteServ("481 %s :Permission Denied - You do not have the required operator privileges",user->nick);
-			return do_more;
-		}
-		if (!user->HasPermission(command))
-		{
-			user->WriteServ("481 %s :Permission Denied - Oper type %s does not have access to command %s",user->nick,user->oper,command.c_str());
-			return do_more;
-		}
+		user->WriteServ("481 %s :Permission Denied - Oper type %s does not have access to command %s",user->nick,user->oper,command.c_str());
+		return do_more;
 	}
 	if ((user->registered == REG_ALL) && (!IS_OPER(user)) && (cm->second->IsDisabled()))
 	{
 		/* command is disabled! */
 		user->WriteServ("421 %s %s :This command has been disabled.",user->nick,command.c_str());
-		ServerInstance->SNO->WriteToSnoMask('d', "%s denied for %s (%s@%s)",
-				command.c_str(), user->nick, user->ident, user->host);
 		return do_more;
 	}
 	if (items < cm->second->min_params)
@@ -505,7 +489,6 @@ CmdResult cmd_reload::Handle(const char** parameters, int /* pcnt */, User *user
 	if (ServerInstance->Parser->ReloadCommand(parameters[0], user))
 	{
 		user->WriteServ("NOTICE %s :*** Successfully reloaded command '%s'", user->nick, parameters[0]);
-		ServerInstance->WriteOpers("*** RELOAD: %s reloaded the '%s' command.", user->nick, parameters[0]);
 		return CMD_SUCCESS;
 	}
 	else
@@ -591,76 +574,5 @@ void CommandParser::SetupCommandTable(User* user)
 
 	if (cmdlist.find("RELOAD") == cmdlist.end())
 		this->CreateCommand(new cmd_reload(ServerInstance));
-}
-
-int CommandParser::TranslateUIDs(TranslateType to, const std::string &source, std::string &dest)
-{
-	User* user = NULL;
-	std::string item;
-	int translations = 0;
-	dest.clear();
-
-	switch (to)
-	{
-		case TR_NICK:
-			/* Translate single nickname */
-			user = ServerInstance->FindNick(source);
-			if (user)
-			{
-				dest = user->uuid;
-				translations++;
-			}
-			else
-				dest = source;
-		break;
-		case TR_NICKLIST:
-		{
-			/* Translate comma seperated list of nicknames */
-			irc::commasepstream items(source);
-			while (items.GetToken(item))
-			{
-				user = ServerInstance->FindNick(item);
-				if (user)
-				{
-					dest.append(user->uuid);
-					translations++;
-				}
-				else
-					dest.append(item);
-				dest.append(",");
-			}
-			if (!dest.empty())
-				dest.erase(dest.end() - 1);
-		}
-		break;
-		case TR_SPACENICKLIST:
-		{
-			/* Translate space seperated list of nicknames */
-			irc::spacesepstream items(source);
-			while (items.GetToken(item))
-			{
-				user = ServerInstance->FindNick(item);
-				if (user)
-				{
-					dest.append(user->uuid);
-					translations++;
-				}
-				else
-					dest.append(item);
-				dest.append(" ");
-			}
-			if (!dest.empty())
-				dest.erase(dest.end() - 1);
-		}
-		break;
-		case TR_END:
-		case TR_TEXT:
-		default:
-			/* Do nothing */
-			dest = source;
-		break;
-	}
-
-	return translations;
 }
 

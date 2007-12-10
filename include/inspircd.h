@@ -217,9 +217,6 @@ typedef std::map<irc::string, unsigned int> clonemap;
 class InspIRCd;
 
 DEFINE_HANDLER1(ProcessUserHandler, void, User*);
-DEFINE_HANDLER1(IsNickHandler, bool, const char*);
-DEFINE_HANDLER1(IsIdentHandler, bool, const char*);
-DEFINE_HANDLER1(FindDescriptorHandler, User*, int);
 DEFINE_HANDLER1(FloodQuitUserHandler, void, User*);
 
 /* Forward declaration - required */
@@ -320,9 +317,6 @@ class CoreExport InspIRCd : public classbase
 	/**** Functors ****/
 
 	ProcessUserHandler HandleProcessUser;
-	IsNickHandler HandleIsNick;
-	IsIdentHandler HandleIsIdent;
-	FindDescriptorHandler HandleFindDescriptor;
 	FloodQuitUserHandler HandleFloodQuitUser;
 
 	/** BufferedSocket classes pending deletion after being closed.
@@ -330,35 +324,7 @@ class CoreExport InspIRCd : public classbase
 	 */
 	std::map<BufferedSocket*,BufferedSocket*> SocketCull;
 
-	/** Globally accessible fake user record. This is used to force mode changes etc across s2s, etc.. bit ugly, but.. better than how this was done in 1.1
-	 * Reason for it:
-	 * kludge alert!
-	 * SendMode expects a User* to send the numeric replies
-	 * back to, so we create it a fake user that isnt in the user
-	 * hash and set its descriptor to FD_MAGIC_NUMBER so the data
-	 * falls into the abyss :p
-	 */
-	User *FakeClient;
-
-	/** Returns the next available UID for this server.
-	 */
-	std::string GetUID();
-
-	/** Find a user in the UUID hash
-	 * @param nick The nickname to find
-	 * @return A pointer to the user, or NULL if the user does not exist
-	 */
-	User *FindUUID(const std::string &);
-
-	/** Find a user in the UUID hash
-	 * @param nick The nickname to find
-	 * @return A pointer to the user, or NULL if the user does not exist
-	 */
-	User *FindUUID(const char *);
-
-	/** Build the ISUPPORT string by triggering all modules On005Numeric events
-	 */
-	void BuildISupport();
+	User *FindDescriptorHandler(int);
 
 	/** Number of unregistered users online right now.
 	 * (Unregistered means before USER/NICK/dns)
@@ -696,25 +662,6 @@ class CoreExport InspIRCd : public classbase
 	 * @param s The error string to send
 	 */
 	void SendError(const std::string &s);
-
-	/** Return true if a nickname is valid
-	 * @param n A nickname to verify
-	 * @return True if the nick is valid
-	 */
-	caller1<bool, const char*> IsNick;
-
-	/** Return true if an ident is valid
-	 * @param An ident to verify
-	 * @return True if the ident is valid
-	 */
-	caller1<bool, const char*> IsIdent;
-
-	/** Find a username by their file descriptor.
-	 * It is preferred to use this over directly accessing the fd_ref_table array.
-	 * @param socket The file descriptor of a user
-	 * @return A pointer to the user if the user exists locally on this descriptor
-	 */
-	caller1<User*, int> FindDescriptor;
 
 	/** Add a new mode to this server's mode parser
 	 * @param mh The modehandler to add

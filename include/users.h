@@ -683,9 +683,8 @@ class CoreExport User : public connection
 	/** Default constructor
 	 * @throw CoreException if the UID allocated to the user already exists
 	 * @param Instance Creator instance
-	 * @param uid User UUID, or empty to allocate one automatically
 	 */
-	User(InspIRCd* Instance, const std::string &uid = "");
+	User(InspIRCd* Instance);
 
 	/** Returns the full displayed host of the user
 	 * This member function returns the hostname of the user as seen by other users

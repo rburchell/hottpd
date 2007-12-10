@@ -768,12 +768,12 @@ void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail,
 		}
 		else
 		{
-			ServerInstance->WriteOpers("There were errors in the configuration file:");
-			while (start < errors.length())
-			{
-				ServerInstance->WriteOpers(errors.substr(start, 360).c_str());
-				start += 360;
-			}
+//			ServerInstance->WriteOpers("There were errors in the configuration file:");
+//			while (start < errors.length())
+//			{
+//				ServerInstance->WriteOpers(errors.substr(start, 360).c_str());
+//				start += 360;
+//			}
 		}
 		return;
 	}
@@ -989,14 +989,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 					vcc->Set(vi.GetString(), strlen(vi.GetString()) + 1);
 				}
 				break;
-				case DT_CHANNEL:
-				{
-					ValueContainerChar* vcc = (ValueContainerChar*)Values[Index].val;
-					if (*(vi.GetString()) && !ServerInstance->IsChannel(vi.GetString()))
-						throw CoreException("The value of <"+std::string(Values[Index].tag)+":"+Values[Index].value+"> is not a valid channel name");
-					vcc->Set(vi.GetString(), strlen(vi.GetString()) + 1);
-				}
-				break;
 				case DT_CHARPTR:
 				{
 					ValueContainerChar* vcc = (ValueContainerChar*)Values[Index].val;
@@ -1077,17 +1069,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 							else
 								vl.push_back(ValueItem(""));
 							this->ValidateIP(vl[vl.size()-1].GetString(), MultiValues[Index].tag, MultiValues[Index].items[valuenum], allow_wild);
-						}
-						break;
-						case DT_CHANNEL:
-						{
-							char item[MAXBUF];
-							if (ConfValue(this->config_data, MultiValues[Index].tag, MultiValues[Index].items[valuenum], MultiValues[Index].items_default[valuenum], tagnum, item, MAXBUF, allow_newlines))
-								vl.push_back(ValueItem(item));
-							else
-								vl.push_back(ValueItem(""));
-							if (!ServerInstance->IsChannel(vl[vl.size()-1].GetString()))
-								throw CoreException("The value of <"+std::string(MultiValues[Index].tag)+":"+MultiValues[Index].items[valuenum]+"> number "+ConvToStr(tagnum + 1)+" is not a valid channel name");
 						}
 						break;
 						case DT_CHARPTR:
@@ -1202,15 +1183,15 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 		{
 			if (ServerInstance->Modules->Unload(removing->c_str()))
 			{
-				ServerInstance->WriteOpers("*** REHASH UNLOADED MODULE: %s",removing->c_str());
-				if (user)
-					user->WriteServ("973 %s %s :Module %s successfully unloaded.",user->nick, removing->c_str(), removing->c_str());
+//				ServerInstance->WriteOpers("*** REHASH UNLOADED MODULE: %s",removing->c_str());
+//				if (user)
+//					user->WriteServ("973 %s %s :Module %s successfully unloaded.",user->nick, removing->c_str(), removing->c_str());
 				rem++;
 			}
 			else
 			{
-				if (user)
-					user->WriteServ("972 %s %s :%s",user->nick, removing->c_str(), ServerInstance->Modules->LastError().c_str());
+//				if (user)
+//					user->WriteServ("972 %s %s :%s",user->nick, removing->c_str(), ServerInstance->Modules->LastError().c_str());
 			}
 		}
 	}
@@ -1228,7 +1209,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 
 			if (ServerInstance->Modules->Load(adding->c_str()))
 			{
-				ServerInstance->WriteOpers("*** REHASH LOADED MODULE: %s",adding->c_str());
 				if (user)
 					user->WriteServ("975 %s %s :Module %s successfully loaded.",user->nick, adding->c_str(), adding->c_str());
 
@@ -1249,11 +1229,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	}
 
 	ServerInstance->Log(DEFAULT,"Successfully unloaded %lu of %lu modules and loaded %lu of %lu modules.",(unsigned long)rem,(unsigned long)removed_modules.size(),(unsigned long)add,(unsigned long)added_modules.size());
-
-	if (user)
-		user->WriteServ("NOTICE %s :*** Successfully rehashed server.", user->nick);
-	else
-		ServerInstance->WriteOpers("*** Successfully rehashed server.");
 }
 
 /* XXX: This can and will block! */

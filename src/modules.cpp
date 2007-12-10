@@ -479,7 +479,6 @@ bool ModuleManager::Load(const char* filename)
 	for (std::map<std::string, std::pair<ircd_module*, Module*> >::iterator n = Modules.begin(); n != Modules.end(); ++n)
 		n->second.second->Prioritize();
 
-	Instance->BuildISupport();
 	return true;
 }
 
@@ -530,7 +529,6 @@ bool ModuleManager::Unload(const char* filename)
 
 		Instance->Log(DEFAULT,"Module %s unloaded",filename);
 		this->ModCount--;
-		Instance->BuildISupport();
 		return true;
 	}
 
@@ -681,87 +679,14 @@ const std::string& ModuleManager::GetModuleName(Module* m)
 	return nothing;
 }
 
-/* This is ugly, yes, but hash_map's arent designed to be
- * addressed in this manner, and this is a bit of a kludge.
- * Luckily its a specialist function and rarely used by
- * many modules (in fact, it was specially created to make
- * m_safelist possible, initially).
- */
-
-Channel* InspIRCd::GetChannelIndex(long index)
-{
-	int target = 0;
-	for (chan_hash::iterator n = this->chanlist->begin(); n != this->chanlist->end(); n++, target++)
-	{
-		if (index == target)
-			return n->second;
-	}
-	return NULL;
-}
-
 bool InspIRCd::MatchText(const std::string &sliteral, const std::string &spattern)
 {
 	return match(sliteral.c_str(),spattern.c_str());
 }
 
-CmdResult InspIRCd::CallCommandHandler(const std::string &commandname, const char** parameters, int pcnt, User* user)
+User* InspIRCd::FindDescriptorHandler(int socket)
 {
-	return this->Parser->CallHandler(commandname,parameters,pcnt,user);
-}
-
-bool InspIRCd::IsValidModuleCommand(const std::string &commandname, int pcnt, User* user)
-{
-	return this->Parser->IsValidCommand(commandname, pcnt, user);
-}
-
-void InspIRCd::AddCommand(Command *f)
-{
-	if (!this->Parser->CreateCommand(f))
-	{
-		ModuleException err("Command "+std::string(f->command)+" already exists.");
-		throw (err);
-	}
-}
-
-void InspIRCd::SendMode(const char** parameters, int pcnt, User *user)
-{
-	this->Modes->Process(parameters,pcnt,user,true);
-}
-
-void InspIRCd::DumpText(User* User, const std::string &LinePrefix, stringstream &TextStream)
-{
-	std::string CompleteLine = LinePrefix;
-	std::string Word;
-	while (TextStream >> Word)
-	{
-		if (CompleteLine.length() + Word.length() + 3 > 500)
-		{
-			User->WriteServ(CompleteLine);
-			CompleteLine = LinePrefix;
-		}
-		CompleteLine = CompleteLine + Word + " ";
-	}
-	User->WriteServ(CompleteLine);
-}
-
-User* FindDescriptorHandler::Call(int socket)
-{
-	return reinterpret_cast<User*>(Server->SE->GetRef(socket));
-}
-
-bool InspIRCd::AddMode(ModeHandler* mh)
-{
-	return this->Modes->AddMode(mh);
-}
-
-bool InspIRCd::AddModeWatcher(ModeWatcher* mw)
-{
-	return this->Modes->AddModeWatcher(mw);
-}
-
-bool InspIRCd::DelModeWatcher(ModeWatcher* mw)
-{
-	return this->Modes->DelModeWatcher(mw);
+	return reinterpret_cast<User*>(this->SE->GetRef(socket));
 }
 
 bool InspIRCd::AddResolver(Resolver* r, bool cached)

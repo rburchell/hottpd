@@ -116,11 +116,7 @@ void InspIRCd::Cleanup()
 
 void InspIRCd::Restart(const std::string &reason)
 {
-	/* SendError flushes each client's queue,
-	 * regardless of writeability state
-	 */
-	this->SendError(reason);
-
+	this->Log(DEFAULT, reason);
 	this->Cleanup();
 
 	/* Figure out our filename (if theyve renamed it, we're boned) */
@@ -139,12 +135,6 @@ void InspIRCd::Restart(const std::string &reason)
 		/* Will raise a SIGABRT if not trapped */
 		throw CoreException(std::string("Failed to execv()! error: ") + strerror(errno));
 	}
-}
-
-void InspIRCd::ResetMaxBans()
-{
-	for (chan_hash::const_iterator i = chanlist->begin(); i != chanlist->end(); i++)
-		i->second->ResetMaxBans();
 }
 
 /** Because hash_map doesnt free its buckets when we delete items (this is a 'feature')
@@ -281,16 +271,10 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
 	 /* Functor initialisation. Note that the ordering here is very important. */
 	 HandleProcessUser(this),
-	 HandleIsNick(this),
-	 HandleIsIdent(this),
-	 HandleFindDescriptor(this),
 	 HandleFloodQuitUser(this),
 
 	 /* Functor pointer initialisation. Must match the order of the list above */
 	 ProcessUser(&HandleProcessUser),
-	 IsNick(&HandleIsNick),
-	 IsIdent(&HandleIsIdent),
-	 FindDescriptor(&HandleFindDescriptor),
 	 FloodQuitUser(&HandleFloodQuitUser)
 
 {
@@ -318,7 +302,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->Res = NULL;
 
 	this->Config = new ServerConfig(this);
-	this->SNO = new SnomaskManager(this);
 	this->BanCache = new BanCacheManager(this);
 	this->Modules = new ModuleManager(this);
 	this->stats = new serverstats();
@@ -427,15 +410,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	Config->writelog = !do_nolog;	
 	Config->ClearStack();
 
-	this->Modes = new ModeParser(this);
-
-	/* set up fake client (uid is incorrect at this point,
-         * until after config is read. we set up the user again
-         * at that point 
-         */
-	this->FakeClient = new User(this);
-	this->FakeClient->SetFd(FD_MAGIC_NUMBER);
-
 	if (!do_root)
 		this->CheckRoot();
 	else
@@ -499,13 +473,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
                 Config->sid = sid;
         }
 
-        this->InitialiseUID();
-
-        /* set up fake client again this time with the correct uid */
-        delete FakeClient;
-        this->FakeClient = new User(this);
-        this->FakeClient->SetFd(FD_MAGIC_NUMBER);
-
         // Get XLine to do it's thing.
         this->XLines->CheckELines();
         this->XLines->ApplyLines();
@@ -518,8 +485,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
 	/*this->Modules->LoadAll();*/
 	
-	/* Just in case no modules were loaded - fix for bug #101 */
-	this->BuildISupport();
 	InitializeDisabledCommands(Config->DisabledCommands, this);
 
 	if ((Config->ports.size() == 0) && (found_ports > 0))
@@ -621,11 +586,6 @@ int InspIRCd::Run()
 		 */
 		if (TIME != OLDTIME)
 		{
-			if (TIME < OLDTIME)
-			{
-				WriteOpers("*** \002EH?!\002 -- Time is flowing BACKWARDS in this dimension! Clock drifted backwards %d secs.",abs(OLDTIME-TIME));
-			}
-
 			if ((TIME % 3600) == 0)
 			{
 				this->RehashUsersAndChans();

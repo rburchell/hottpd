@@ -136,8 +136,6 @@ int CullList::Apply()
 		if (u->registered == REG_ALL)
 		{
 			FOREACH_MOD_I(ServerInstance,I_OnUserQuit,OnUserQuit(u, reason, oper_reason));
-			u->PurgeEmptyChannels();
-			u->WriteCommonQuit(reason, oper_reason);
 		}
 
 		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(u));
@@ -158,29 +156,6 @@ int CullList::Apply()
 
 			ServerInstance->SE->DelFd(u);
 			u->CloseSocket();
-		}
-
-		/*
-		 * this must come before the ServerInstance->SNO->WriteToSnoMaskso that it doesnt try to fill their buffer with anything
-		 * if they were an oper with +sn +qQ.
-		 */
-		if (u->registered == REG_ALL)
-		{
-			if (IS_LOCAL(u))
-			{
-				if (!a->IsSilent())
-				{
-					ServerInstance->SNO->WriteToSnoMask('q',"Client exiting: %s!%s@%s [%s]",u->nick,u->ident,u->host,oper_reason.c_str());
-				}
-			}
-			else
-			{
-				if ((!ServerInstance->SilentULine(u->server)) && (!a->IsSilent()))
-				{
-					ServerInstance->SNO->WriteToSnoMask('Q',"Client exiting on server %s: %s!%s@%s [%s]",u->server,u->nick,u->ident,u->host,oper_reason.c_str());
-				}
-			}
-			u->AddToWhoWas();
 		}
 
 		if (iter != ServerInstance->clientlist->end())

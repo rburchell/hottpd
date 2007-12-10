@@ -23,66 +23,6 @@
 
 static unsigned long already_sent[MAX_DESCRIPTORS] = {0};
 
-/* XXX: Used for speeding up WriteCommon operations */
-unsigned long uniq_id = 0;
-
-std::string User::ProcessNoticeMasks(const char *sm)
-{
-	bool adding = true, oldadding = false;
-	const char *c = sm;
-	std::string output;
-
-	while (c && *c)
-	{
-		switch (*c)
-		{
-			case '+':
-				adding = true;
-			break;
-			case '-':
-				adding = false;
-			break;
-			case '*':
-				for (unsigned char d = 'A'; d <= 'z'; d++)
-				{
-					if (ServerInstance->SNO->IsEnabled(d))
-					{
-						if ((!IsNoticeMaskSet(d) && adding) || (IsNoticeMaskSet(d) && !adding))
-						{
-							if ((oldadding != adding) || (!output.length()))
-								output += (adding ? '+' : '-');
-
-							this->SetNoticeMask(d, adding);
-
-							output += d;
-						}
-					}
-					oldadding = adding;
-				}
-			break;
-			default:
-				if ((*c >= 'A') && (*c <= 'z') && (ServerInstance->SNO->IsEnabled(*c)))
-				{
-					if ((!IsNoticeMaskSet(*c) && adding) || (IsNoticeMaskSet(*c) && !adding))
-					{
-						if ((oldadding != adding) || (!output.length()))
-							output += (adding ? '+' : '-');
-
-						this->SetNoticeMask(*c, adding);
-
-						output += *c;
-					}
-				}
-				oldadding = adding;
-			break;
-		}
-
-		*c++;
-	}
-
-	return output;
-}
-
 void User::StartDNSLookup()
 {
 	try
@@ -104,75 +44,7 @@ void User::StartDNSLookup()
 	}
 }
 
-bool User::IsNoticeMaskSet(unsigned char sm)
-{
-	return (snomasks[sm-65]);
-}
-
-void User::SetNoticeMask(unsigned char sm, bool value)
-{
-	snomasks[sm-65] = value;
-}
-
-const char* User::FormatNoticeMasks()
-{
-	static char data[MAXBUF];
-	int offset = 0;
-
-	for (int n = 0; n < 64; n++)
-	{
-		if (snomasks[n])
-			data[offset++] = n+65;
-	}
-
-	data[offset] = 0;
-	return data;
-}
-
-
-
-bool User::IsModeSet(unsigned char m)
-{
-	return (modes[m-65]);
-}
-
-void User::SetMode(unsigned char m, bool value)
-{
-	modes[m-65] = value;
-}
-
-const char* User::FormatModes()
-{
-	static char data[MAXBUF];
-	int offset = 0;
-	for (int n = 0; n < 64; n++)
-	{
-		if (modes[n])
-			data[offset++] = n+65;
-	}
-	data[offset] = 0;
-	return data;
-}
-
-void User::DecrementModes()
-{
-	ServerInstance->Log(DEBUG,"DecrementModes()");
-	for (unsigned char n = 'A'; n <= 'z'; n++)
-	{
-		if (modes[n-65])
-		{
-			ServerInstance->Log(DEBUG,"DecrementModes() found mode %c", n);
-			ModeHandler* mh = ServerInstance->Modes->FindMode(n, MODETYPE_USER);
-			if (mh)
-			{
-				ServerInstance->Log(DEBUG,"Found handler %c and call ChangeCount", n);
-				mh->ChangeCount(-1);
-			}
-		}
-	}
-}
-
-User::User(InspIRCd* Instance, const std::string &uid) : ServerInstance(Instance)
+User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	*password = *nick = *ident = *host = *dhost = *fullname = *awaymsg = *oper = *uuid = 0;
 	server = (char*)Instance->FindServerNamePtr(Instance->Config->ServerName);
@@ -194,22 +66,8 @@ User::User(InspIRCd* Instance, const std::string &uid) : ServerInstance(Instance
 	chans.clear();
 	invites.clear();
 	memset(modes,0,sizeof(modes));
-	memset(snomasks,0,sizeof(snomasks));
 	/* Invalidate cache */
 	operquit = cached_fullhost = cached_hostip = cached_makehost = cached_fullrealhost = NULL;
-
-	if (uid.empty())
-		strlcpy(uuid, Instance->GetUID().c_str(), UUID_LENGTH);
-	else
-		strlcpy(uuid, uid.c_str(), UUID_LENGTH);
-
-	ServerInstance->Log(DEBUG,"New UUID for user: %s (%s)", uuid, uid.empty() ? "allocated new" : "used remote");
-
-	user_hash::iterator finduuid = Instance->uuidlist->find(uuid);
-	if (finduuid == Instance->uuidlist->end())
-		(*Instance->uuidlist)[uuid] = this;
-	else
-		throw CoreException("Duplicate UUID "+std::string(uuid)+" in User constructor");
 }
 
 void User::RemoveCloneCounts()
@@ -250,7 +108,6 @@ User::~User()
 	}
 
 	this->InvalidateCache();
-	this->DecrementModes();
 	if (operquit)
 		free(operquit);
 	if (ip)
@@ -476,7 +333,6 @@ bool User::AddBuffer(std::string a)
 		if (this->MyClass && (recvq.length() > this->MyClass->GetRecvqMax()))
 		{
 			this->SetWriteError("RecvQ exceeded");
-			ServerInstance->WriteOpers("*** User %s RecvQ of %d exceeds connect class maximum of %d",this->nick,recvq.length(),this->MyClass->GetRecvqMax());
 			return false;
 		}
 
@@ -547,13 +403,7 @@ void User::AddWriteBuf(const std::string &data)
 
 	if (this->MyClass && (sendq.length() + data.length() > this->MyClass->GetSendqMax()))
 	{
-		/*
-		 * Fix by brain - Set the error text BEFORE calling writeopers, because
-		 * if we dont it'll recursively  call here over and over again trying
-		 * to repeatedly add the text to the sendq!
-		 */
 		this->SetWriteError("SendQ exceeded");
-		ServerInstance->WriteOpers("*** User %s SendQ of %d exceeds connect class maximum of %d",this->nick,sendq.length() + data.length(),this->MyClass->GetSendqMax());
 		return;
 	}
 
@@ -567,7 +417,6 @@ void User::AddWriteBuf(const std::string &data)
 	catch (...)
 	{
 		this->SetWriteError("SendQ exceeded");
-		ServerInstance->WriteOpers("*** User %s SendQ got an exception",this->nick);
 	}
 }
 
@@ -755,16 +604,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	 * allocates a new UUID and places it in the hash_map.
 	 */
 	User* New = NULL;
-	try
-	{
-		New = new User(Instance);
-	}
-	catch (...)
-	{
-		Instance->Log(DEFAULT,"*** WTF *** Duplicated UUID! -- Crack smoking monkies have been unleashed.");
-		Instance->WriteOpers("*** WARNING *** Duplicate UUID allocated!");
-		return;
-	}
+	New = new User(Instance);
 
 	Instance->Log(DEBUG,"New user fd: %d", socket);
 
@@ -826,7 +666,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 
 	if ((Instance->local_users.size() > Instance->Config->SoftLimit) || (Instance->local_users.size() >= MAXCLIENTS))
 	{
-		Instance->WriteOpers("*** Warning: softlimit value has been reached: %d clients", Instance->Config->SoftLimit);
 		User::QuitUser(Instance, New,"No more connections allowed");
 		return;
 	}
@@ -942,13 +781,6 @@ void User::CheckClass()
 	else if ((a->GetMaxLocal()) && (this->LocalCloneCount() > a->GetMaxLocal()))
 	{
 		User::QuitUser(ServerInstance, this, "No more connections allowed from your host via this connect class (local)");
-		ServerInstance->WriteOpers("*** WARNING: maximum LOCAL connections (%ld) exceeded for IP %s", a->GetMaxLocal(), this->GetIPString());
-		return;
-	}
-	else if ((a->GetMaxGlobal()) && (this->GlobalCloneCount() > a->GetMaxGlobal()))
-	{
-		User::QuitUser(ServerInstance, this, "No more connections allowed from your host via this connect class (global)");
-		ServerInstance->WriteOpers("*** WARNING: maximum GLOBAL connections (%ld) exceeded for IP %s", a->GetMaxGlobal(), this->GetIPString());
 		return;
 	}
 
@@ -1000,28 +832,11 @@ void User::FullConnect()
 		}
 	}
 
-	this->WriteServ("NOTICE Auth :Welcome to \002%s\002!",ServerInstance->Config->Network);
-	this->WriteServ("001 %s :Welcome to the %s IRC Network %s!%s@%s",this->nick, ServerInstance->Config->Network, this->nick, this->ident, this->host);
-	this->WriteServ("002 %s :Your host is %s, running version %s",this->nick,ServerInstance->Config->ServerName,VERSION);
-	this->WriteServ("003 %s :This server was created %s %s", this->nick, __TIME__, __DATE__);
-	this->WriteServ("004 %s %s %s %s %s %s", this->nick, ServerInstance->Config->ServerName, VERSION, ServerInstance->Modes->UserModeList().c_str(), ServerInstance->Modes->ChannelModeList().c_str(), ServerInstance->Modes->ParaModeList().c_str());
-
-	ServerInstance->Config->Send005(this);
-
-	this->WriteServ("042 %s %s :your unique ID", this->nick, this->uuid);
-
-
 	this->ShowMOTD();
 
 	/* Now registered */
 	if (ServerInstance->unregistered_count)
 		ServerInstance->unregistered_count--;
-
-	/* Trigger LUSERS output, give modules a chance too */
-	int MOD_RESULT = 0;
-	FOREACH_RESULT(I_OnPreCommand, OnPreCommand("LUSERS", NULL, 0, this, true, "LUSERS"));
-	if (!MOD_RESULT)
-		ServerInstance->CallCommandHandler("LUSERS", NULL, 0, this);
 
 	/*
 	 * We don't set REG_ALL until triggering OnUserConnect, so some module events don't spew out stuff
@@ -1032,8 +847,6 @@ void User::FullConnect()
 	this->registered = REG_ALL;
 
 	FOREACH_MOD(I_OnPostConnect,OnPostConnect(this));
-
-	ServerInstance->SNO->WriteToSnoMask('c',"Client connecting on port %d: %s!%s@%s [%s] [%s]", this->GetPort(), this->nick, this->ident, this->host, this->GetIPString(), this->fullname);
 
 	ServerInstance->Log(DEBUG, "BanCache: Adding NEGATIVE hit for %s", this->GetIPString());
 	ServerInstance->BanCache->AddHit(this->GetIPString(), "", "");
@@ -1367,381 +1180,6 @@ void User::WriteTo(User *dest, const std::string &data)
 	dest->WriteFrom(this, data);
 }
 
-
-void User::WriteCommon(const char* text, ...)
-{
-	char textbuffer[MAXBUF];
-	va_list argsPtr;
-
-	if (this->registered != REG_ALL)
-		return;
-
-	va_start(argsPtr, text);
-	vsnprintf(textbuffer, MAXBUF, text, argsPtr);
-	va_end(argsPtr);
-
-	this->WriteCommon(std::string(textbuffer));
-}
-
-void User::WriteCommon(const std::string &text)
-{
-	try
-	{
-		bool sent_to_at_least_one = false;
-		char tb[MAXBUF];
-
-		if (this->registered != REG_ALL)
-			return;
-
-		uniq_id++;
-
-		/* We dont want to be doing this n times, just once */
-		snprintf(tb,MAXBUF,":%s %s",this->GetFullHost(),text.c_str());
-		std::string out = tb;
-
-		for (UCListIter v = this->chans.begin(); v != this->chans.end(); v++)
-		{
-			CUList* ulist = v->first->GetUsers();
-			for (CUList::iterator i = ulist->begin(); i != ulist->end(); i++)
-			{
-				if ((IS_LOCAL(i->first)) && (already_sent[i->first->fd] != uniq_id))
-				{
-					already_sent[i->first->fd] = uniq_id;
-					i->first->Write(out);
-					sent_to_at_least_one = true;
-				}
-			}
-		}
-
-		/*
-		 * if the user was not in any channels, no users will receive the text. Make sure the user
-		 * receives their OWN message for WriteCommon
-		 */
-		if (!sent_to_at_least_one)
-		{
-			this->Write(std::string(tb));
-		}
-	}
-
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::WriteCommon()");
-	}
-}
-
-
-/* write a formatted string to all users who share at least one common
- * channel, NOT including the source user e.g. for use in QUIT
- */
-
-void User::WriteCommonExcept(const char* text, ...)
-{
-	char textbuffer[MAXBUF];
-	va_list argsPtr;
-
-	va_start(argsPtr, text);
-	vsnprintf(textbuffer, MAXBUF, text, argsPtr);
-	va_end(argsPtr);
-
-	this->WriteCommonExcept(std::string(textbuffer));
-}
-
-void User::WriteCommonQuit(const std::string &normal_text, const std::string &oper_text)
-{
-	char tb1[MAXBUF];
-	char tb2[MAXBUF];
-
-	if (this->registered != REG_ALL)
-		return;
-
-	uniq_id++;
-	snprintf(tb1,MAXBUF,":%s QUIT :%s",this->GetFullHost(),normal_text.c_str());
-	snprintf(tb2,MAXBUF,":%s QUIT :%s",this->GetFullHost(),oper_text.c_str());
-	std::string out1 = tb1;
-	std::string out2 = tb2;
-
-	for (UCListIter v = this->chans.begin(); v != this->chans.end(); v++)
-	{
-		CUList *ulist = v->first->GetUsers();
-		for (CUList::iterator i = ulist->begin(); i != ulist->end(); i++)
-		{
-			if (this != i->first)
-			{
-				if ((IS_LOCAL(i->first)) && (already_sent[i->first->fd] != uniq_id))
-				{
-					already_sent[i->first->fd] = uniq_id;
-					i->first->Write(IS_OPER(i->first) ? out2 : out1);
-				}
-			}
-		}
-	}
-}
-
-void User::WriteCommonExcept(const std::string &text)
-{
-	char tb1[MAXBUF];
-	std::string out1;
-
-	if (this->registered != REG_ALL)
-		return;
-
-	uniq_id++;
-	snprintf(tb1,MAXBUF,":%s %s",this->GetFullHost(),text.c_str());
-	out1 = tb1;
-
-	for (UCListIter v = this->chans.begin(); v != this->chans.end(); v++)
-	{
-		CUList *ulist = v->first->GetUsers();
-		for (CUList::iterator i = ulist->begin(); i != ulist->end(); i++)
-		{
-			if (this != i->first)
-			{
-				if ((IS_LOCAL(i->first)) && (already_sent[i->first->fd] != uniq_id))
-				{
-					already_sent[i->first->fd] = uniq_id;
-					i->first->Write(out1);
-				}
-			}
-		}
-	}
-
-}
-
-void User::WriteWallOps(const std::string &text)
-{
-	if (!IS_OPER(this) && IS_LOCAL(this))
-		return;
-
-	std::string wallop("WALLOPS :");
-	wallop.append(text);
-
-	for (std::vector<User*>::const_iterator i = ServerInstance->local_users.begin(); i != ServerInstance->local_users.end(); i++)
-	{
-		User* t = *i;
-		if (t->IsModeSet('w'))
-			this->WriteTo(t,wallop);
-	}
-}
-
-void User::WriteWallOps(const char* text, ...)
-{
-	char textbuffer[MAXBUF];
-	va_list argsPtr;
-
-	va_start(argsPtr, text);
-	vsnprintf(textbuffer, MAXBUF, text, argsPtr);
-	va_end(argsPtr);
-
-	this->WriteWallOps(std::string(textbuffer));
-}
-
-/* return 0 or 1 depending if users u and u2 share one or more common channels
- * (used by QUIT, NICK etc which arent channel specific notices)
- *
- * The old algorithm in 1.0 for this was relatively inefficient, iterating over
- * the first users channels then the second users channels within the outer loop,
- * therefore it was a maximum of x*y iterations (upon returning 0 and checking
- * all possible iterations). However this new function instead checks against the
- * channel's userlist in the inner loop which is a std::map<User*,User*>
- * and saves us time as we already know what pointer value we are after.
- * Don't quote me on the maths as i am not a mathematician or computer scientist,
- * but i believe this algorithm is now x+(log y) maximum iterations instead.
- */
-bool User::SharesChannelWith(User *other)
-{
-	if ((!other) || (this->registered != REG_ALL) || (other->registered != REG_ALL))
-		return false;
-
-	/* Outer loop */
-	for (UCListIter i = this->chans.begin(); i != this->chans.end(); i++)
-	{
-		/* Eliminate the inner loop (which used to be ~equal in size to the outer loop)
-		 * by replacing it with a map::find which *should* be more efficient
-		 */
-		if (i->first->HasUser(other))
-			return true;
-	}
-	return false;
-}
-
-bool User::ChangeName(const char* gecos)
-{
-	if (!strcmp(gecos, this->fullname))
-		return true;
-
-	if (IS_LOCAL(this))
-	{
-		int MOD_RESULT = 0;
-		FOREACH_RESULT(I_OnChangeLocalUserGECOS,OnChangeLocalUserGECOS(this,gecos));
-		if (MOD_RESULT)
-			return false;
-		FOREACH_MOD(I_OnChangeName,OnChangeName(this,gecos));
-	}
-	strlcpy(this->fullname,gecos,MAXGECOS+1);
-
-	return true;
-}
-
-bool User::ChangeDisplayedHost(const char* host)
-{
-	if (!strcmp(host, this->dhost))
-		return true;
-
-	if (IS_LOCAL(this))
-	{
-		int MOD_RESULT = 0;
-		FOREACH_RESULT(I_OnChangeLocalUserHost,OnChangeLocalUserHost(this,host));
-		if (MOD_RESULT)
-			return false;
-		FOREACH_MOD(I_OnChangeHost,OnChangeHost(this,host));
-	}
-	if (this->ServerInstance->Config->CycleHosts)
-		this->WriteCommonExcept("QUIT :Changing hosts");
-
-	/* Fix by Om: User::dhost is 65 long, this was truncating some long hosts */
-	strlcpy(this->dhost,host,64);
-
-	this->InvalidateCache();
-
-	if (this->ServerInstance->Config->CycleHosts)
-	{
-		for (UCListIter i = this->chans.begin(); i != this->chans.end(); i++)
-		{
-			i->first->WriteAllExceptSender(this, false, 0, "JOIN %s", i->first->name);
-			std::string n = this->ServerInstance->Modes->ModeString(this, i->first);
-			if (n.length() > 0)
-				i->first->WriteAllExceptSender(this, true, 0, "MODE %s +%s", i->first->name, n.c_str());
-		}
-	}
-
-	if (IS_LOCAL(this))
-		this->WriteServ("396 %s %s :is now your displayed host",this->nick,this->dhost);
-
-	return true;
-}
-
-bool User::ChangeIdent(const char* newident)
-{
-	if (!strcmp(newident, this->ident))
-		return true;
-
-	if (this->ServerInstance->Config->CycleHosts)
-		this->WriteCommonExcept("%s","QUIT :Changing ident");
-
-	strlcpy(this->ident, newident, IDENTMAX+2);
-
-	this->InvalidateCache();
-
-	if (this->ServerInstance->Config->CycleHosts)
-	{
-		for (UCListIter i = this->chans.begin(); i != this->chans.end(); i++)
-		{
-			i->first->WriteAllExceptSender(this, false, 0, "JOIN %s", i->first->name);
-			std::string n = this->ServerInstance->Modes->ModeString(this, i->first);
-			if (n.length() > 0)
-				i->first->WriteAllExceptSender(this, true, 0, "MODE %s +%s", i->first->name, n.c_str());
-		}
-	}
-
-	return true;
-}
-
-void User::SendAll(const char* command, char* text, ...)
-{
-	char textbuffer[MAXBUF];
-	char formatbuffer[MAXBUF];
-	va_list argsPtr;
-
-	va_start(argsPtr, text);
-	vsnprintf(textbuffer, MAXBUF, text, argsPtr);
-	va_end(argsPtr);
-
-	snprintf(formatbuffer,MAXBUF,":%s %s $* :%s", this->GetFullHost(), command, textbuffer);
-	std::string fmt = formatbuffer;
-
-	for (std::vector<User*>::const_iterator i = ServerInstance->local_users.begin(); i != ServerInstance->local_users.end(); i++)
-	{
-		(*i)->Write(fmt);
-	}
-}
-
-
-std::string User::ChannelList(User* source)
-{
-	try
-	{
-		std::string list;
-		for (UCListIter i = this->chans.begin(); i != this->chans.end(); i++)
-		{
-			/* If the target is the same as the sender, let them see all their channels.
-			 * If the channel is NOT private/secret OR the user shares a common channel
-			 * If the user is an oper, and the <options:operspywhois> option is set.
-			 */
-			if ((source == this) || (IS_OPER(source) && ServerInstance->Config->OperSpyWhois) || (((!i->first->IsModeSet('p')) && (!i->first->IsModeSet('s'))) || (i->first->HasUser(source))))
-			{
-				list.append(i->first->GetPrefixChar(this)).append(i->first->name).append(" ");
-			}
-		}
-		return list;
-	}
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::ChannelList()");
-		return "";
-	}
-}
-
-void User::SplitChanList(User* dest, const std::string &cl)
-{
-	std::string line;
-	std::ostringstream prefix;
-	std::string::size_type start, pos, length;
-
-	try
-	{
-		prefix << this->nick << " " << dest->nick << " :";
-		line = prefix.str();
-		int namelen = strlen(ServerInstance->Config->ServerName) + 6;
-
-		for (start = 0; (pos = cl.find(' ', start)) != std::string::npos; start = pos+1)
-		{
-			length = (pos == std::string::npos) ? cl.length() : pos;
-
-			if (line.length() + namelen + length - start > 510)
-			{
-				ServerInstance->SendWhoisLine(this, dest, 319, "%s", line.c_str());
-				line = prefix.str();
-			}
-
-			if(pos == std::string::npos)
-			{
-				line.append(cl.substr(start, length - start));
-				break;
-			}
-			else
-			{
-				line.append(cl.substr(start, length - start + 1));
-			}
-		}
-
-		if (line.length())
-		{
-			ServerInstance->SendWhoisLine(this, dest, 319, "%s", line.c_str());
-		}
-	}
-
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::SplitChanList()");
-	}
-}
-
-unsigned int User::GetMaxChans()
-{
-	return this->MaxChans;
-}
-
-
 /*
  * Sets a user's connection class.
  * If the class name is provided, it will be used. Otherwise, the class will be guessed using host/ip/ident/etc.
@@ -1829,44 +1267,6 @@ ConnectClass* User::SetClass(const std::string &explicit_name)
 ConnectClass* User::GetClass()
 {
 	return this->MyClass;
-}
-
-void User::PurgeEmptyChannels()
-{
-	std::vector<Channel*> to_delete;
-
-	// firstly decrement the count on each channel
-	for (UCListIter f = this->chans.begin(); f != this->chans.end(); f++)
-	{
-		f->first->RemoveAllPrefixes(this);
-		if (f->first->DelUser(this) == 0)
-		{
-			/* No users left in here, mark it for deletion */
-			try
-			{
-				to_delete.push_back(f->first);
-			}
-			catch (...)
-			{
-				ServerInstance->Log(DEBUG,"Exception in User::PurgeEmptyChannels to_delete.push_back()");
-			}
-		}
-	}
-
-	for (std::vector<Channel*>::iterator n = to_delete.begin(); n != to_delete.end(); n++)
-	{
-		Channel* thischan = *n;
-		chan_hash::iterator i2 = ServerInstance->chanlist->find(thischan->name);
-		if (i2 != ServerInstance->chanlist->end())
-		{
-			FOREACH_MOD(I_OnChannelDelete,OnChannelDelete(i2->second));
-			delete i2->second;
-			ServerInstance->chanlist->erase(i2);
-			this->chans.erase(*n);
-		}
-	}
-
-	this->UnOper();
 }
 
 void User::ShowMOTD()

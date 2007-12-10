@@ -47,7 +47,6 @@ enum ConfigDataType
 	DT_HOSTNAME	 = 4,		/* Hostname syntax */
 	DT_NOSPACES	 = 5,		/* No spaces */
 	DT_IPADDRESS	 = 6,		/* IP address (v4, v6) */
-	DT_CHANNEL	 = 7,		/* Channel name */
 	DT_ALLOW_WILD	 = 64,		/* Allow wildcards/CIDR in DT_IPADDRESS */
 	DT_ALLOW_NEWLINE = 128		/* New line characters allowed in DT_CHARPTR */
 };
