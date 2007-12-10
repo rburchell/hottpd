@@ -153,12 +153,6 @@ void ServerConfig::Update005()
 	}
 }
 
-void ServerConfig::Send005(User* user)
-{
-	for (std::vector<std::string>::iterator line = ServerInstance->Config->isupport.begin(); line != ServerInstance->Config->isupport.end(); line++)
-		user->WriteServ("005 %s %s", user->nick, line->c_str());
-}
-
 bool ServerConfig::CheckOnce(char* tag)
 {
 	int count = ConfValueEnum(this->config_data, tag);
@@ -506,127 +500,6 @@ bool ValidateWhoWas(ServerConfig* conf, const char*, const char*, ValueItem &dat
 	return true;
 }
 
-/* Callback called before processing the first <connect> tag
- */
-bool InitConnect(ServerConfig* conf, const char*)
-{
-	conf->GetInstance()->Log(DEFAULT,"Reading connect classes...");
-
-	for (ClassVector::iterator i = conf->Classes.begin(); i != conf->Classes.end(); i++)
-	{
-		ConnectClass *c = *i;
-
-		conf->GetInstance()->Log(DEBUG, "Address of class is %p", c);
-	}
-
-	for (ClassVector::iterator i = conf->Classes.begin(); i != conf->Classes.end(); i++)
-	{
-		ConnectClass *c = *i;
-
-		/* only delete a class with refcount 0 */
-		if (c->RefCount == 0)
-		{
-			conf->GetInstance()->Log(DEFAULT, "Removing connect class, refcount is 0!");
-			conf->Classes.erase(i);
-			i = conf->Classes.begin(); // start over so we don't trample on a bad iterator
-		}
-
-		/* also mark all existing classes disabled, if they still exist in the conf, they will be reenabled. */
-		c->SetDisabled(true);
-	}
-
-	return true;
-}
-
-/* Callback called to process a single <connect> tag
- */
-bool DoConnect(ServerConfig* conf, const char*, char**, ValueList &values, int*)
-{
-	ConnectClass c;
-	const char* allow = values[0].GetString(); /* Yeah, there are a lot of values. Live with it. */
-	const char* deny = values[1].GetString();
-	const char* password = values[2].GetString();
-	int timeout = values[3].GetInteger();
-	int pingfreq = values[4].GetInteger();
-	int flood = values[5].GetInteger();
-	int threshold = values[6].GetInteger();
-	int sendq = values[7].GetInteger();
-	int recvq = values[8].GetInteger();
-	int localmax = values[9].GetInteger();
-	int globalmax = values[10].GetInteger();
-	int port = values[11].GetInteger();
-	const char* name = values[12].GetString();
-	const char* parent = values[13].GetString();
-	int maxchans = values[14].GetInteger();
-	unsigned long limit = values[15].GetInteger();
-
-	/*
-	 * duplicates check: Now we don't delete all connect classes on rehash, we need to ensure we don't add dupes.
-	 * easier said than done, but for now we'll just disallow anything with a duplicate host or name. -- w00t
-	 */
-	for (ClassVector::iterator item = conf->Classes.begin(); item != conf->Classes.end(); ++item)
-	{
-		ConnectClass* c = *item;
-		if ((*name && (c->GetName() == name)) || (*allow && (c->GetHost() == allow)) || (*deny && (c->GetHost() == deny)))
-		{
-			/* reenable class so users can be shoved into it :P */
-			c->SetDisabled(false);
-			conf->GetInstance()->Log(DEFAULT, "Not adding class, it already exists!");
-			return true;
-		} 
-	}
-
-	conf->GetInstance()->Log(DEFAULT,"Adding a connect class!");
-
-	if (*parent)
-	{
-		/* Find 'parent' and inherit a new class from it,
-		 * then overwrite any values that are set here
-		 */
-		ClassVector::iterator item = conf->Classes.begin();
-		for (; item != conf->Classes.end(); ++item)
-		{
-			ConnectClass* c = *item;
-			conf->GetInstance()->Log(DEBUG,"Class: %s", c->GetName().c_str());
-			if (c->GetName() == parent)
-			{
-				ConnectClass* newclass = new ConnectClass(name, c);
-				newclass->Update(timeout, flood, *allow ? allow : deny, pingfreq, password, threshold, sendq, recvq, localmax, globalmax, maxchans, port, limit);
-				conf->Classes.push_back(newclass);
-				break;
-			}
-		}
-		if (item == conf->Classes.end())
-			throw CoreException("Class name '" + std::string(name) + "' is configured to inherit from class '" + std::string(parent) + "' which cannot be found.");
-	}
-	else
-	{
-		if (*allow)
-		{
-			ConnectClass* c = new ConnectClass(name, timeout, flood, allow, pingfreq, password, threshold, sendq, recvq, localmax, globalmax, maxchans);
-			c->limit = limit;
-			c->SetPort(port);
-			conf->Classes.push_back(c);
-		}
-		else
-		{
-			ConnectClass* c = new ConnectClass(name, deny);
-			c->SetPort(port);
-			conf->Classes.push_back(c);
-		}
-	}
-
-	return true;
-}
-
-/* Callback called when there are no more <connect> tags
- */
-bool DoneConnect(ServerConfig *conf, const char*)
-{
-	conf->GetInstance()->Log(DEFAULT, "Done adding connect classes!");
-	return true;
-}
-
 /* Callback called before processing the first <uline> tag
  */
 bool InitULine(ServerConfig* conf, const char*)
@@ -748,25 +621,12 @@ void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail,
 		unsigned int prefixlen;
 		start = 0;
 		/* ":ServerInstance->Config->ServerName NOTICE user->nick :" */
-		if (user)
-		{
-			prefixlen = strlen(this->ServerName) + strlen(user->nick) + 11;
-			user->WriteServ("NOTICE %s :There were errors in the configuration file:",user->nick);
-			while (start < errors.length())
-			{
-				user->WriteServ("NOTICE %s :%s",user->nick, errors.substr(start, 510 - prefixlen).c_str());
-				start += 510 - prefixlen;
-			}
-		}
-		else
-		{
-//			ServerInstance->WriteOpers("There were errors in the configuration file:");
-//			while (start < errors.length())
-//			{
-//				ServerInstance->WriteOpers(errors.substr(start, 360).c_str());
-//				start += 360;
-//			}
-		}
+//		ServerInstance->WriteOpers("There were errors in the configuration file:");
+//		while (start < errors.length())
+//		{
+//			ServerInstance->WriteOpers(errors.substr(start, 360).c_str());
+//			start += 360;
+//		}
 		return;
 	}
 }
@@ -844,22 +704,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	 * which is different to the code for reading the singular tags listed above.
 	 */
 	MultiConfig MultiValues[] = {
-
-		{"connect",
-				{"allow",	"deny",		"password",	"timeout",	"pingfreq",	"flood",
-				"threshold",	"sendq",	"recvq",	"localmax",	"globalmax",	"port",
-				"name",		"parent",	"maxchans",     "limit",
-				NULL},
-				{"",		"",		"",		"",		"120",		"",
-				 "",		"",		"",		"3",		"3",		"0",
-				 "",		"",		"0",	    "0",
-				 NULL},
-				{DT_IPADDRESS|DT_ALLOW_WILD,
-						DT_IPADDRESS|DT_ALLOW_WILD,
-								DT_CHARPTR,	DT_INTEGER,	DT_INTEGER,	DT_INTEGER,
-				DT_INTEGER,	DT_INTEGER,	DT_INTEGER,	DT_INTEGER,	DT_INTEGER,	DT_INTEGER,
-				DT_NOSPACES,	DT_NOSPACES,	DT_INTEGER,     DT_INTEGER},
-				InitConnect, DoConnect, DoneConnect},
 
 		{"uline",
 				{"server",	"silent",	NULL},
@@ -1159,13 +1003,13 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 
 		if (pl.size() && user)
 		{
-			user->WriteServ("NOTICE %s :*** Not all your client ports could be bound.", user->nick);
-			user->WriteServ("NOTICE %s :*** The following port(s) failed to bind:", user->nick);
-			int j = 1;
-			for (FailedPortList::iterator i = pl.begin(); i != pl.end(); i++, j++)
-			{
-				user->WriteServ("NOTICE %s :*** %d.   IP: %s     Port: %lu", user->nick, j, i->first.empty() ? "<all>" : i->first.c_str(), (unsigned long)i->second);
-			}
+//			user->WriteServ("NOTICE %s :*** Not all your client ports could be bound.", user->nick);
+//			user->WriteServ("NOTICE %s :*** The following port(s) failed to bind:", user->nick);
+//			int j = 1;
+//			for (FailedPortList::iterator i = pl.begin(); i != pl.end(); i++, j++)
+//			{
+//				user->WriteServ("NOTICE %s :*** %d.   IP: %s     Port: %lu", user->nick, j, i->first.empty() ? "<all>" : i->first.c_str(), (unsigned long)i->second);
+//			}
 		}
 	}
 
@@ -1201,15 +1045,15 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 
 			if (ServerInstance->Modules->Load(adding->c_str()))
 			{
-				if (user)
-					user->WriteServ("975 %s %s :Module %s successfully loaded.",user->nick, adding->c_str(), adding->c_str());
+//				if (user)
+//					user->WriteServ("975 %s %s :Module %s successfully loaded.",user->nick, adding->c_str(), adding->c_str());
 
 				add++;
 			}
 			else
 			{
-				if (user)
-					user->WriteServ("974 %s %s :%s",user->nick, adding->c_str(), ServerInstance->Modules->LastError().c_str());
+//				if (user)
+//					user->WriteServ("974 %s %s :%s",user->nick, adding->c_str(), ServerInstance->Modules->LastError().c_str());
 
 				if (bail)
 				{

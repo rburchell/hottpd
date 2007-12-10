@@ -112,30 +112,12 @@ int CullList::Apply()
 		std::vector<CullItem>::iterator a = list.begin();
 
 		User *u = a->GetUser();
-		user_hash::iterator iter = ServerInstance->clientlist->find(u->nick);
 		std::map<User*, User*>::iterator exemptiter = exempt.find(u);
-		const char* preset_reason = u->GetOperQuit();
-		std::string reason = a->GetReason();
-		std::string oper_reason = *preset_reason ? preset_reason : a->GetOperReason();
-
-		if (reason.length() > MAXQUIT - 1)
-			reason.resize(MAXQUIT - 1);
-		if (oper_reason.length() > MAXQUIT - 1)
-			oper_reason.resize(MAXQUIT - 1);
-
-		if (u->registered != REG_ALL)
-			if (ServerInstance->unregistered_count)
-				ServerInstance->unregistered_count--;
 
 		if (IS_LOCAL(u))
 		{
 			if ((!u->sendq.empty()) && (!(*u->GetWriteError())))
 				u->FlushWriteBuf();
-		}
-
-		if (u->registered == REG_ALL)
-		{
-			FOREACH_MOD_I(ServerInstance,I_OnUserQuit,OnUserQuit(u, reason, oper_reason));
 		}
 
 		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(u));
@@ -158,15 +140,11 @@ int CullList::Apply()
 			u->CloseSocket();
 		}
 
-		if (iter != ServerInstance->clientlist->end())
+		if (IS_LOCAL(u))
 		{
-			if (IS_LOCAL(u))
-			{
-				std::vector<User*>::iterator x = find(ServerInstance->local_users.begin(),ServerInstance->local_users.end(),u);
-				if (x != ServerInstance->local_users.end())
-					ServerInstance->local_users.erase(x);
-			}
-			ServerInstance->clientlist->erase(iter);
+			std::vector<User*>::iterator x = find(ServerInstance->local_users.begin(),ServerInstance->local_users.end(),u);
+			if (x != ServerInstance->local_users.end())
+				ServerInstance->local_users.erase(x);
 			delete u;
 		}
 

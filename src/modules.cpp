@@ -109,7 +109,6 @@ std::string Event::GetEventID()
 void		Module::OnReadConfig(ServerConfig*, ConfigReader*) { }
 int		Module::OnDownloadFile(const std::string&, std::istream*&) { return 0; }
 void		Module::OnUserConnect(User*) { }
-void		Module::OnUserQuit(User*, const std::string&, const std::string&) { }
 void		Module::OnUserDisconnect(User*) { }
 void		Module::OnRehash(User*, const std::string&) { }
 void		Module::OnServerRaw(std::string&, bool, User*) { }

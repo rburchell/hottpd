@@ -145,27 +145,6 @@ int CommandParser::LoopCall(User* user, Command* CommandObj, const char** parame
 	return 1;
 }
 
-bool CommandParser::IsValidCommand(const std::string &commandname, int pcnt, User * user)
-{
-	Commandable::iterator n = cmdlist.find(commandname);
-
-	if (n != cmdlist.end())
-	{
-		if ((pcnt>=n->second->min_params) && (n->second->source != "<core>"))
-		{
-			if (IS_LOCAL(user) && n->second->flags_needed)
-			{
-				return (user->HasPermission(commandname));
-			}
-			else
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
 Command* CommandParser::GetHandler(const std::string &commandname)
 {
 	Commandable::iterator n = cmdlist.find(commandname);
@@ -177,41 +156,9 @@ Command* CommandParser::GetHandler(const std::string &commandname)
 
 // calls a handler function for a command
 
-CmdResult CommandParser::CallHandler(const std::string &commandname,const char** parameters, int pcnt, User *user)
-{
-	Commandable::iterator n = cmdlist.find(commandname);
-
-	if (n != cmdlist.end())
-	{
-		if (pcnt >= n->second->min_params)
-		{
-			bool bOkay = false;
-
-			if (IS_LOCAL(user) && n->second->flags_needed)
-			{
-				/* if user is local, and flags are needed .. */
-
-				/* if user has the flags, and now has the permissions, go ahead */
-				if (user->HasPermission(commandname))
-					bOkay = true;
-			}
-			else
-			{
-				/* remote or no flags required anyway */
-				bOkay = true;
-			}
-
-			if (bOkay)
-			{
-				return n->second->Handle(parameters,pcnt,user);
-			}
-		}
-	}
-	return CMD_INVALID;
-}
-
 void CommandParser::DoLines(User* current, bool one_only)
 {
+#if 0
 	// while there are complete lines to process...
 	unsigned int floodlines = 0;
 
@@ -249,10 +196,12 @@ void CommandParser::DoLines(User* current, bool one_only)
 		if (!ServerInstance->Parser->ProcessBuffer(single_line, current) || one_only)
 			break;
 	}
+#endif
 }
 
 bool CommandParser::ProcessCommand(User *user, std::string &cmd)
 {
+#if 0
 	const char *command_p[MAXPARAMETERS];
 	int items = 0;
 	irc::tokenstream tokens(cmd);
@@ -348,6 +297,7 @@ bool CommandParser::ProcessCommand(User *user, std::string &cmd)
 		FOREACH_MOD(I_OnPostCommand,OnPostCommand(command, command_p, items, user, result,cmd));
 		return do_more;
 	}
+#endif
 }
 
 bool CommandParser::RemoveCommands(const char* source)
@@ -382,6 +332,7 @@ void CommandParser::RemoveCommand(Commandable::iterator safei, const char* sourc
 
 bool CommandParser::ProcessBuffer(std::string &buffer,User *user)
 {
+#if 0
 	std::string::size_type a;
 
 	if (!user)
@@ -401,178 +352,11 @@ bool CommandParser::ProcessBuffer(std::string &buffer,User *user)
 		}
 	}
 	return true;
-}
-
-bool CommandParser::CreateCommand(Command *f, void* so_handle)
-{
-	if (so_handle)
-	{
-		if (RFCCommands.find(f->command) == RFCCommands.end())
-			RFCCommands[f->command] = so_handle;
-		else
-		{
-			ServerInstance->Log(DEFAULT,"ERK! Somehow, we loaded a cmd_*.so file twice! Only the first instance is being recorded.");
-			return false;
-		}
-	}
-
-	/* create the command and push it onto the table */
-	if (cmdlist.find(f->command) == cmdlist.end())
-	{
-		cmdlist[f->command] = f;
-		return true;
-	}
-	else return false;
+#endif
 }
 
 CommandParser::CommandParser(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	para.resize(128);
-}
-
-bool CommandParser::FindSym(void** v, void* h, const std::string &name)
-{
-	*v = dlsym(h, "init_command");
-	const char* err = dlerror();
-	if (err && !(*v))
-	{
-		ServerInstance->Log(SPARSE, "Error loading core command %s: %s\n", name.c_str(), err);
-		return false;
-	}
-	return true;
-}
-
-bool CommandParser::ReloadCommand(const char* cmd, User* user)
-{
-	char filename[MAXBUF];
-	char commandname[MAXBUF];
-	int y = 0;
-
-	for (const char* x = cmd; *x; x++, y++)
-		commandname[y] = toupper(*x);
-
-	commandname[y] = 0;
-
-	SharedObjectList::iterator command = RFCCommands.find(commandname);
-
-	if (command != RFCCommands.end())
-	{
-		Command* cmdptr = cmdlist.find(commandname)->second;
-		cmdlist.erase(cmdlist.find(commandname));
-
-		for (char* x = commandname; *x; x++)
-			*x = tolower(*x);
-
-
-		delete cmdptr;
-		dlclose(command->second);
-		RFCCommands.erase(command);
-
-		snprintf(filename, MAXBUF, "cmd_%s.so", commandname);
-		const char* err = this->LoadCommand(filename);
-		if (err)
-		{
-			if (user)
-				user->WriteServ("NOTICE %s :*** Error loading 'cmd_%s.so': %s", user->nick, cmd, err);
-			return false;
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-CmdResult cmd_reload::Handle(const char** parameters, int /* pcnt */, User *user)
-{
-	user->WriteServ("NOTICE %s :*** Reloading command '%s'",user->nick, parameters[0]);
-	if (ServerInstance->Parser->ReloadCommand(parameters[0], user))
-	{
-		user->WriteServ("NOTICE %s :*** Successfully reloaded command '%s'", user->nick, parameters[0]);
-		return CMD_SUCCESS;
-	}
-	else
-	{
-		user->WriteServ("NOTICE %s :*** Could not reload command '%s' -- fix this problem, then /REHASH as soon as possible!", user->nick, parameters[0]);
-		return CMD_FAILURE;
-	}
-}
-
-const char* CommandParser::LoadCommand(const char* name)
-{
-	char filename[MAXBUF];
-	void* h;
-	Command* (*cmd_factory_func)(InspIRCd*);
-
-	/* Command already exists? Succeed silently - this is needed for REHASH */
-	if (RFCCommands.find(name) != RFCCommands.end())
-	{
-		ServerInstance->Log(DEBUG,"Not reloading command %s/%s, it already exists", LIBRARYDIR, name);
-		return NULL;
-	}
-
-	snprintf(filename, MAXBUF, "%s/%s", LIBRARYDIR, name);
-	h = dlopen(filename, RTLD_NOW | RTLD_GLOBAL);
-
-	if (!h)
-	{
-		const char* n = dlerror();
-		ServerInstance->Log(SPARSE, "Error loading core command %s: %s", name, n);
-		return n;
-	}
-
-	if (this->FindSym((void **)&cmd_factory_func, h, name))
-	{
-		Command* newcommand = cmd_factory_func(ServerInstance);
-		this->CreateCommand(newcommand, h);
-	}
-	return NULL;
-}
-
-void CommandParser::SetupCommandTable(User* user)
-{
-	RFCCommands.clear();
-
-	if (!user)
-	{
-		printf("\nLoading core commands");
-		fflush(stdout);
-	}
-
-	DIR* library = opendir(LIBRARYDIR);
-	if (library)
-	{
-		dirent* entry = NULL;
-		while ((entry = readdir(library)))
-		{
-			if (match(entry->d_name, "cmd_*.so"))
-			{
-				if (!user)
-				{
-					printf(".");
-					fflush(stdout);
-				}
-				const char* err = this->LoadCommand(entry->d_name);
-				if (err)
-				{
-					if (user)
-					{
-						user->WriteServ("NOTICE %s :*** Failed to load core command %s: %s", user->nick, entry->d_name, err);
-					}
-					else
-					{
-						printf("Error loading %s: %s", entry->d_name, err);
-						exit(EXIT_STATUS_BADHANDLER);
-					}
-				}
-			}
-		}
-		closedir(library);
-		if (!user)
-			printf("\n");
-	}
-
-	if (cmdlist.find("RELOAD") == cmdlist.end())
-		this->CreateCommand(new cmd_reload(ServerInstance));
 }
 

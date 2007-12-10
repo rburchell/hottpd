@@ -507,10 +507,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	char PID[1024];
 
-	/** The connect classes in use by the IRC server.
-	 */
-	ClassVector Classes;
-
 	/** A list of the classes for listening client ports
 	 */
 	std::vector<ListenSocket*> ports;

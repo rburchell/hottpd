@@ -46,16 +46,6 @@ class CoreExport connection : public EventHandler
 	 */
 	int cmds_out;
 
-	/** True if user has authenticated, false if otherwise
-	 */
-	bool haspassed;
-
-	/** Used by User to indicate the registration status of the connection
-	 * It is a bitfield of the REG_NICK, REG_USER and REG_ALL bits to indicate
-	 * the connection state.
-	 */
-	char registered;
-	
 	/** Time the connection was last pinged
 	 */
 	time_t lastping;
