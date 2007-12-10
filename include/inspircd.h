@@ -30,6 +30,7 @@
 #include <sstream>
 #include <list>
 #include "inspircd_config.h"
+#include "configreader.h"
 #include "users.h"
 #include "socket.h"
 #include "socketengine.h"
@@ -37,6 +38,8 @@
 #include "cull_list.h"
 #include "filelogger.h"
 #include "caller.h"
+#include "timer.h"
+#include "modules.h"
 
 /**
  * Used to define the maximum number of parameters a command may have.
@@ -244,15 +247,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool DaemonSeed();
 
-	/** Iterate the list of BufferedSocket objects, removing ones which have timed out
-	 * @param TIME the current time
-	 */
-	void DoSocketTimeouts(time_t TIME);
-
-	/** Sets up UID subsystem
-	 */
-	void InitialiseUID();
-
 	/** Perform background user events such as PING checks
 	 */
 	void DoBackgroundUserStuff();
@@ -310,11 +304,6 @@ class CoreExport InspIRCd : public classbase
 
 	ProcessUserHandler HandleProcessUser;
 	FloodQuitUserHandler HandleFloodQuitUser;
-
-	/** BufferedSocket classes pending deletion after being closed.
-	 * We don't delete these immediately as this may cause a segmentation fault.
-	 */
-	std::map<BufferedSocket*,BufferedSocket*> SocketCull;
 
 	User *FindDescriptorHandler(int);
 
@@ -873,11 +862,6 @@ class CoreExport InspIRCd : public classbase
 	 * @return The return value for this function is undefined.
 	 */
 	int Run();
-
-	/** Force all BufferedSockets to be removed which are due to
-	 * be culled.
-	 */
-	void BufferedSocketCull();
 
 	char* GetReadBuffer()
 	{

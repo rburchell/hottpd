@@ -23,27 +23,9 @@
 #include <deque>
 #include <sstream>
 #include "timer.h"
-#include "mode.h"
 #include "dns.h"
 
 class XLine;
-
-/** Used with OnAccessCheck() method of modules
- */
-enum AccessControlType {
-	ACR_DEFAULT,		// Do default action (act as if the module isnt even loaded)
-	ACR_DENY,		// deny the action
-	ACR_ALLOW,		// allow the action
-	AC_KICK,		// a user is being kicked
-	AC_DEOP,		// a user is being deopped
-	AC_OP,			// a user is being opped
-	AC_VOICE,		// a user is being voiced
-	AC_DEVOICE,		// a user is being devoiced
-	AC_HALFOP,		// a user is being halfopped
-	AC_DEHALFOP,		// a user is being dehalfopped
-	AC_INVITE,		// a user is being invited
-	AC_GENERAL_MODE		// a channel mode is being changed
-};
 
 /** Used to define a set of behavior bits for a module
  */
@@ -54,27 +36,12 @@ enum ModuleFlags {
 	VF_COMMON = 8		// module needs to be common on all servers in a network to link
 };
 
-/** Used with SendToMode()
- */
-enum WriteModeFlags {
-	WM_AND = 1,
-	WM_OR = 2
-};
-
 /** Used to represent an event type, for user, channel or server
  */
 enum TargetTypeFlags {
 	TYPE_USER = 1,
-	TYPE_CHANNEL,
 	TYPE_SERVER,
 	TYPE_OTHER
-};
-
-/** Used to represent wether a message was PRIVMSG or NOTICE
- */
-enum MessageType {
-	MSG_PRIVMSG = 0,
-	MSG_NOTICE = 1
 };
 
 /** If you change the module API, change this value.
@@ -83,17 +50,16 @@ enum MessageType {
  * ipv4 servers, so this value will be ten times as
  * high on ipv6 servers.
  */
-#define NATIVE_API_VERSION 12000
+#define NATIVE_API_VERSION 10000
 #ifdef IPV6
 #define API_VERSION (NATIVE_API_VERSION * 10)
 #else
 #define API_VERSION (NATIVE_API_VERSION * 1)
 #endif
 
-class ServerConfig;
-
-/* Forward-delacare module for ModuleMessage etc
+/* Forward-declare module for ModuleMessage etc
  */
+class ServerConfig;
 class Module;
 class InspIRCd;
 
@@ -470,42 +436,6 @@ class CoreExport Module : public Extensible
 	 */
 	virtual void OnUserDisconnect(User* user);
 
-	/** Called whenever a channel is deleted, either by QUIT, KICK or PART.
-	 * @param chan The channel being deleted
-	 */
-	virtual void OnChannelDelete(Channel* chan);
-
-	/** Called when a user joins a channel.
-	 * The details of the joining user are available to you in the parameter User *user,
-	 * and the details of the channel they have joined is available in the variable Channel *channel
-	 * @param user The user who is joining
-	 * @param channel The channel being joined
-	 * @param silent Change this to true if you want to conceal the JOIN command from the other users
-	 * of the channel (useful for modules such as auditorium)
-	 * @param sync This is set to true if the JOIN is the result of a network sync and the remote user is being introduced
-	 * to a channel due to the network sync.
-	 */
-	virtual void OnUserJoin(User* user, Channel* channel, bool sync, bool &silent);
-
-	/** Called after a user joins a channel
-	 * Identical to OnUserJoin, but called immediately afterwards, when any linking module has
-	 * seen the join.
-	 * @param user The user who is joining
-	 * @param channel The channel being joined
-	 */
-	virtual void OnPostJoin(User* user, Channel* channel);
-
-	/** Called when a user parts a channel.
-	 * The details of the leaving user are available to you in the parameter User *user,
-	 * and the details of the channel they have left is available in the variable Channel *channel
-	 * @param user The user who is parting
-	 * @param channel The channel being parted
-	 * @param partmessage The part message, or an empty string
-	 * @param silent Change this to true if you want to conceal the PART command from the other users
-	 * of the channel (useful for modules such as auditorium)
-	 */
-	virtual void OnUserPart(User* user, Channel* channel, const std::string &partmessage, bool &silent);
-
 	/** Called on rehash.
 	 * This method is called prior to a /REHASH or when a SIGHUP is received from the operating
 	 * system. You should use it to reload any files so that your module keeps in step with the
@@ -529,51 +459,6 @@ class CoreExport Module : public Extensible
 	 * @param user The user record sending the text, when inbound == true.
 	 */
  	virtual void OnServerRaw(std::string &raw, bool inbound, User* user);
-
-	/** Called whenever a user is about to join a channel, before any processing is done.
-	 * Returning a value of 1 from this function stops the process immediately, causing no
-	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
-	 * notices etc. This is useful for modules which may want to mimic +b, +k, +l etc. Returning -1 from
-	 * this function forces the join to be allowed, bypassing restrictions such as banlists, invite, keys etc.
-	 *
-	 * IMPORTANT NOTE!
-	 *
-	 * If the user joins a NEW channel which does not exist yet, OnUserPreJoin will be called BEFORE the channel
-	 * record is created. This will cause Channel* chan to be NULL. There is very little you can do in form of
-	 * processing on the actual channel record at this point, however the channel NAME will still be passed in
-	 * char* cname, so that you could for example implement a channel blacklist or whitelist, etc.
-	 * @param user The user joining the channel
-	 * @param chan If the  channel is a new channel, this will be NULL, otherwise it will be a pointer to the channel being joined
-	 * @param cname The channel name being joined. For new channels this is valid where chan is not.
-	 * @param privs A string containing the users privilages when joining the channel. For new channels this will contain "@".
-	 * You may alter this string to alter the user's modes on the channel.
-	 * @return 1 To prevent the join, 0 to allow it.
-	 */
-	virtual int OnUserPreJoin(User* user, Channel* chan, const char* cname, std::string &privs);
-	
-	/** Called whenever a user is about to be kicked.
-	 * Returning a value of 1 from this function stops the process immediately, causing no
-	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
-	 * notices etc.
-	 * @param source The user issuing the kick
-	 * @param user The user being kicked
-	 * @param chan The channel the user is being kicked from
-	 * @param reason The kick reason
-	 * @return 1 to prevent the kick, 0 to continue normally, -1 to explicitly allow the kick regardless of normal operation
-	 */
-	virtual int OnUserPreKick(User* source, User* user, Channel* chan, const std::string &reason);
-
-	/** Called whenever a user is kicked.
-	 * If this method is called, the kick is already underway and cannot be prevented, so
-	 * to prevent a kick, please use Module::OnUserPreKick instead of this method.
-	 * @param source The user issuing the kick
-	 * @param user The user being kicked
-	 * @param chan The channel the user is being kicked from
-	 * @param reason The kick reason
-	 * @param silent Change this to true if you want to conceal the PART command from the other users
-	 * of the channel (useful for modules such as auditorium)
-	 */
-	virtual void OnUserKick(User* source, User* user, Channel* chan, const std::string &reason, bool &silent);
 
 	/** Called whenever a user opers locally.
 	 * The User will contain the oper mode 'o' as this function is called after any modifications
@@ -612,76 +497,6 @@ class CoreExport Module : public Extensible
 	 */
 	virtual void OnWhois(User* source, User* dest);
 	
-	/** Called whenever a user is about to invite another user into a channel, before any processing is done.
-	 * Returning 1 from this function stops the process immediately, causing no
-	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
-	 * notices etc. This is useful for modules which may want to filter invites to channels.
-	 * @param source The user who is issuing the INVITE
-	 * @param dest The user being invited
-	 * @param channel The channel the user is being invited to
-	 * @return 1 to deny the invite, 0 to allow
-	 */
-	virtual int OnUserPreInvite(User* source,User* dest,Channel* channel);
-	
-	/** Called after a user has been successfully invited to a channel.
-	 * You cannot prevent the invite from occuring using this function, to do that,
-	 * use OnUserPreInvite instead.
-	 * @param source The user who is issuing the INVITE
-	 * @param dest The user being invited
-	 * @param channel The channel the user is being invited to
-	 */
-	virtual void OnUserInvite(User* source,User* dest,Channel* channel);
-	
-	/** Called whenever a user is about to PRIVMSG A user or a channel, before any processing is done.
-	 * Returning any nonzero value from this function stops the process immediately, causing no
-	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
-	 * notices etc. This is useful for modules which may want to filter or redirect messages.
-	 * target_type can be one of TYPE_USER or TYPE_CHANNEL. If the target_type value is a user,
-	 * you must cast dest to a User* otherwise you must cast it to a Channel*, this is the details
-	 * of where the message is destined to be sent.
-	 * @param user The user sending the message
-	 * @param dest The target of the message (Channel* or User*)
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text Changeable text being sent by the user
-	 * @param status The status being used, e.g. PRIVMSG @#chan has status== '@', 0 to send to everyone.
-	 * @param exempt_list A list of users not to send to. For channel messages, this will usually contain just the sender.
-	 * It will be ignored for private messages.
-	 * @return 1 to deny the NOTICE, 0 to allow it
-	 */
-	virtual int OnUserPreMessage(User* user,void* dest,int target_type, std::string &text,char status, CUList &exempt_list);
-
-	/** Called whenever a user is about to NOTICE A user or a channel, before any processing is done.
-	 * Returning any nonzero value from this function stops the process immediately, causing no
-	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
-	 * notices etc. This is useful for modules which may want to filter or redirect messages.
-	 * target_type can be one of TYPE_USER or TYPE_CHANNEL. If the target_type value is a user,
-	 * you must cast dest to a User* otherwise you must cast it to a Channel*, this is the details
-	 * of where the message is destined to be sent.
-	 * You may alter the message text as you wish before relinquishing control to the next module
-	 * in the chain, and if no other modules block the text this altered form of the text will be sent out
-	 * to the user and possibly to other servers.
-	 * @param user The user sending the message
-	 * @param dest The target of the message (Channel* or User*)
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text Changeable text being sent by the user
-	 * @param status The status being used, e.g. PRIVMSG @#chan has status== '@', 0 to send to everyone.
-	 * @param exempt_list A list of users not to send to. For channel notices, this will usually contain just the sender.
-	 * It will be ignored for private notices.
-	 * @return 1 to deny the NOTICE, 0 to allow it
-	 */
-	virtual int OnUserPreNotice(User* user,void* dest,int target_type, std::string &text,char status, CUList &exempt_list);
-
-	/** Called whenever the server wants to build the exemption list for a channel, but is not directly doing a PRIVMSG or NOTICE.
-	 * For example, the spanningtree protocol will call this event when passing a privmsg on (but not processing it directly).
-	 * @param message_type The message type, either MSG_PRIVMSG or MSG_NOTICE
-	 * @param chan The channel to build the exempt list of
-	 * @param sender The original sender of the PRIVMSG or NOTICE
-	 * @param status The status char to be used for the channel list
-	 * @param exempt_list The exempt list to be populated
-	 * @param text The original message text causing the exempt list to be built
-	 */
-	virtual void OnBuildExemptList(MessageType message_type, Channel* chan, User* sender, char status, CUList &exempt_list, const std::string &text);
-	
 	/** Called before any nickchange, local or remote. This can be used to implement Q-lines etc.
 	 * Please note that although you can see remote nickchanges through this function, you should
 	 * NOT make any changes to the User if the user is a remote user as this may cause a desnyc.
@@ -693,42 +508,6 @@ class CoreExport Module : public Extensible
 	 * @return 1 to deny the change, 0 to allow
 	 */
 	virtual int OnUserPreNick(User* user, const std::string &newnick);
-
-	/** Called after any PRIVMSG sent from a user.
-	 * The dest variable contains a User* if target_type is TYPE_USER and a Channel*
-	 * if target_type is TYPE_CHANNEL.
-	 * @param user The user sending the message
-	 * @param dest The target of the message
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text the text being sent by the user
-	 * @param status The status being used, e.g. PRIVMSG @#chan has status== '@', 0 to send to everyone.
-	 */
-	virtual void OnUserMessage(User* user, void* dest, int target_type, const std::string &text, char status, const CUList &exempt_list);
-
-	/** Called after any NOTICE sent from a user.
-	 * The dest variable contains a User* if target_type is TYPE_USER and a Channel*
-	 * if target_type is TYPE_CHANNEL.
-	 * @param user The user sending the message
-	 * @param dest The target of the message
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text the text being sent by the user
-	 * @param status The status being used, e.g. NOTICE @#chan has status== '@', 0 to send to everyone.
-	 */
-	virtual void OnUserNotice(User* user, void* dest, int target_type, const std::string &text, char status, const CUList &exempt_list);
-
-	/** Called immediately before any NOTICE or PRIVMSG sent from a user, local or remote.
-	 * The dest variable contains a User* if target_type is TYPE_USER and a Channel*
-	 * if target_type is TYPE_CHANNEL.
-	 * The difference between this event and OnUserPreNotice/OnUserPreMessage is that delivery is gauranteed,
-	 * the message has already been vetted. In the case of the other two methods, a later module may stop your
-	 * message. This also differs from OnUserMessage which occurs AFTER the message has been sent.
-	 * @param user The user sending the message
-	 * @param dest The target of the message
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text the text being sent by the user
-	 * @param status The status being used, e.g. NOTICE @#chan has status== '@', 0 to send to everyone.
-	 */
-	virtual void OnText(User* user, void* dest, int target_type, const std::string &text, char status, CUList &exempt_list);
 
 	/** Called after every MODE command sent from a user
 	 * The dest variable contains a User* if target_type is TYPE_USER and a Channel*
@@ -764,38 +543,6 @@ class CoreExport Module : public Extensible
 	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
 	 */
 	virtual void OnSyncUser(User* user, Module* proto, void* opaque);
-
-	/** Allows modules to synchronize data which relates to channels during a netburst.
-	 * When this function is called, it will be called from the module which implements
-	 * the linking protocol. This currently is m_spanningtree.so. A pointer to this module
-	 * is given in Module* proto, so that you may call its methods such as ProtoSendMode
-	 * (see below). This function will be called for every user visible on your side
-	 * of the burst, allowing you to for example set modes, etc. Do not use this call to
-	 * synchronize data which you have stored using class Extensible -- There is a specialist
-	 * function OnSyncUserMetaData and OnSyncChannelMetaData for this!
-	 *
-	 * For a good example of how to use this function, please see src/modules/m_chanprotect.cpp
-	 *
-	 * @param chan The channel being syncronized
-	 * @param proto A pointer to the module handling network protocol
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 */
-	virtual void OnSyncChannel(Channel* chan, Module* proto, void* opaque);
-
-	/* Allows modules to syncronize metadata related to channels over the network during a netburst.
-	 * Whenever the linking module wants to send out data, but doesnt know what the data
-	 * represents (e.g. it is Extensible metadata, added to a User or Channel by a module) then
-	 * this method is called.You should use the ProtoSendMetaData function after you've
-	 * correctly decided how the data should be represented, to send the metadata on its way if it belongs
-	 * to your module. For a good example of how to use this method, see src/modules/m_swhois.cpp.
-	 * @param chan The channel whos metadata is being syncronized
-	 * @param proto A pointer to the module handling network protocol
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 * @param extname The extensions name which is being searched for
-	 * @param displayable If this value is true, the data is going to be displayed to a user,
-	 * and not sent across the network. Use this to determine wether or not to show sensitive data.
-	 */
-	virtual void OnSyncChannelMetaData(Channel* chan, Module* proto,void* opaque, const std::string &extname, bool displayable = false);
 
 	/* Allows modules to syncronize metadata related to users over the network during a netburst.
 	 * Whenever the linking module wants to send out data, but doesnt know what the data
@@ -927,39 +674,6 @@ class CoreExport Module : public Extensible
 	 */
 	virtual void OnUserPostNick(User* user, const std::string &oldnick);
 
-	/** Called before an action which requires a channel privilage check.
-	 * This function is called before many functions which check a users status on a channel, for example
-	 * before opping a user, deopping a user, kicking a user, etc.
-	 * There are several values for access_type which indicate for what reason access is being checked.
-	 * These are:<br><br>
-	 * AC_KICK (0) - A user is being kicked<br>
-	 * AC_DEOP (1) - a user is being deopped<br>
-	 * AC_OP (2) - a user is being opped<br>
-	 * AC_VOICE (3) - a user is being voiced<br>
-	 * AC_DEVOICE (4) - a user is being devoiced<br>
-	 * AC_HALFOP (5) - a user is being halfopped<br>
-	 * AC_DEHALFOP (6) - a user is being dehalfopped<br>
-	 * AC_INVITE () - a user is being invited<br>
-	 * AC_GENERAL_MODE (8) - a user channel mode is being changed<br><br>
-	 * Upon returning from your function you must return either ACR_DEFAULT, to indicate the module wishes
-	 * to do nothing, or ACR_DENY where approprate to deny the action, and ACR_ALLOW where appropriate to allow
-	 * the action. Please note that in the case of some access checks (such as AC_GENERAL_MODE) access may be
-	 * denied 'upstream' causing other checks such as AC_DEOP to not be reached. Be very careful with use of the
-	 * AC_GENERAL_MODE type, as it may inadvertently override the behaviour of other modules. When the access_type
-	 * is AC_GENERAL_MODE, the destination of the mode will be NULL (as it has not yet been determined).
-	 * @param source The source of the access check
-	 * @param dest The destination of the access check
-	 * @param channel The channel which is being checked
-	 * @param access_type See above
-	 */
-	virtual int OnAccessCheck(User* source,User* dest,Channel* channel,int access_type);
-
-	/** Called when a 005 numeric is about to be output.
-	 * The module should modify the 005 numeric if needed to indicate its features.
-	 * @param output The 005 string to be modified if neccessary.
-	 */
-	virtual void On005Numeric(std::string &output);
-
 	/** Called when a client is disconnected by KILL.
 	 * If a client is killed by a server, e.g. a nickname collision or protocol error,
 	 * source is NULL.
@@ -1074,47 +788,6 @@ class CoreExport Module : public Extensible
 	 */
 	virtual int OnUserRegister(User* user);
 
-	/** Called whenever a user joins a channel, to determine if invite checks should go ahead or not.
-	 * This method will always be called for each join, wether or not the channel is actually +i, and
-	 * determines the outcome of an if statement around the whole section of invite checking code.
-	 * return 1 to explicitly allow the join to go ahead or 0 to ignore the event.
-	 * @param user The user joining the channel
-	 * @param chan The channel being joined
-	 * @return 1 to explicitly allow the join, 0 to proceed as normal
-	 */
-	virtual int OnCheckInvite(User* user, Channel* chan);
-
-	/** Called whenever a user joins a channel, to determine if key checks should go ahead or not.
-	 * This method will always be called for each join, wether or not the channel is actually +k, and
-	 * determines the outcome of an if statement around the whole section of key checking code.
-	 * if the user specified no key, the keygiven string will be a valid but empty value.
-	 * return 1 to explicitly allow the join to go ahead or 0 to ignore the event.
-	 * @param user The user joining the channel
-	 * @param chan The channel being joined
-	 * @return 1 to explicitly allow the join, 0 to proceed as normal
-	 */
-	virtual int OnCheckKey(User* user, Channel* chan, const std::string &keygiven);
-
-	/** Called whenever a user joins a channel, to determine if channel limit checks should go ahead or not.
-	 * This method will always be called for each join, wether or not the channel is actually +l, and
-	 * determines the outcome of an if statement around the whole section of channel limit checking code.
-	 * return 1 to explicitly allow the join to go ahead or 0 to ignore the event.
-	 * @param user The user joining the channel
-	 * @param chan The channel being joined
-	 * @return 1 to explicitly allow the join, 0 to proceed as normal
-	 */
-	virtual int OnCheckLimit(User* user, Channel* chan);
-
-	/** Called whenever a user joins a channel, to determine if banlist checks should go ahead or not.
-	 * This method will always be called for each join, wether or not the user actually matches a channel ban, and
-	 * determines the outcome of an if statement around the whole section of ban checking code.
-	 * return 1 to explicitly allow the join to go ahead or 0 to ignore the event.
-	 * @param user The user joining the channel
-	 * @param chan The channel being joined
-	 * @return 1 to explicitly allow the join, 0 to proceed as normal
-	 */
-	virtual int OnCheckBan(User* user, Channel* chan);
-
 	/** Called on all /STATS commands
 	 * This method is triggered for all /STATS use, including stats symbols handled by the core.
 	 * @param symbol the symbol provided to /STATS
@@ -1141,23 +814,6 @@ class CoreExport Module : public Extensible
 	 * @return 1 to deny the GECOS change, 0 to allow
 	 */
 	virtual int OnChangeLocalUserGECOS(User* user, const std::string &newhost); 
-
-	/** Called whenever a topic is changed by a local user.
-	 * Return 1 to deny the topic change, or 0 to allow it.
-	 * @param user The user changing the topic
-	 * @param chan The channels who's topic is being changed
-	 * @param topic The actual topic text
-	 * @param 1 to block the topic change, 0 to allow
-	 */
-	virtual int OnLocalTopicChange(User* user, Channel* chan, const std::string &topic);
-
-	/** Called whenever a local topic has been changed.
-	 * To block topic changes you must use OnLocalTopicChange instead.
-	 * @param user The user changing the topic
-	 * @param chan The channels who's topic is being changed
-	 * @param topic The actual topic text
-	 */
-	virtual void OnPostLocalTopicChange(User* user, Channel* chan, const std::string &topic);
 
 	/** Called whenever an Event class is sent to all module by another module.
 	 * Please see the documentation of Event::Send() for further information. The Event sent can
@@ -1203,24 +859,6 @@ class CoreExport Module : public Extensible
 	 * @param user The user who is connecting
 	 */
 	virtual void OnPostConnect(User* user);
-
-	/** Called whenever a ban is added to a channel's list.
-	 * Return a non-zero value to 'eat' the mode change and prevent the ban from being added.
-	 * @param source The user adding the ban
-	 * @param channel The channel the ban is being added to
-	 * @param banmask The ban mask being added
-	 * @return 1 to block the ban, 0 to continue as normal
-	 */
-	virtual int OnAddBan(User* source, Channel* channel,const std::string &banmask);
-
-	/** Called whenever a ban is removed from a channel's list.
-	 * Return a non-zero value to 'eat' the mode change and prevent the ban from being removed.
-	 * @param source The user deleting the ban
-	 * @param channel The channel the ban is being deleted from
-	 * @param banmask The ban mask being deleted
-	 * @return 1 to block the unban, 0 to continue as normal
-	 */
-	virtual int OnDelBan(User* source, Channel* channel,const std::string &banmask);
 
 	/** Called immediately after any  connection is accepted. This is intended for raw socket
 	 * processing (e.g. modules which wrap the tcp connection within another library) and provides
@@ -1285,21 +923,6 @@ class CoreExport Module : public Extensible
 	 * @param user The user returning from away
 	 */
 	virtual void OnCancelAway(User* user);
-
-	/** Called whenever a NAMES list is requested.
-	 * You can produce the nameslist yourself, overriding the current list,
-	 * and if you do you must return 1. If you do not handle the names list,
-	 * return 0.
-	 * @param The user requesting the NAMES list
-	 * @param Ptr The channel the NAMES list is requested for
-	 * @param userlist The user list for the channel (you may change this pointer.
-	 * If you want to change the values, take a copy first, and change the copy, then
-	 * point the pointer at your copy)
-	 * @return 1 to prevent the user list being sent to the client, 0 to allow it.
-	 * Returning -1 allows the names list, but bypasses any checks which check for
-	 * channel membership before sending the names list.
-	 */
-	virtual int OnUserList(User* user, Channel* Ptr, CUList* &userlist);
 
 	/** Called whenever a line of WHOIS output is sent to a user.
 	 * You may change the numeric and the text of the output by changing

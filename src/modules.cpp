@@ -124,8 +124,6 @@ void		Module::OnPostOper(User*, const std::string&) { }
 void		Module::OnInfo(User*) { }
 void		Module::OnWhois(User*, User*) { }
 int		Module::OnUserPreInvite(User*, User*, Channel*) { return 0; }
-int		Module::OnUserPreMessage(User*, void*, int, std::string&, char, CUList&) { return 0; }
-int		Module::OnUserPreNotice(User*, void*, int, std::string&, char, CUList&) { return 0; }
 int		Module::OnUserPreNick(User*, const std::string&) { return 0; }
 void		Module::OnUserPostNick(User*, const std::string&) { }
 int		Module::OnAccessCheck(User*, User*, Channel*, int) { return ACR_DEFAULT; }
@@ -160,8 +158,6 @@ int		Module::OnRawSocketWrite(int, const char*, int) { return 0; }
 void		Module::OnRawSocketClose(int) { }
 void		Module::OnRawSocketConnect(int) { }
 int		Module::OnRawSocketRead(int, char*, unsigned int, int&) { return 0; }
-void		Module::OnUserMessage(User*, void*, int, const std::string&, char, const CUList&) { }
-void		Module::OnUserNotice(User*, void*, int, const std::string&, char, const CUList&) { }
 void 		Module::OnRemoteKill(User*, User*, const std::string&, const std::string&) { }
 void		Module::OnUserInvite(User*, User*, Channel*) { }
 void		Module::OnPostLocalTopicChange(User*, Channel*, const std::string&) { }
@@ -183,12 +179,9 @@ void 		Module::OnCleanup(int, void*) { }
 void		Module::OnChannelDelete(Channel*) { }
 void		Module::OnSetAway(User*) { }
 void		Module::OnCancelAway(User*) { }
-int		Module::OnUserList(User*, Channel*, CUList*&) { return 0; }
 int		Module::OnWhoisLine(User*, User*, int&, std::string&) { return 0; }
-void		Module::OnBuildExemptList(MessageType, Channel*, User*, char, CUList&, const std::string&) { }
 void		Module::OnGarbageCollect() { }
 void		Module::OnBufferFlushed(User*) { }
-void 		Module::OnText(User*, void*, int, const std::string&, char, CUList&) { }
 
 
 ModuleManager::ModuleManager(InspIRCd* Ins) : ModCount(0), Instance(Ins)
