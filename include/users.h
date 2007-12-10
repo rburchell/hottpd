@@ -17,24 +17,10 @@
 #include <string>
 #include "inspircd_config.h"
 #include "socket.h"
-#include "channels.h"
 #include "inspstring.h"
 #include "connection.h"
 #include "hashcomp.h"
 #include "dns.h"
-
-/** Channel status for a user
- */
-enum ChanStatus {
-	/** Op */
-	STATUS_OP     = 4,
-	/** Halfop */
-	STATUS_HOP    = 2,
-	/** Voice */
-	STATUS_VOICE  = 1,
-	/** None */
-	STATUS_NORMAL = 0
-};
 
 /** connect class types
  */
@@ -43,21 +29,6 @@ enum ClassTypes {
 	CC_ALLOW = 0,
 	/** connect:deny */
 	CC_DENY  = 1
-};
-
-/** RFC1459 channel modes
- */
-enum UserModes {
-	/** +s: Server notices */
-	UM_SERVERNOTICE = 's' - 65,
-	/** +w: WALLOPS */
-	UM_WALLOPS = 'w' - 65,
-	/** +i: Invisible */
-	UM_INVISIBLE = 'i' - 65,
-	/** +o: Operator */
-	UM_OPERATOR = 'o' - 65,
-	/** +n: Server notice mask */
-	UM_SNOMASK = 'n' - 65
 };
 
 /** Registration state of a user, e.g.
@@ -77,6 +48,7 @@ enum RegistrationState {
 
 /* Required forward declaration */
 class InspIRCd;
+class User;
 
 /** Derived from Resolver, and performs user forward/reverse lookups.
  */
@@ -165,10 +137,6 @@ class CoreExport ConnectClass : public classbase
 	 */
 	unsigned long maxglobal;
 
-	/** Max channels for this class
-	 */
-	unsigned int maxchans;
-
 	/** Port number this connect class applies to
 	 */
 	int port;
@@ -180,8 +148,7 @@ public:
 	ConnectClass(const ConnectClass* source) : classbase(), type(source->type), name(source->name),
 		registration_timeout(source->registration_timeout), flood(source->flood), host(source->host),
 		pingtime(source->pingtime), pass(source->pass), threshold(source->threshold), sendqmax(source->sendqmax),
-		recvqmax(source->recvqmax), maxlocal(source->maxlocal), maxglobal(source->maxglobal), maxchans(source->maxchans),
-		port(source->port), RefCount(0), disabled(false), limit(0)
+		recvqmax(source->recvqmax), maxlocal(source->maxlocal), maxglobal(source->maxglobal), port(source->port), RefCount(0), disabled(false), limit(0)
 	{
 	}
 
@@ -209,14 +176,14 @@ public:
 			const std::string &pas, unsigned int thres, unsigned long sendq, unsigned long recvq,
 			unsigned long maxl, unsigned long maxg, unsigned int maxc, int p = 0) :
 			type(CC_ALLOW), name(thename), registration_timeout(timeout), flood(fld), host(hst), pingtime(ping), pass(pas),
-			threshold(thres), sendqmax(sendq), recvqmax(recvq), maxlocal(maxl), maxglobal(maxg), maxchans(maxc), port(p), RefCount(0), disabled(false), limit(0) { }
+			threshold(thres), sendqmax(sendq), recvqmax(recvq), maxlocal(maxl), maxglobal(maxg), port(p), RefCount(0), disabled(false), limit(0) { }
 
 	/** Create a new connect class to DENY connections
 	 * @param thename Name of the connect class
 	 * @param hst The IP mask to deny
 	 */
 	ConnectClass(const std::string &thename, const std::string &hst) : type(CC_DENY), name(thename), registration_timeout(0),
-			flood(0), host(hst), pingtime(0), pass(""), threshold(0), sendqmax(0), recvqmax(0), maxlocal(0), maxglobal(0), maxchans(0), port(0), RefCount(0), disabled(false), limit(0)
+			flood(0), host(hst), pingtime(0), pass(""), threshold(0), sendqmax(0), recvqmax(0), maxlocal(0), maxglobal(0), port(0), RefCount(0), disabled(false), limit(0)
 	{
 	}
 
@@ -227,8 +194,7 @@ public:
 	ConnectClass(const std::string &thename, const ConnectClass* source) : type(source->type), name(thename),
 				registration_timeout(source->registration_timeout), flood(source->flood), host(source->host),
 				pingtime(source->pingtime), pass(source->pass), threshold(source->threshold), sendqmax(source->sendqmax),
-				recvqmax(source->recvqmax), maxlocal(source->maxlocal), maxglobal(source->maxglobal), maxchans(source->maxchans),
-				port(source->port), RefCount(0), disabled(false), limit(0)
+				recvqmax(source->recvqmax), maxlocal(source->maxlocal), maxglobal(source->maxglobal), port(source->port), RefCount(0), disabled(false), limit(0)
 	{
 	}
 
@@ -268,8 +234,6 @@ public:
 			maxlocal = maxl;
 		if (maxg)
 			maxglobal = maxg;
-		if (maxc)
-			maxchans = maxc;
 		if (p)
 			port = p;
 
@@ -289,11 +253,6 @@ public:
 	/** How many users may be in this connect class before they are refused? (0 = disabled = default)
 	 */
 	unsigned long limit;
-
-	int GetMaxChans()
-	{
-		return maxchans;
-	}
 
 	/** Returns the type, CC_ALLOW or CC_DENY
 	 */
@@ -392,25 +351,9 @@ public:
 	}
 };
 
-/** Holds a complete list of all channels to which a user has been invited and has not yet joined.
- */
-typedef std::vector<irc::string> InvitedList;
-
 /** Holds a complete list of all allow and deny tags from the configuration file (connection classes)
  */
 typedef std::vector<ConnectClass*> ClassVector;
-
-/** Typedef for the list of user-channel records for a user
- */
-typedef std::map<Channel*, char> UserChanList;
-
-/** Shorthand for an iterator into a UserChanList
- */
-typedef UserChanList::iterator UCListIter;
-
-/* Required forward declaration
- */
-class User;
 
 /** Visibility data for a user.
  * If a user has a non-null instance of this class in their User,
@@ -449,16 +392,6 @@ class CoreExport User : public connection
 	 */
 	InspIRCd* ServerInstance;
 
-	/** A list of channels the user has a pending invite to.
-	 * Upon INVITE channels are added, and upon JOIN, the
-	 * channels are removed from this list.
-	 */
-	InvitedList invites;
-
-	/** Number of channels this user is currently on
-	 */
-	unsigned int ChannelCount;
-
 	/** Cached nick!ident@host value using the real hostname
 	 */
 	char* cached_fullhost;
@@ -484,10 +417,6 @@ class CoreExport User : public connection
 	/** Oper-only quit message for this user if non-null
 	 */
 	char* operquit;
-
-	/** Max channels for this user
-	 */
-	unsigned int MaxChans;
 
 	std::map<std::string, bool>* AllowedOperCommands;
 
@@ -524,18 +453,11 @@ class CoreExport User : public connection
 	 */
 	void StartDNSLookup();
 
-	unsigned int GetMaxChans();
-
 	/** The users nickname.
 	 * An invalid nickname indicates an unregistered connection prior to the NICK command.
 	 * Use InspIRCd::IsNick() to validate nicknames.
 	 */
 	char nick[NICKMAX];
-
-	/** The user's unique identifier.
-	 * This is the unique identifier which the user has across the network.
-	 */
-	char uuid[UUID_LENGTH];
 
 	/** The users ident reply.
 	 * Two characters are added to the user-defined limit to compensate for the tilde etc.
@@ -551,34 +473,9 @@ class CoreExport User : public connection
 	 */
 	char fullname[MAXGECOS+1];
 
-	/** The user's mode list.
-	 * This is NOT a null terminated string! In the 1.1 version of InspIRCd
-	 * this is an array of values in a similar way to channel modes.
-	 * A value of 1 in field (modeletter-65) indicates that the mode is
-	 * set, for example, to work out if mode +s is set, we  check the field
-	 * User::modes['s'-65] != 0.
-	 * The following RFC characters o, w, s, i have constants defined via an
-	 * enum, such as UM_SERVERNOTICE and UM_OPETATOR.
-	 */
-	char modes[64];
-
-	/** What snomasks are set on this user.
-	 * This functions the same as the above modes.
-	 */
-	char snomasks[64];
-
-	/** Channels this user is on, and the permissions they have there
-	 */
-	UserChanList chans;
-
 	/** The server the user is connected to.
 	 */
 	const char* server;
-
-	/** The user's away message.
-	 * If this string is empty, the user is not marked as away.
-	 */
-	char awaymsg[MAXAWAY+1];
 
 	/** Timestamp of current time + connection class timeout.
 	 * This user must send USER/NICK before this timestamp is
@@ -841,11 +738,6 @@ class CoreExport User : public connection
 	 * this method.
 	 */
 	void FlushWriteBuf();
-
-	/** Returns the list of channels this user has been invited to but has not yet joined.
-	 * @return A list of channels the user is invited to
-	 */
-	InvitedList* GetInviteList();
 
 	/** Creates a wildcard host.
 	 * Takes a buffer to use and fills the given buffer with the host in the format *!*@hostname

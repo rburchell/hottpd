@@ -30,14 +30,10 @@
 #include <sstream>
 #include <list>
 #include "inspircd_config.h"
-#include "uid.h"
 #include "users.h"
-#include "channels.h"
 #include "socket.h"
-#include "mode.h"
 #include "socketengine.h"
 #include "command_parse.h"
-#include "snomasks.h"
 #include "cull_list.h"
 #include "filelogger.h"
 #include "caller.h"
@@ -239,10 +235,6 @@ class BanCacheManager;
 class CoreExport InspIRCd : public classbase
 {
  private:
-	/** Holds the current UID. Used to generate the next one.
-	 */
-	char current_uid[UUID_LENGTH];
-
 	/** Set up the signal handlers
 	 */
 	void SetSignals();
@@ -343,10 +335,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	char ConfigFileName[MAXBUF];
 
-	/** Mode handler, handles mode setting and removal
-	 */
-	ModeParser* Modes;
-
 	/** Command parser, handles client to server commands
 	 */
 	CommandParser* Parser;
@@ -372,11 +360,6 @@ class CoreExport InspIRCd : public classbase
 	/**  Server Config class, holds configuration file data
 	 */
 	ServerConfig* Config;
-
-	/** Snomask manager - handles routing of snomask messages
-	 * to opers.
-	 */
-	SnomaskManager* SNO;
 
 	/** Client list, a hash_map containing all clients, local and remote
 	 */
@@ -657,29 +640,6 @@ class CoreExport InspIRCd : public classbase
 	 * @return The number of local users
 	 */
 	long LocalUserCount();
-
-	/** Send an error notice to all local users, opered and unopered
-	 * @param s The error string to send
-	 */
-	void SendError(const std::string &s);
-
-	/** Add a new mode to this server's mode parser
-	 * @param mh The modehandler to add
-	 * @return True if the mode handler was added
-	 */
-	bool AddMode(ModeHandler* mh);
-
-	/** Add a new mode watcher to this server's mode parser
-	 * @param mw The modewatcher to add
-	 * @return True if the modewatcher was added
-	 */
-	bool AddModeWatcher(ModeWatcher* mw);
-
-	/** Delete a mode watcher from this server's mode parser
-	 * @param mw The modewatcher to delete
-	 * @return True if the modewatcher was deleted
-	 */
-	bool DelModeWatcher(ModeWatcher* mw);
 
 	/** Add a dns Resolver class to this server's active set
 	 * @param r The resolver to add
