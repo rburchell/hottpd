@@ -111,23 +111,16 @@ int		Module::OnDownloadFile(const std::string&, std::istream*&) { return 0; }
 void		Module::OnUserConnect(User*) { }
 void		Module::OnUserQuit(User*, const std::string&, const std::string&) { }
 void		Module::OnUserDisconnect(User*) { }
-void		Module::OnUserJoin(User*, Channel*, bool, bool&) { }
-void		Module::OnPostJoin(User*, Channel*) { }
-void		Module::OnUserPart(User*, Channel*, const std::string&, bool&) { }
 void		Module::OnRehash(User*, const std::string&) { }
 void		Module::OnServerRaw(std::string&, bool, User*) { }
-int		Module::OnUserPreJoin(User*, Channel*, const char*, std::string&) { return 0; }
 void		Module::OnMode(User*, void*, int, const std::string&) { }
 Version		Module::GetVersion() { return Version(1,0,0,0,VF_VENDOR,-1); }
 void		Module::OnOper(User*, const std::string&) { }
 void		Module::OnPostOper(User*, const std::string&) { }
 void		Module::OnInfo(User*) { }
 void		Module::OnWhois(User*, User*) { }
-int		Module::OnUserPreInvite(User*, User*, Channel*) { return 0; }
 int		Module::OnUserPreNick(User*, const std::string&) { return 0; }
 void		Module::OnUserPostNick(User*, const std::string&) { }
-int		Module::OnAccessCheck(User*, User*, Channel*, int) { return ACR_DEFAULT; }
-void		Module::On005Numeric(std::string&) { }
 int		Module::OnKill(User*, User*, const std::string&) { return 0; }
 void		Module::OnLoadModule(Module*, const std::string&) { }
 void		Module::OnUnloadModule(Module*, const std::string&) { }
@@ -136,36 +129,23 @@ int		Module::OnPreCommand(const std::string&, const char**, int, User *, bool, c
 void		Module::OnPostCommand(const std::string&, const char**, int, User *, CmdResult, const std::string&) { }
 bool		Module::OnCheckReady(User*) { return true; }
 int		Module::OnUserRegister(User*) { return 0; }
-int		Module::OnUserPreKick(User*, User*, Channel*, const std::string&) { return 0; }
-void		Module::OnUserKick(User*, User*, Channel*, const std::string&, bool&) { }
-int		Module::OnCheckInvite(User*, Channel*) { return 0; }
-int		Module::OnCheckKey(User*, Channel*, const std::string&) { return 0; }
-int		Module::OnCheckLimit(User*, Channel*) { return 0; }
-int		Module::OnCheckBan(User*, Channel*) { return 0; }
 int		Module::OnStats(char, User*, string_list&) { return 0; }
 int		Module::OnChangeLocalUserHost(User*, const std::string&) { return 0; }
 int		Module::OnChangeLocalUserGECOS(User*, const std::string&) { return 0; }
-int		Module::OnLocalTopicChange(User*, Channel*, const std::string&) { return 0; }
 void		Module::OnEvent(Event*) { return; }
 char*		Module::OnRequest(Request*) { return NULL; }
 int		Module::OnOperCompare(const std::string&, const std::string&, int) { return 0; }
 void		Module::OnGlobalOper(User*) { }
 void		Module::OnPostConnect(User*) { }
-int		Module::OnAddBan(User*, Channel*, const std::string &) { return 0; }
-int		Module::OnDelBan(User*, Channel*, const std::string &) { return 0; }
 void		Module::OnRawSocketAccept(int, const std::string&, int) { }
 int		Module::OnRawSocketWrite(int, const char*, int) { return 0; }
 void		Module::OnRawSocketClose(int) { }
 void		Module::OnRawSocketConnect(int) { }
 int		Module::OnRawSocketRead(int, char*, unsigned int, int&) { return 0; }
 void 		Module::OnRemoteKill(User*, User*, const std::string&, const std::string&) { }
-void		Module::OnUserInvite(User*, User*, Channel*) { }
-void		Module::OnPostLocalTopicChange(User*, Channel*, const std::string&) { }
 void		Module::OnGetServerDescription(const std::string&, std::string&) { }
 void		Module::OnSyncUser(User*, Module*, void*) { }
-void		Module::OnSyncChannel(Channel*, Module*, void*) { }
 void		Module::ProtoSendMode(void*, int, void*, const std::string&) { }
-void		Module::OnSyncChannelMetaData(Channel*, Module*, void*, const std::string&, bool) { }
 void		Module::OnSyncUserMetaData(User*, Module*, void*, const std::string&, bool) { }
 void		Module::OnSyncOtherMetaData(Module*, void*, bool) { }
 void		Module::OnDecodeMetaData(int, void*, const std::string&, const std::string&) { }
@@ -176,7 +156,6 @@ void		Module::OnChangeName(User*, const std::string&) { }
 void		Module::OnAddLine(User*, XLine*) { }
 void		Module::OnDelLine(User*, XLine*) { }
 void 		Module::OnCleanup(int, void*) { }
-void		Module::OnChannelDelete(Channel*) { }
 void		Module::OnSetAway(User*) { }
 void		Module::OnCancelAway(User*) { }
 int		Module::OnWhoisLine(User*, User*, int&, std::string&) { return 0; }
@@ -497,10 +476,6 @@ bool ModuleManager::Unload(const char* filename)
 		}
 
 		/* Give the module a chance to tidy out all its metadata */
-		for (chan_hash::iterator c = Instance->chanlist->begin(); c != Instance->chanlist->end(); c++)
-		{
-			modfind->second.second->OnCleanup(TYPE_CHANNEL,c->second);
-		}
 		for (user_hash::iterator u = Instance->clientlist->begin(); u != Instance->clientlist->end(); u++)
 		{
 			modfind->second.second->OnCleanup(TYPE_USER,u->second);

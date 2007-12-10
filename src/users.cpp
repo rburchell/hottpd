@@ -19,7 +19,6 @@
 #include "wildcard.h"
 #include "xline.h"
 #include "bancache.h"
-#include "commands/cmd_whowas.h"
 
 static unsigned long already_sent[MAX_DESCRIPTORS] = {0};
 
