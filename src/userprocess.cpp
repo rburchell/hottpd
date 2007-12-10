@@ -21,17 +21,14 @@
 
 void FloodQuitUserHandler::Call(User* current)
 {
-	Server->Log(DEFAULT,"Excess flood from: %s@%s", current->ident, current->host);
+	Server->Log(DEFAULT,"Excess flood from: %s", current->host);
 	User::QuitUser(Server, current, "Excess flood");
 
-	if (current->registered != REG_ALL)
-	{
-		ZLine* zl = new ZLine(Server, Server->Time(), 0, Server->Config->ServerName, "Flood from unregistered connection", current->GetIPString());
-		if (Server->XLines->AddLine(zl,NULL))
-			Server->XLines->ApplyLines();
-		else
-			delete zl;
-	}
+	ZLine* zl = new ZLine(Server, Server->Time(), 0, Server->Config->ServerName, "Flood from unregistered connection", current->GetIPString());
+	if (Server->XLines->AddLine(zl,NULL))
+		Server->XLines->ApplyLines();
+	else
+		delete zl;
 }
 
 void ProcessUserHandler::Call(User* cu)
@@ -100,31 +97,7 @@ void ProcessUserHandler::Call(User* cu)
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// AddBuffer returned false, theres too much data in the user's buffer and theyre up to no good.
-				if (current->registered == REG_ALL)
-				{
-					if (current->MyClass)
-					{
-						// Make sure they arn't flooding long lines.
-						if (Server->Time() > current->reset_due)
-						{
-							current->reset_due = Server->Time() + current->MyClass->GetThreshold();
-							current->lines_in = 0;
-						}
-
-						current->lines_in++;
-
-						if (current->MyClass->GetFlood() && current->lines_in > current->MyClass->GetFlood())
-							Server->FloodQuitUser(current);
-						else
-						{
-							current->WriteServ("NOTICE %s :Your previous line was too long and was not delivered (Over %d chars) Please shorten it.", current->nick, MAXBUF-2);
-							current->recvq.clear();
-						}
-					}
-				}
-				else
-					Server->FloodQuitUser(current);
-
+				Server->FloodQuitUser(current);
 				return;
 			}
 
@@ -181,11 +154,10 @@ void InspIRCd::DoBackgroundUserStuff()
 				curr->OverPenalty = false;
 		}
 
-		if ((curr->registered != REG_ALL) && (TIME > curr->timeout))
+		if (TIME > curr->timeout)
 		{
 			/*
-			 * registration timeout -- didnt send USER/NICK/HOST
-			 * in the time specified in their connection class.
+			 * timeout: they've been connected too long ..
 			 */
 			curr->muted = true;
 			User::QuitUser(this, curr, "Registration timeout");
@@ -196,36 +168,13 @@ void InspIRCd::DoBackgroundUserStuff()
 		 * `ready` means that the user has provided NICK/USER(/PASS), and all modules agree
 		 * that the user is okay to proceed. The one thing we are then waiting for now is DNS...
 		 */
-		bool ready = ((curr->registered == REG_NICKUSER) && AllModulesReportReady(curr));
+		bool ready = AllModulesReportReady(curr);
 
 		if (ready)
 		{
-			if (curr->dns_done)
-			{
-				/* DNS passed, connect the user */
-				curr->FullConnect();
-				continue;
-			}
-		}
-
-		// It's time to PING this user. Send them a ping.
-		if ((TIME > curr->nping) && (curr->registered == REG_ALL))
-		{
-			// This user didn't answer the last ping, remove them
-			if (!curr->lastping)
-			{
-				time_t time = this->Time(false) - (curr->nping - curr->MyClass->GetPingTime());
-				char message[MAXBUF];
-				snprintf(message, MAXBUF, "Ping timeout: %ld second%s", (long)time, time > 1 ? "s" : "");
-				curr->muted = true;
-				curr->lastping = 1;
-				curr->nping = TIME + curr->MyClass->GetPingTime();
-				User::QuitUser(this, curr, message);
-				continue;
-			}
-			curr->Write("PING :%s",this->Config->ServerName);
-			curr->lastping = 0;
-			curr->nping = TIME  +curr->MyClass->GetPingTime();
+			/* DNS passed, connect the user */
+			curr->FullConnect();
+			continue;
 		}
 	}
 }

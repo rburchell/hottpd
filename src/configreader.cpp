@@ -729,24 +729,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 				{DT_CHARPTR,	DT_IPADDRESS|DT_ALLOW_WILD},
 				InitXLine, DoZLine, DoneConfItem},
 
-		{"badnick",
-				{"reason",	"nick",		NULL},
-				{"No reason",	"",		NULL},
-				{DT_CHARPTR,	DT_CHARPTR},
-				InitXLine, DoQLine, DoneConfItem},
-	
-		{"badhost",
-				{"reason",	"host",		NULL},
-				{"No reason",	"",		NULL},
-				{DT_CHARPTR,	DT_CHARPTR},
-				InitXLine, DoKLine, DoneConfItem},
-
-		{"exception",
-				{"reason",	"host",		NULL},
-				{"No reason",	"",		NULL},
-				{DT_CHARPTR,	DT_CHARPTR},
-				InitXLine, DoELine, DoneELine},
-	
 		{"type",
 				{"name",	"classes",	NULL},
 				{"",		"",		NULL},
@@ -2037,8 +2019,6 @@ bool DoneClassesAndTypes(ServerConfig*, const char*)
 	return true;
 }
 
-
-
 bool InitXLine(ServerConfig* conf, const char* tag)
 {
 	return true;
@@ -2053,61 +2033,6 @@ bool DoZLine(ServerConfig* conf, const char* tag, char** entries, ValueList &val
 	if (!conf->GetInstance()->XLines->AddLine(zl, NULL))
 		delete zl;
 
-	return true;
-}
-
-bool DoQLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types)
-{
-	const char* reason = values[0].GetString();
-	const char* nick = values[1].GetString();
-
-	QLine* ql = new QLine(conf->GetInstance(), conf->GetInstance()->Time(), 0, "<Config>", reason, nick);
-	if (!conf->GetInstance()->XLines->AddLine(ql, NULL))
-		delete ql;
-
-	return true;
-}
-
-bool DoKLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types)
-{
-	const char* reason = values[0].GetString();
-	const char* host = values[1].GetString();
-
-	XLineManager* xlm = conf->GetInstance()->XLines;
-
-	IdentHostPair ih = xlm->IdentSplit(host);
-
-	KLine* kl = new KLine(conf->GetInstance(), conf->GetInstance()->Time(), 0, "<Config>", reason, ih.first.c_str(), ih.second.c_str());
-	if (!xlm->AddLine(kl, NULL))
-		delete kl;
-	return true;
-}
-
-bool DoELine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types)
-{
-	const char* reason = values[0].GetString();
-	const char* host = values[1].GetString();
-
-	XLineManager* xlm = conf->GetInstance()->XLines;
-
-	IdentHostPair ih = xlm->IdentSplit(host);
-
-	ELine* el = new ELine(conf->GetInstance(), conf->GetInstance()->Time(), 0, "<Config>", reason, ih.first.c_str(), ih.second.c_str());
-	if (!xlm->AddLine(el, NULL))
-		delete el;
-	return true;
-}
-
-// this should probably be moved to configreader, but atm it relies on CheckELines above.
-bool DoneELine(ServerConfig* conf, const char* tag)
-{
-	for (std::vector<User*>::const_iterator u2 = conf->GetInstance()->local_users.begin(); u2 != conf->GetInstance()->local_users.end(); u2++)
-	{
-		User* u = (User*)(*u2);
-		u->exempt = false;
-	}
-
-	conf->GetInstance()->XLines->CheckELines();
 	return true;
 }
 

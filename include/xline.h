@@ -144,154 +144,6 @@ class CoreExport XLine : public classbase
 	const std::string type;
 };
 
-/** KLine class
- */
-class CoreExport KLine : public XLine
-{
-  public:
-
-	/** Create a K-Line.
-	 * @param s_time The set time
-	 * @param d The duration of the xline
-	 * @param src The sender of the xline
-	 * @param re The reason of the xline
-	 * @param ident Ident to match
-	 * @param host Host to match
-	 */
-	KLine(InspIRCd* Instance, time_t s_time, long d, const char* src, const char* re, const char* ident, const char* host) : XLine(Instance, s_time, d, src, re, "K")
-	{
-		identmask = strdup(ident);
-		hostmask = strdup(host);
-		matchtext = this->identmask;
-		matchtext.append("@").append(this->hostmask);
-	}
-
-	/** Destructor
-	 */
-	~KLine()
-	{
-		free(identmask);
-		free(hostmask);
-	}
-
-	virtual bool Matches(User *u);
-
-	virtual bool Matches(const std::string &str);
-
-	virtual void Apply(User* u);
-
-	virtual void DisplayExpiry();
-
-	virtual const char* Displayable();
-
-	/** Ident mask (ident part only)
-	 */
-	char* identmask;
-	/** Host mask (host part only)
-	 */
-	char* hostmask;
-
-	std::string matchtext;
-};
-
-/** GLine class
- */
-class CoreExport GLine : public XLine
-{
-  public:
-	/** Create a G-Line.
-	 * @param s_time The set time
-	 * @param d The duration of the xline
-	 * @param src The sender of the xline
-	 * @param re The reason of the xline
-	 * @param ident Ident to match
-	 * @param host Host to match
-	 */
-	GLine(InspIRCd* Instance, time_t s_time, long d, const char* src, const char* re, const char* ident, const char* host) : XLine(Instance, s_time, d, src, re, "G")
-	{
-		identmask = strdup(ident);
-		hostmask = strdup(host);
-		matchtext = this->identmask;
-		matchtext.append("@").append(this->hostmask);
-	}
-
-	/** Destructor
-	 */
-	~GLine()
-	{
-		free(identmask);
-		free(hostmask);
-	}
-
-	virtual bool Matches(User *u);
-
-	virtual bool Matches(const std::string &str);
-
-	virtual void Apply(User* u);
-
-	virtual void DisplayExpiry();
-
-	virtual const char* Displayable();
-
-	/** Ident mask (ident part only)
-	 */
-	char* identmask;
-	/** Host mask (host part only)
-	 */
-	char* hostmask;
-
-	std::string matchtext;
-};
-
-/** ELine class
- */
-class CoreExport ELine : public XLine
-{
-  public:
-	/** Create an E-Line.
-	 * @param s_time The set time
-	 * @param d The duration of the xline
-	 * @param src The sender of the xline
-	 * @param re The reason of the xline
-	 * @param ident Ident to match
-	 * @param host Host to match
-	 */
-	ELine(InspIRCd* Instance, time_t s_time, long d, const char* src, const char* re, const char* ident, const char* host) : XLine(Instance, s_time, d, src, re, "E")
-	{
-		identmask = strdup(ident);
-		hostmask = strdup(host);
-		matchtext = this->identmask;
-		matchtext.append("@").append(this->hostmask);
-	}
-
-	~ELine()
-	{
-		free(identmask);
-		free(hostmask);
-	}
-
-	virtual bool Matches(User *u);
-
-	virtual bool Matches(const std::string &str);
-
-	virtual void Unset();
-
-	virtual void DisplayExpiry();
-
-	virtual void OnAdd();
-
-	virtual const char* Displayable();
-
-	/** Ident mask (ident part only)
-	 */
-	char* identmask;
-	/** Host mask (host part only)
-	 */
-	char* hostmask;
-
-	std::string matchtext;
-};
-
 /** ZLine class
  */
 class CoreExport ZLine : public XLine
@@ -330,49 +182,6 @@ class CoreExport ZLine : public XLine
 	 */
 	char* ipaddr;
 };
-
-/** QLine class
- */
-class CoreExport QLine : public XLine
-{
-  public:
-	/** Create a G-Line.
-	 * @param s_time The set time
-	 * @param d The duration of the xline
-	 * @param src The sender of the xline
-	 * @param re The reason of the xline
-	 * @param nickname Nickname to match
-	 */
-	QLine(InspIRCd* Instance, time_t s_time, long d, const char* src, const char* re, const char* nickname) : XLine(Instance, s_time, d, src, re, "Q")
-	{
-		nick = strdup(nickname);
-	}
-
-	/** Destructor
-	 */
-	~QLine()
-	{
-		free(nick);
-
-	}
-	virtual bool Matches(User *u);
-
-	virtual bool Matches(const std::string &str);
-
-	virtual void Apply(User* u);
-
-	virtual void DisplayExpiry();
-
-	virtual const char* Displayable();
-
-	/** Nickname mask
-	 */
-	char* nick;
-};
-
-/** Contains an ident and host split into two strings
- */
-typedef std::pair<std::string, std::string> IdentHostPair;
 
 /** XLineFactory is used to generate an XLine pointer, given just the 
  * pattern, timing information and type of line to create. This is used
@@ -421,11 +230,7 @@ class CoreExport XLineFactory
 class ServerConfig;
 class InspIRCd;
 
-class GLineFactory;
-class ELineFactory;
-class QLineFactory;
 class ZLineFactory;
-class KLineFactory;
 
 /** A map of xline factories
  */
@@ -470,10 +275,6 @@ class CoreExport XLineManager
 	 * (These generate GLine, ELine, KLine, QLine and ZLine
 	 * respectively)
 	 */
-	GLineFactory* GFact;
-	ELineFactory* EFact;
-	KLineFactory* KFact;
-	QLineFactory* QFact;
 	ZLineFactory* ZFact;
 
 	/** Container of all lines, this is a map of maps which
@@ -493,11 +294,6 @@ class CoreExport XLineManager
 	/** Destructor
 	 */
 	~XLineManager();
-
-	/** Split an ident and host into two seperate strings.
-	 * This allows for faster matching.
-	 */
-	IdentHostPair IdentSplit(const std::string &ident_and_host);
 
 	/** Checks what users match e:lines and sets their ban exempt flag accordingly.
 	 */
@@ -590,69 +386,6 @@ class CoreExport XLineManager
 	 * @param results The string_list to receive the results
 	 */
 	void InvokeStats(const std::string &type, int numeric, User* user, string_list &results);
-};
-
-/** An XLineFactory specialized to generate GLine* pointers
- */
-class CoreExport GLineFactory : public XLineFactory
-{
- public:
-	GLineFactory(InspIRCd* Instance) : XLineFactory(Instance, "G") { }
-
-	/** Generate a GLine
-	 */
-	XLine* Generate(time_t set_time, long duration, const char* source, const char* reason, const char* xline_specific_mask)
-	{
-		IdentHostPair ih = ServerInstance->XLines->IdentSplit(xline_specific_mask);
-		return new GLine(ServerInstance, set_time, duration, source, reason, ih.first.c_str(), ih.second.c_str());
-	}
-};
-
-/** An XLineFactory specialized to generate ELine* pointers
- */
-class CoreExport ELineFactory : public XLineFactory
-{
- public:
-	ELineFactory(InspIRCd* Instance) : XLineFactory(Instance, "E") { }
-
-	/** Generate an ELine
-	 */
-	XLine* Generate(time_t set_time, long duration, const char* source, const char* reason, const char* xline_specific_mask)
-	{
-		IdentHostPair ih = ServerInstance->XLines->IdentSplit(xline_specific_mask);
-		return new ELine(ServerInstance, set_time, duration, source, reason, ih.first.c_str(), ih.second.c_str());
-	}
-};
-
-/** An XLineFactory specialized to generate KLine* pointers
- */
-class CoreExport KLineFactory : public XLineFactory
-{
- public:
-        KLineFactory(InspIRCd* Instance) : XLineFactory(Instance, "K") { }
-
-	/** Generate a KLine
-	 */
-        XLine* Generate(time_t set_time, long duration, const char* source, const char* reason, const char* xline_specific_mask)
-        {
-                IdentHostPair ih = ServerInstance->XLines->IdentSplit(xline_specific_mask);
-                return new KLine(ServerInstance, set_time, duration, source, reason, ih.first.c_str(), ih.second.c_str());
-        }
-};
-
-/** An XLineFactory specialized to generate QLine* pointers
- */
-class CoreExport QLineFactory : public XLineFactory
-{
- public:
-        QLineFactory(InspIRCd* Instance) : XLineFactory(Instance, "Q") { }
-
-	/** Generate a QLine
-	 */
-        XLine* Generate(time_t set_time, long duration, const char* source, const char* reason, const char* xline_specific_mask)
-        {
-                return new QLine(ServerInstance, set_time, duration, source, reason, xline_specific_mask);
-        }
 };
 
 /** An XLineFactory specialized to generate ZLine* pointers
