@@ -30,7 +30,6 @@
 #include <sstream>
 #include <list>
 #include "inspircd_config.h"
-#include "configreader.h"
 #include "users.h"
 #include "socket.h"
 #include "socketengine.h"
@@ -40,6 +39,7 @@
 #include "caller.h"
 #include "timer.h"
 #include "modules.h"
+#include "configreader.h"
 
 /**
  * Used to define the maximum number of parameters a command may have.

@@ -25,7 +25,6 @@
 #include <fstream>
 #include "xline.h"
 #include "exitcodes.h"
-#include "commands/cmd_whowas.h"
 
 std::vector<std::string> old_module_names, new_module_names, added_modules, removed_modules;
 
@@ -502,13 +501,6 @@ bool ValidateWhoWas(ServerConfig* conf, const char*, const char*, ValueItem &dat
 	{
 		conf->WhoWasMaxKeep = 3600;
 		conf->GetInstance()->Log(DEFAULT,"WARNING: <whowas:maxkeep> value less than 3600, setting to default 3600");
-	}
-
-	Command* whowas_command = conf->GetInstance()->Parser->GetHandler("WHOWAS");
-	if (whowas_command)
-	{
-		std::deque<classbase*> params;
-		whowas_command->HandleInternal(WHOWAS_PRUNE, params);
 	}
 
 	return true;
