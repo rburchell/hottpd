@@ -451,28 +451,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
         this->AddServerName(Config->ServerName);
 
-        /*
-         * Initialise SID/UID.
-         * For an explanation as to exactly how this works, and why it works this way, see GetUID().
-         *   -- w00t
-         */
-        /* Generate SID */
-        size_t sid = 0;
-        if (Config->sid)
-        {
-                sid = Config->sid;
-        }
-        else
-        {
-                for (const char* x = Config->ServerName; *x; ++x)
-                        sid = 5 * sid + *x;
-                for (const char* y = Config->ServerDesc; *y; ++y)
-                        sid = 5 * sid + *y;
-                sid = sid % 999;
-
-                Config->sid = sid;
-        }
-
         // Get XLine to do it's thing.
         this->XLines->CheckELines();
         this->XLines->ApplyLines();
@@ -544,21 +522,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	Log(DEFAULT,"Startup complete.");
 
 	this->WritePID(Config->PID);
-}
-
-/* moved to a function, as UID generation can call this also */
-void InspIRCd::InitialiseUID()
-{
-	int i;
-	size_t sid = Config->sid;
-
-	current_uid[0] = sid / 100 + 48;
-	current_uid[1] = ((sid / 10) % 10) + 48;
-	current_uid[2] = sid % 10 + 48;
-
-	/* Initialise UID */
-	for(i = 3; i < UUID_LENGTH - 1; i++)
-		current_uid[i] = 'A';
 }
 
 int InspIRCd::Run()
@@ -633,9 +596,6 @@ int InspIRCd::Run()
 		/* if any users was quit, take them out */
 		this->GlobalCulls.Apply();
 
-		/* If any inspsockets closed, remove them */
-		this->BufferedSocketCull();
-
 		if (this->s_signal)
 		{
 			this->SignalHandler(s_signal);
@@ -644,18 +604,6 @@ int InspIRCd::Run()
 	}
 
 	return 0;
-}
-
-void InspIRCd::BufferedSocketCull()
-{
-	for (std::map<BufferedSocket*,BufferedSocket*>::iterator x = SocketCull.begin(); x != SocketCull.end(); ++x)
-	{
-		Log(DEBUG,"Cull socket");
-		SE->DelFd(x->second);
-		x->second->Close();
-		delete x->second;
-	}
-	SocketCull.clear();
 }
 
 /**********************************************************************************/

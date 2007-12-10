@@ -45,13 +45,13 @@ void User::StartDNSLookup()
 
 User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
-	*password = *nick = *ident = *host = *dhost = *fullname = *awaymsg = *oper = *uuid = 0;
+	*password = *nick = *ident = *host = *dhost = *fullname = *oper = 0;
 	server = (char*)Instance->FindServerNamePtr(Instance->Config->ServerName);
 	reset_due = ServerInstance->Time();
 	age = ServerInstance->Time(true);
 	Penalty = 0;
 	lines_in = lastping = signon = idle_lastmsg = nping = registered = 0;
-	ChannelCount = timeout = bytes_in = bytes_out = cmds_in = cmds_out = 0;
+	timeout = bytes_in = bytes_out = cmds_in = cmds_out = 0;
 	OverPenalty = ExemptFromPenalty = muted = exempt = haspassed = dns_done = false;
 	fd = -1;
 	recvq.clear();
@@ -62,9 +62,6 @@ User::User(InspIRCd* Instance) : ServerInstance(Instance)
 	ip = NULL;
 	MyClass = NULL;
 	AllowedOperCommands = NULL;
-	chans.clear();
-	invites.clear();
-	memset(modes,0,sizeof(modes));
 	/* Invalidate cache */
 	operquit = cached_fullhost = cached_hostip = cached_makehost = cached_fullrealhost = NULL;
 }
@@ -124,8 +121,6 @@ User::~User()
 		}
 #endif
 	}
-
-	ServerInstance->uuidlist->erase(uuid);
 }
 
 char* User::MakeHost()
@@ -243,40 +238,6 @@ char* User::GetFullRealHost()
 	this->cached_fullrealhost = strdup(fresult);
 
 	return this->cached_fullrealhost;
-}
-
-bool User::IsInvited(const irc::string &channel)
-{
-	for (InvitedList::iterator i = invites.begin(); i != invites.end(); i++)
-	{
-		if (channel == *i)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-InvitedList* User::GetInviteList()
-{
-	return &invites;
-}
-
-void User::InviteTo(const irc::string &channel)
-{
-	invites.push_back(channel);
-}
-
-void User::RemoveInvite(const irc::string &channel)
-{
-	for (InvitedList::iterator i = invites.begin(); i != invites.end(); i++)
-	{
-		if (channel == *i)
-		{
-			invites.erase(i);
-			return;
-	 	}
-	}
 }
 
 bool User::HasPermission(const std::string &command)
@@ -503,7 +464,6 @@ void User::Oper(const std::string &opertype)
 
 	try
 	{
-		this->modes[UM_OPERATOR] = 1;
 		this->WriteServ("MODE %s :+o", this->nick);
 		FOREACH_MOD(I_OnOper, OnOper(this, opertype));
 		ServerInstance->Log(DEFAULT,"OPER: %s!%s@%s opered as type: %s", this->nick, this->ident, this->host, opertype.c_str());
@@ -557,7 +517,6 @@ void User::UnOper()
 		{
 			// unset their oper type (what IS_OPER checks), and remove +o
 			*this->oper = 0;
-			this->modes[UM_OPERATOR] = 0;
 			
 			// remove the user from the oper list. Will remove multiple entries as a safeguard against bug #404
 			ServerInstance->all_opers.remove(this);
@@ -584,24 +543,9 @@ void User::QuitUser(InspIRCd* Instance, User *user, const std::string &quitreaso
 	Instance->GlobalCulls.AddItem(user, quitreason.c_str(), operreason);
 }
 
-/* adds or updates an entry in the whowas list */
-void User::AddToWhoWas()
-{
-	Command* whowas_command = ServerInstance->Parser->GetHandler("WHOWAS");
-	if (whowas_command)
-	{
-		std::deque<classbase*> params;
-		params.push_back(this);
-		whowas_command->HandleInternal(WHOWAS_ADD, params);
-	}
-}
-
 /* add a client connection to the sockets list */
 void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, int socketfamily, sockaddr* ip)
 {
-	/* NOTE: Calling this one parameter constructor for User automatically
-	 * allocates a new UUID and places it in the hash_map.
-	 */
 	User* New = NULL;
 	New = new User(Instance);
 
@@ -619,11 +563,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 #endif
 	inet_ntop(AF_INET, &((const sockaddr_in*)ip)->sin_addr, ipaddr, sizeof(ipaddr));
 
-	(*(Instance->clientlist))[New->uuid] = New;
 	New->SetFd(socket);
-
-	/* The users default nick is their UUID */
-	strlcpy(New->nick, New->uuid, NICKMAX - 1);
 
 	New->server = Instance->FindServerNamePtr(Instance->Config->ServerName);
 	/* We don't need range checking here, we KNOW 'unknown\0' will fit into the ident field. */
@@ -785,7 +725,6 @@ void User::CheckClass()
 
 	this->nping = ServerInstance->Time() + a->GetPingTime() + ServerInstance->Config->dns_timeout;
 	this->timeout = ServerInstance->Time() + a->GetRegTimeout();
-	this->MaxChans = a->GetMaxChans();
 }
 
 void User::FullConnect()

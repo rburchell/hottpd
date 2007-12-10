@@ -645,24 +645,6 @@ class CoreExport User : public connection
 	 */
 	void SetMode(unsigned char m, bool value);
 
-	/** Returns true if a user is invited to a channel.
-	 * @param channel A channel name to look up
-	 * @return True if the user is invited to the given channel
-	 */
-	virtual bool IsInvited(const irc::string &channel);
-
-	/** Adds a channel to a users invite list (invites them to a channel)
-	 * @param channel A channel name to add
-	 */
-	virtual void InviteTo(const irc::string &channel);
-
-	/** Removes a channel from a users invite list.
-	 * This member function is called on successfully joining an invite only channel
-	 * to which the user has previously been invited, to clear the invitation.
-	 * @param channel The channel to remove the invite to
-	 */
-	virtual void RemoveInvite(const irc::string &channel);
-
 	/** Returns true or false for if a user can execute a privilaged oper command.
 	 * This is done by looking up their oper type from User::oper, then referencing
 	 * this to their oper classes and checking the commands they can execute.
