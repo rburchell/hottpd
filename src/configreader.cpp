@@ -953,7 +953,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 		if (!ServerInstance->Res)
 			ServerInstance->Res = new DNS(ServerInstance);
 	        /** Note: This is safe, the method checks for user == NULL */
-	        ServerInstance->Parser->SetupCommandTable(user);
 		ServerInstance->Modules->LoadAll();
 	}
 	else
@@ -1085,27 +1084,7 @@ void ServerConfig::DoDownloads()
 			}
 			TotalDownloaded++;
 		}
-		else
-		{
-			/* Modules handle these */
-			ServerInstance->Log(DEBUG,"Module-handled schema for %s", x->first.c_str());
 
-			/* For now, error it */
-			int MOD_RESULT = 0;
-			FOREACH_RESULT(I_OnDownloadFile, OnDownloadFile(file, x->second));
-			if (MOD_RESULT == 0)
-			{
-				/* No module claimed this file */
-				TotalDownloaded++;
-				FileErrors++;
-				delete x->second;
-				x->second = NULL;
-			}
-			else
-			{
-				/* Search new file here for more includes to parse */
-			}
-		}
 		CompletedFiles[x->first] = true;
 	}
 }

@@ -163,19 +163,6 @@ void InspIRCd::DoBackgroundUserStuff()
 			User::QuitUser(this, curr, "Registration timeout");
 			continue;
 		}
-
-		/*
-		 * `ready` means that the user has provided NICK/USER(/PASS), and all modules agree
-		 * that the user is okay to proceed. The one thing we are then waiting for now is DNS...
-		 */
-		bool ready = AllModulesReportReady(curr);
-
-		if (ready)
-		{
-			/* DNS passed, connect the user */
-			curr->FullConnect();
-			continue;
-		}
 	}
 }
 

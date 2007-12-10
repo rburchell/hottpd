@@ -27,17 +27,6 @@
 #include <dlfcn.h>
 #endif
 
-int InspIRCd::OperPassCompare(const char* data,const char* input, int tagnumber)
-{
-	int MOD_RESULT = 0;
-	FOREACH_RESULT_I(this,I_OnOperCompare,OnOperCompare(data, input, tagnumber))
-	if (MOD_RESULT == 1)
-		return 0;
-	if (MOD_RESULT == -1)
-		return 1;
-	return strcmp(data,input);
-}
-
 /* LoopCall is used to call a command classes handler repeatedly based on the contents of a comma seperated list.
  * There are two overriden versions of this method, one of which takes two potential lists and the other takes one.
  * We need a version which takes two potential lists for JOIN, because a JOIN may contain two lists of items at once,

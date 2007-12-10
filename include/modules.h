@@ -355,19 +355,16 @@ enum Priority { PRIORITY_FIRST, PRIORITY_DONTCARE, PRIORITY_LAST, PRIORITY_BEFOR
 enum Implementation
 {
 	I_BEGIN,
-	I_OnUserConnect, I_OnUserQuit, I_OnUserDisconnect, I_OnUserJoin, I_OnUserPart, I_OnRehash, I_OnServerRaw, 
-	I_OnUserPreJoin, I_OnUserPreKick, I_OnUserKick, I_OnOper, I_OnInfo, I_OnWhois, I_OnUserPreInvite,
-	I_OnUserInvite, I_OnUserPreMessage, I_OnUserPreNotice, I_OnUserPreNick, I_OnUserMessage, I_OnUserNotice, I_OnMode,
-	I_OnGetServerDescription, I_OnSyncUser, I_OnSyncChannel, I_OnSyncChannelMetaData, I_OnSyncUserMetaData,
-	I_OnDecodeMetaData, I_ProtoSendMode, I_ProtoSendMetaData, I_OnWallops, I_OnChangeHost, I_OnChangeName, I_OnAddLine,
-	I_OnDelLine, I_OnCleanup, I_OnUserPostNick, I_OnAccessCheck, I_On005Numeric, I_OnKill, I_OnRemoteKill, I_OnLoadModule, I_OnUnloadModule,
-	I_OnBackgroundTimer, I_OnPreCommand, I_OnCheckReady, I_OnUserRrgister, I_OnCheckInvite,
-	I_OnCheckKey, I_OnCheckLimit, I_OnCheckBan, I_OnStats, I_OnChangeLocalUserHost, I_OnChangeLocalUserGecos, I_OnLocalTopicChange,
-	I_OnPostLocalTopicChange, I_OnEvent, I_OnRequest, I_OnOperCompre, I_OnGlobalOper, I_OnPostConnect, I_OnAddBan, I_OnDelBan,
-	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, I_OnRawSocketRead, I_OnChangeLocalUserGECOS, I_OnUserRegister,
-	I_OnOperCompare, I_OnChannelDelete, I_OnPostOper, I_OnSyncOtherMetaData, I_OnSetAway, I_OnCancelAway, I_OnUserList,
-	I_OnPostCommand, I_OnPostJoin, I_OnWhoisLine, I_OnBuildExemptList, I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
-	I_OnText, I_OnReadConfig, I_OnDownloadFile,
+	I_OnUserConnect, I_OnUserDisconnect, I_OnRehash, I_OnServerRaw, 
+	I_OnInfo, I_OnWhois,
+	I_OnAddLine,
+	I_OnDelLine, I_OnCleanup, I_OnLoadModule, I_OnUnloadModule,
+	I_OnBackgroundTimer,
+	I_OnEvent, I_OnRequest, I_OnPostConnect,
+	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, 
+	I_OnRawSocketRead,
+	I_OnPostCommand, I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
+	I_OnReadConfig,
 	I_END
 };
 
@@ -417,16 +414,6 @@ class CoreExport Module : public Extensible
 	 * @param user The user who is connecting
 	 */
 	virtual void OnUserConnect(User* user);
-
-	/** Called when a user quits.
-	 * The details of the exiting user are available to you in the parameter User *user
-	 * This event is only called when the user is fully registered when they quit. To catch
-	 * raw disconnections, use the OnUserDisconnect method.
-	 * @param user The user who is quitting
-	 * @param message The user's quit message (as seen by non-opers)
-	 * @param oper_message The user's quit message (as seen by opers)
-	 */
-	virtual void OnUserQuit(User* user, const std::string &message, const std::string &oper_message);
 
 	/** Called whenever a user's socket is closed.
 	 * The details of the exiting user are available to you in the parameter User *user

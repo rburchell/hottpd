@@ -340,7 +340,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	 * besides that, if we get a positive bancache hit, we still won't fuck
 	 * them over if they are exempt. -- w00t
 	 */
-	New->exempt = (Instance->XLines->MatchesLine("E",New) != NULL);
+	//New->exempt = (Instance->XLines->MatchesLine("E",New) != NULL);
 
 	if (BanCacheHit *b = Instance->BanCache->GetHit(New->GetIPString()))
 	{
@@ -376,8 +376,11 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
                 {
 			Instance->Log(DEBUG,"Internal error on new connection");
 			User::QuitUser(Instance, New, "Internal error handling connection");
+			return;
                 }
         }
+
+	New->FullConnect();
 }
 
 unsigned long User::LocalCloneCount()

@@ -452,7 +452,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
         this->AddServerName(Config->ServerName);
 
         // Get XLine to do it's thing.
-        this->XLines->CheckELines();
         this->XLines->ApplyLines();
 
 
@@ -619,22 +618,6 @@ int main(int argc, char ** argv)
 	SI->Run();
 	delete SI;
 	return 0;
-}
-
-/* this returns true when all modules are satisfied that the user should be allowed onto the irc server
- * (until this returns true, a user will block in the waiting state, waiting to connect up to the
- * registration timeout maximum seconds)
- */
-bool InspIRCd::AllModulesReportReady(User* user)
-{
-	for (EventHandlerIter i = Modules->EventHandlers[I_OnCheckReady].begin(); i != Modules->EventHandlers[I_OnCheckReady].end(); ++i)
-	{
-		int res = (*i)->OnCheckReady(user);
-		if (!res)
-			return false;
-	}
-
-	return true;
 }
 
 time_t InspIRCd::Time(bool delta)
