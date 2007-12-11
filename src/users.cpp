@@ -20,8 +20,6 @@
 
 User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
-	*host = 0;
-	age = ServerInstance->Time(true);
 	lastping = signon = idle_lastmsg = nping = 0;
 	timeout = bytes_in = bytes_out = cmds_in = cmds_out = 0;
 	muted = exempt = false;
@@ -29,46 +27,21 @@ User::User(InspIRCd* Instance) : ServerInstance(Instance)
 	recvq.clear();
 	sendq.clear();
 	WriteError.clear();
-	ip = NULL;
-}
-
-void User::RemoveCloneCounts()
-{
-	clonemap::iterator x = ServerInstance->local_clones.find(this->GetIPString());
-	if (x != ServerInstance->local_clones.end())
-	{
-		x->second--;
-		if (!x->second)
-		{
-			ServerInstance->local_clones.erase(x);
-		}
-	}
-	
-	clonemap::iterator y = ServerInstance->global_clones.find(this->GetIPString());
-	if (y != ServerInstance->global_clones.end())
-	{
-		y->second--;
-		if (!y->second)
-		{
-			ServerInstance->global_clones.erase(y);
-		}
-	}
+	privip = NULL;
 }
 
 User::~User()
 {
-	if (ip)
+	if (privip)
 	{
-		this->RemoveCloneCounts();
-
 		if (this->GetProtocolFamily() == AF_INET)
 		{
-			delete (sockaddr_in*)ip;
+			delete (sockaddr_in*)privip;
 		}
 #ifdef SUPPORT_IP6LINKS
 		else
 		{
-			delete (sockaddr_in6*)ip;
+			delete (sockaddr_in6*)privip;
 		}
 #endif
 	}
@@ -284,8 +257,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 
 	Instance->Log(DEBUG,"New user fd: %d", socket);
 
-	int j = 0;
-
 	char ipaddr[MAXBUF];
 #ifdef IPV6
 	if (socketfamily == AF_INET6)
@@ -299,14 +270,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	New->lastping = 1;
 
 	New->SetSockAddr(socketfamily, ipaddr, port);
-
-	/* Smarter than your average bear^H^H^H^Hset of strlcpys. */
-	for (const char* temp = New->GetIPString(); *temp && j < 64; temp++, j++)
-		New->dhost[j] = New->host[j] = *temp;
-	New->dhost[j] = New->host[j] = 0;
-
-	Instance->AddLocalClone(New);
-	Instance->AddGlobalClone(New);
+	New->ip = New->GetIPString();
 
 	Instance->local_users.push_back(New);
 
@@ -347,15 +311,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	New->FullConnect();
 }
 
-unsigned long User::LocalCloneCount()
-{
-	clonemap::iterator x = ServerInstance->local_clones.find(this->GetIPString());
-	if (x != ServerInstance->local_clones.end())
-		return x->second;
-	else
-		return 0;
-}
-
 void User::FullConnect()
 {
 	ServerInstance->stats->statsConnects++;
@@ -376,7 +331,7 @@ void User::SetSockAddr(int protocol_family, const char* ip, int port)
 			sin->sin6_family = AF_INET6;
 			sin->sin6_port = port;
 			inet_pton(AF_INET6, ip, &sin->sin6_addr);
-			this->ip = (sockaddr*)sin;
+			this->privip = (sockaddr*)sin;
 		}
 		break;
 #endif
@@ -386,7 +341,7 @@ void User::SetSockAddr(int protocol_family, const char* ip, int port)
 			sin->sin_family = AF_INET;
 			sin->sin_port = port;
 			inet_pton(AF_INET, ip, &sin->sin_addr);
-			this->ip = (sockaddr*)sin;
+			this->privip = (sockaddr*)sin;
 		}
 		break;
 		default:
@@ -397,7 +352,7 @@ void User::SetSockAddr(int protocol_family, const char* ip, int port)
 
 int User::GetPort()
 {
-	if (this->ip == NULL)
+	if (this->privip == NULL)
 		return 0;
 
 	switch (this->GetProtocolFamily())
@@ -405,14 +360,14 @@ int User::GetPort()
 #ifdef SUPPORT_IP6LINKS
 		case AF_INET6:
 		{
-			sockaddr_in6* sin = (sockaddr_in6*)this->ip;
+			sockaddr_in6* sin = (sockaddr_in6*)this->privip;
 			return sin->sin6_port;
 		}
 		break;
 #endif
 		case AF_INET:
 		{
-			sockaddr_in* sin = (sockaddr_in*)this->ip;
+			sockaddr_in* sin = (sockaddr_in*)this->privip;
 			return sin->sin_port;
 		}
 		break;
@@ -424,10 +379,10 @@ int User::GetPort()
 
 int User::GetProtocolFamily()
 {
-	if (this->ip == NULL)
+	if (this->privip == NULL)
 		return 0;
 
-	sockaddr_in* sin = (sockaddr_in*)this->ip;
+	sockaddr_in* sin = (sockaddr_in*)this->privip;
 	return sin->sin_family;
 }
 
@@ -440,7 +395,7 @@ const char* User::GetIPString()
 {
 	static char buf[1024];
 
-	if (this->ip == NULL)
+	if (this->privip == NULL)
 		return "";
 
 	switch (this->GetProtocolFamily())
@@ -450,7 +405,7 @@ const char* User::GetIPString()
 		{
 			static char temp[1024];
 
-			sockaddr_in6* sin = (sockaddr_in6*)this->ip;
+			sockaddr_in6* sin = (sockaddr_in6*)this->privip;
 			inet_ntop(sin->sin6_family, &sin->sin6_addr, buf, sizeof(buf));
 			/* IP addresses starting with a : on irc are a Bad Thing (tm) */
 			if (*buf == ':')
@@ -465,7 +420,7 @@ const char* User::GetIPString()
 #endif
 		case AF_INET:
 		{
-			sockaddr_in* sin = (sockaddr_in*)this->ip;
+			sockaddr_in* sin = (sockaddr_in*)this->privip;
 			inet_ntop(sin->sin_family, &sin->sin_addr, buf, sizeof(buf));
 			return buf;
 		}

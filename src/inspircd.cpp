@@ -103,13 +103,6 @@ void InspIRCd::Cleanup()
 	/* Close logging */
 	if (this->Logger)
 		this->Logger->Close();
-
-
-	/* Cleanup Server Names */
-	for(servernamelist::iterator itr = servernames.begin(); itr != servernames.end(); ++itr)
-		delete (*itr);
-
-
 }
 
 void InspIRCd::Restart(const std::string &reason)
@@ -437,16 +430,10 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	/* We have all the files we can get, initiate pass 1 */
 	Config->Read(true, NULL, 1);
 
-        this->AddServerName(Config->ServerName);
-
 	CheckDie();
 	int bounditems = BindPorts(true, found_ports, pl);
 
 	printf("\n");
-
-	/*this->Modules->LoadAll();*/
-	
-	InitializeDisabledCommands(Config->DisabledCommands, this);
 
 	if ((Config->ports.size() == 0) && (found_ports > 0))
 	{
@@ -604,42 +591,9 @@ int main(int argc, char ** argv)
 	return 0;
 }
 
-time_t InspIRCd::Time(bool delta)
+time_t InspIRCd::Time()
 {
-	if (delta)
-		return TIME + time_delta;
 	return TIME;
-}
-
-int InspIRCd::SetTimeDelta(int delta)
-{
-	int old = time_delta;
-	time_delta = delta;
-	this->Log(DEBUG, "Time delta set to %d (was %d)", time_delta, old);
-	return old;
-}
-
-void InspIRCd::AddLocalClone(User* user)
-{
-	clonemap::iterator x = local_clones.find(user->GetIPString());
-	if (x != local_clones.end())
-		x->second++;
-	else
-		local_clones[user->GetIPString()] = 1;
-}
-
-void InspIRCd::AddGlobalClone(User* user)
-{
-	clonemap::iterator y = global_clones.find(user->GetIPString());
-	if (y != global_clones.end())
-		y->second++;
-	else
-		global_clones[user->GetIPString()] = 1;
-}
-
-int InspIRCd::GetTimeDelta()
-{
-	return time_delta;
 }
 
 void InspIRCd::SetSignal(int signal)

@@ -18,7 +18,6 @@
 #include "inspircd_config.h"
 #include "socket.h"
 #include "inspstring.h"
-#include "connection.h"
 #include "hashcomp.h"
 
 /* Required forward declaration */
@@ -32,7 +31,7 @@ class User;
  * by nickname, or the FindDescriptor method of the InspIRCd class to find a specific user by their
  * file descriptor value.
  */
-class CoreExport User : public connection
+class CoreExport User : public EventHandler
 {
  private:
 	/** Pointer to creator.
@@ -41,11 +40,49 @@ class CoreExport User : public connection
 	 */
 	InspIRCd* ServerInstance;
 
- public:
-	/** The host displayed to non-opers (used for cloaking etc).
-	 * This usually matches the value of User::host.
+
+	/** Get IP string from sockaddr, using static internal buffer
+	 * @return The IP string
 	 */
-	std::string dhost;
+	const char* GetIPString();
+ public:
+	/** IP of connection.
+	 */
+	std::string ip;
+
+	/** Stats counter for bytes inbound
+	 */
+	int bytes_in;
+
+	/** Stats counter for bytes outbound
+	 */
+	int bytes_out;
+
+	/** Stats counter for commands inbound
+	 */
+	int cmds_in;
+
+	/** Stats counter for commands outbound
+	 */
+	int cmds_out;
+
+	/** Time the connection was last pinged
+	 */
+	time_t lastping;
+	
+	/** Time the connection was created, set in the constructor. This
+	 * may be different from the time the user's classbase object was
+	 * created.
+	 */
+	time_t signon;
+	
+	/** Time that the connection last sent a message, used to calculate idle time
+	 */
+	time_t idle_lastmsg;
+	
+	/** Used by PING checking code
+	 */
+	time_t nping;
 
 	/** Timestamp of current time + connection class timeout.
 	 * This user must send USER/NICK before this timestamp is
@@ -75,7 +112,7 @@ class CoreExport User : public connection
 	/** IPV4 or IPV6 ip address. Use SetSockAddr to set this and GetProtocolFamily/
 	 * GetIPString/GetPort to obtain its values.
 	 */
-	sockaddr *ip;
+	sockaddr *privip;
 
 	/** Initialize the clients sockaddr
 	 * @param protocol_family The protocol family of the IP address, AF_INET or AF_INET6
@@ -93,11 +130,6 @@ class CoreExport User : public connection
 	 * @return The protocol family of this user, either AF_INET or AF_INET6
 	 */
 	int GetProtocolFamily();
-
-	/** Get IP string from sockaddr, using static internal buffer
-	 * @return The IP string
-	 */
-	const char* GetIPString();
 
 	/* Write error string
 	 */

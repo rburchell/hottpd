@@ -77,26 +77,6 @@ void InspIRCd::Log(int level, const std::string &text)
 	}
 }
 
-User* InspIRCd::FindNickOnly(const std::string &nick)
-{
-	user_hash::iterator iter = clientlist->find(nick);
-
-	if (iter == clientlist->end())
-		return NULL;
-
-	return iter->second;
-}
-
-User* InspIRCd::FindNickOnly(const char* nick)
-{
-	user_hash::iterator iter = clientlist->find(nick);
-
-	if (iter == clientlist->end())
-		return NULL;
-
-	return iter->second;
-}
-
 bool InspIRCd::IsValidMask(const std::string &mask)
 {
 	char* dest = (char*)mask.c_str();

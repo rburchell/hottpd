@@ -65,7 +65,7 @@ bool CommandParser::ProcessBuffer(std::string &buffer,User *user)
 	{
 		if (!user->muted)
 		{
-			ServerInstance->Log(DEBUG,"C[%d] I :%s %s",user->GetFd(), user->host, buffer.c_str());
+			ServerInstance->Log(DEBUG,"C[%d] I :%s %s",user->GetFd(), user->ip.c_str(), buffer.c_str());
 			return true;
 		}
 	}

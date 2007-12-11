@@ -77,36 +77,3 @@ std::string InspIRCd::GetRevision()
 	return REVISION;
 }
 
-void InspIRCd::AddServerName(const std::string &servername)
-{
-	servernamelist::iterator itr = servernames.begin();
-	for(; itr != servernames.end(); ++itr)
-		if(**itr == servername)
-			return;
-
-	string * ns = new string(servername);
-	servernames.push_back(ns);
-}
-
-const char* InspIRCd::FindServerNamePtr(const std::string &servername)
-{
-	servernamelist::iterator itr = servernames.begin();
-	for(; itr != servernames.end(); ++itr)
-		if(**itr == servername)
-			return (*itr)->c_str();
-
-	servernames.push_back(new string(servername));
-	itr = --servernames.end();
-	return (*itr)->c_str();
-}
-
-bool InspIRCd::FindServerName(const std::string &servername)
-{
-	servernamelist::iterator itr = servernames.begin();
-	for(; itr != servernames.end(); ++itr)
-		if(**itr == servername)
-			return true;
-	return false;
-}
-
-	

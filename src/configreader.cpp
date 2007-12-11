@@ -208,27 +208,6 @@ bool ValidateMaxConn(ServerConfig* conf, const char*, const char*, ValueItem &da
 	return true;
 }
 
-bool InitializeDisabledCommands(const char* data, InspIRCd* ServerInstance)
-{
-	std::stringstream dcmds(data);
-	std::string thiscmd;
-
-	/* Enable everything first */
-	for (Commandable::iterator x = ServerInstance->Parser->cmdlist.begin(); x != ServerInstance->Parser->cmdlist.end(); x++)
-		x->second->Disable(false);
-
-	/* Now disable all the ones which the user wants disabled */
-	while (dcmds >> thiscmd)
-	{
-		Commandable::iterator cm = ServerInstance->Parser->cmdlist.find(thiscmd);
-		if (cm != ServerInstance->Parser->cmdlist.end())
-		{
-			cm->second->Disable(true);
-		}
-	}
-	return true;
-}
-
 bool ValidateDnsServer(ServerConfig* conf, const char*, const char*, ValueItem &data)
 {
 	if (!*(data.GetString()))

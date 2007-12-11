@@ -302,10 +302,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	int unregistered_count;
 
-	/** List of server names we've seen.
-	 */
-	servernamelist servernames;
-
 	/** Time this ircd was booted
 	 */
 	time_t startup_time;
@@ -352,18 +348,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	std::vector<User*> local_users;
 
-	/** Oper list, a vector containing all local and remote opered users
-	 */
-	std::list<User*> all_opers;
-
-	/** Map of local ip addresses for clone counting
-	 */
-	clonemap local_clones;
-
-	/** Map of global ip addresses for clone counting
-	 */
-	clonemap global_clones;
-
 	/** Timer manager class, triggers Timer timer events
 	 */
 	TimerManager* Timers;
@@ -375,37 +359,14 @@ class CoreExport InspIRCd : public classbase
 	/** Get the current time
 	 * Because this only calls time() once every time around the mainloop,
 	 * it is much faster than calling time() directly.
-	 * @param delta True to use the delta as an offset, false otherwise
 	 * @return The current time as an epoch value (time_t)
 	 */
-	time_t Time(bool delta = false);
-
-	/** Set the time offset in seconds
-	 * This offset is added to Time() to offset the system time by the specified
-	 * number of seconds.
-	 * @param delta The number of seconds to offset
-	 * @return The old time delta
-	 */
-	int SetTimeDelta(int delta);
+	time_t Time();
 
 	/** Add a user to the local clone map
 	 * @param user The user to add
 	 */
 	void AddLocalClone(User* user);
-
-	/** Add a user to the global clone map
-	 * @param user The user to add
-	 */
-	void AddGlobalClone(User* user);
-	
-	/** Number of users with a certain mode set on them
-	 */
-	int ModeCount(const char mode);
-
-	/** Get the time offset in seconds
-	 * @return The current time delta (in seconds)
-	 */
-	int GetTimeDelta();
 
 	/** Process a user whos socket has been flagged as active
 	 * @param cu The user to process
@@ -428,78 +389,6 @@ class CoreExport InspIRCd : public classbase
 	 * @return True if the port was bound successfully
 	 */
 	bool BindSocket(int sockfd, int port, char* addr, bool dolisten = true);
-
-	/** Adds a server name to the list of servers we've seen
-	 * @param The servername to add
-	 */
-	void AddServerName(const std::string &servername);
-
-	/** Finds a cached char* pointer of a server name,
-	 * This is used to optimize User by storing only the pointer to the name
-	 * @param The servername to find
-	 * @return A pointer to this name, gauranteed to never become invalid
-	 */
-	const char* FindServerNamePtr(const std::string &servername);
-
-	/** Returns true if we've seen the given server name before
-	 * @param The servername to find
-	 * @return True if we've seen this server name before
-	 */
-	bool FindServerName(const std::string &servername);
-
-	/** Gets the GECOS (description) field of the given server.
-	 * If the servername is not that of the local server, the name
-	 * is passed to handling modules which will attempt to determine
-	 * the GECOS that bleongs to the given servername.
-	 * @param servername The servername to find the description of
-	 * @return The description of this server, or of the local server
-	 */
-	std::string GetServerDescription(const char* servername);
-
-	/** Write text to all opers connected to this server
-	 * @param text The text format string
-	 * @param ... Format args
-	 */
-	void WriteOpers(const char* text, ...);
-
-	/** Write text to all opers connected to this server
-	 * @param text The text to send
-	 */
-	void WriteOpers(const std::string &text);
-
-	/** Find a user in the nick hash.
-	 * If the user cant be found in the nick hash check the uuid hash
-	 * @param nick The nickname to find
-	 * @return A pointer to the user, or NULL if the user does not exist
-	 */
-	User* FindNick(const std::string &nick);
-
-	/** Find a user in the nick hash.
-	 * If the user cant be found in the nick hash check the uuid hash
-	 * @param nick The nickname to find
-	 * @return A pointer to the user, or NULL if the user does not exist
-	 */
-	User* FindNick(const char* nick);
-
-	/** Find a user in the nick hash ONLY
-	 */
-	User* FindNickOnly(const char* nick);
-
-	/** Find a user in the nick hash ONLY
-	 */
-	User* FindNickOnly(const std::string &nick);
-
-	/** Find a channel in the channels hash
-	 * @param chan The channel to find
-	 * @return A pointer to the channel, or NULL if the channel does not exist
-	 */
-	Channel* FindChan(const std::string &chan);
-
-	/** Find a channel in the channels hash
-	 * @param chan The channel to find
-	 * @return A pointer to the channel, or NULL if the channel does not exist
-	 */
-	Channel* FindChan(const char* chan);
 
 	/** Check for a 'die' tag in the config file, and abort if found
 	 * @return Depending on the configuration, this function may never return
