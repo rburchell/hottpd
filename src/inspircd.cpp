@@ -279,9 +279,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	int do_version = 0, do_nofork = 0, do_debug = 0, do_nolog = 0, do_root = 0;    /* flag variables */
 	char c = 0;
 
-	memset(&server, 0, sizeof(server));
-	memset(&client, 0, sizeof(client));
-
 	SocketEngineFactory* SEF = new SocketEngineFactory();
 	SE = SEF->Create(this);
 	delete SEF;
@@ -293,8 +290,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->clientlist = new user_hash();
 	this->uuidlist = new user_hash();
 	this->chanlist = new chan_hash();
-
-	this->Res = NULL;
 
 	this->Config = new ServerConfig(this);
 	this->Modules = new ModuleManager(this);

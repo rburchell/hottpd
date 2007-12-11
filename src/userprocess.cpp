@@ -27,33 +27,7 @@ void ProcessUserHandler::Call(User* cu)
 
 	char* ReadBuffer = Server->GetReadBuffer();
 
-	if (Server->Config->GetIOHook(cu->GetPort()))
-	{
-		int result2 = 0;
-		int MOD_RESULT = 0;
-
-		try
-		{
-			MOD_RESULT = Server->Config->GetIOHook(cu->GetPort())->OnRawSocketRead(cu->GetFd(),ReadBuffer,Server->Config->NetBufferSize,result2);
-		}
-		catch (CoreException& modexcept)
-		{
-			Server->Log(DEBUG, "%s threw an exception: %s", modexcept.GetSource(), modexcept.GetReason());
-		}
-
-		if (MOD_RESULT < 0)
-		{
-			result = -EAGAIN;
-		}
-		else
-		{
-			result = result2;
-		}
-	}
-	else
-	{
-		result = cu->ReadData(ReadBuffer, sizeof(ReadBuffer));
-	}
+	result = cu->ReadData(ReadBuffer, sizeof(ReadBuffer));
 
 	if ((result) && (result != -EAGAIN))
 	{

@@ -124,18 +124,6 @@ int CullList::Apply()
 
 		if (IS_LOCAL(u))
 		{
-			if (ServerInstance->Config->GetIOHook(u->GetPort()))
-			{
-				try
-				{
-					ServerInstance->Config->GetIOHook(u->GetPort())->OnRawSocketClose(u->GetFd());
-				}
-				catch (CoreException& modexcept)
-				{
-					ServerInstance->Log(DEBUG, "%s threw an exception: %s", modexcept.GetSource(), modexcept.GetReason());
-				}
-			}
-
 			ServerInstance->SE->DelFd(u);
 			u->CloseSocket();
 		}

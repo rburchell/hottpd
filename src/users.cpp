@@ -502,24 +502,7 @@ void User::Write(std::string text)
 		return;
 	}
 
-	if (ServerInstance->Config->GetIOHook(this->GetPort()))
-	{
-		try
-		{
-			/* XXX: The lack of buffering here is NOT a bug, modules implementing this interface have to
-			 * implement their own buffering mechanisms
-			 */
-			ServerInstance->Config->GetIOHook(this->GetPort())->OnRawSocketWrite(this->fd, text.data(), text.length());
-		}
-		catch (CoreException& modexcept)
-		{
-			ServerInstance->Log(DEBUG, "%s threw an exception: %s", modexcept.GetSource(), modexcept.GetReason());
-		}
-	}
-	else
-	{
-		this->AddWriteBuf(text);
-	}
+	this->AddWriteBuf(text);
 	ServerInstance->stats->statsSent += text.length();
 	this->ServerInstance->SE->WantWrite(this);
 }

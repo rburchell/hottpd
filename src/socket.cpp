@@ -104,18 +104,6 @@ void ListenSocket::HandleEvent(EventType, int)
 		}
 
 		ServerInstance->SE->NonBlocking(incomingSockfd);
-
-		if (ServerInstance->Config->GetIOHook(in_port))
-		{
-			try
-			{
-				ServerInstance->Config->GetIOHook(in_port)->OnRawSocketAccept(incomingSockfd, buf, in_port);
-			}
-			catch (CoreException& modexcept)
-			{
-				ServerInstance->Log(DEBUG,"%s threw an exception: %s", modexcept.GetSource(), modexcept.GetReason());
-			}
-		}
 		ServerInstance->stats->statsAccept++;
 		User::AddClient(ServerInstance, incomingSockfd, in_port, false, this->family, client);
 	}

@@ -18,12 +18,10 @@
 #include "dynamic.h"
 #include "base.h"
 #include "ctables.h"
-#include "inspsocket.h"
 #include <string>
 #include <deque>
 #include <sstream>
 #include "timer.h"
-#include "dns.h"
 
 class XLine;
 

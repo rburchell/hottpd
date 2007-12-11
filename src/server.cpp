@@ -50,14 +50,12 @@ void InspIRCd::Rehash()
 	this->RehashUsersAndChans();
 	FOREACH_MOD_I(this, I_OnGarbageCollect, OnGarbageCollect());
 	/*this->Config->Read(false,NULL);*/
-	this->Res->Rehash();
 	FOREACH_MOD_I(this,I_OnRehash,OnRehash(NULL,""));
 }
 
 void InspIRCd::RehashServer()
 {
 	this->RehashUsersAndChans();
-	this->Res->Rehash();
 }
 
 std::string InspIRCd::GetVersionString()

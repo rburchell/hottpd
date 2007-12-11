@@ -270,10 +270,6 @@ class CoreExport InspIRCd : public classbase
 
 	/** Used when connecting clients
 	 */
-	insp_sockaddr client, server;
-
-	/** Used when connecting clients
-	 */
 	socklen_t length;
 
 	/** Nonblocking file writer
@@ -367,10 +363,6 @@ class CoreExport InspIRCd : public classbase
 	/** Map of global ip addresses for clone counting
 	 */
 	clonemap global_clones;
-
-	/** DNS class, provides resolver facilities to the core and modules
-	 */
-	DNS* Res;
 
 	/** Timer manager class, triggers Timer timer events
 	 */
@@ -585,69 +577,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	static void QuickExit(int status);
 
-	/** Return a count of users, unknown and known connections
-	 * @return The number of users
-	 */
-	int UserCount();
-
-	/** Return a count of fully registered connections only
-	 * @return The number of registered users
-	 */
-	int RegisteredUserCount();
-
-	/** Return a count of opered (umode +o) users only
-	 * @return The number of opers
-	 */
-	int OperCount();
-
-	/** Return a count of unregistered (before NICK/USER) users only
-	 * @return The number of unregistered (unknown) connections
-	 */
-	int UnregisteredUserCount();
-
-	/** Return a count of channels on the network
-	 * @return The number of channels
-	 */
-	long ChannelCount();
-
-	/** Return a count of local users on this server only
-	 * @return The number of local users
-	 */
-	long LocalUserCount();
-
-	/** Add a dns Resolver class to this server's active set
-	 * @param r The resolver to add
-	 * @param cached If this value is true, then the cache will
-	 * be searched for the DNS result, immediately. If the value is
-	 * false, then a request will be sent to the nameserver, and the
-	 * result will not be immediately available. You should usually
-	 * use the boolean value which you passed to the Resolver
-	 * constructor, which Resolver will set appropriately depending
-	 * on if cached results are available and haven't expired. It is
-	 * however safe to force this value to false, forcing a remote DNS
-	 * lookup, but not an update of the cache.
-	 * @return True if the operation completed successfully. Note that
-	 * if this method returns true, you should not attempt to access
-	 * the resolver class you pass it after this call, as depending upon
-	 * the request given, the object may be deleted!
-	 */
-	bool AddResolver(Resolver* r, bool cached);
-
-	/** Add a command to this server's command parser
-	 * @param f A Command command handler object to add
-	 * @throw ModuleException Will throw ModuleExcption if the command already exists
-	 */
-	void AddCommand(Command *f);
-
-	/** Send a modechange.
-	 * The parameters provided are identical to that sent to the
-	 * handler for class cmd_mode.
-	 * @param parameters The mode parameters
-	 * @param pcnt The number of items you have given in the first parameter
-	 * @param user The user to send error messages to
-	 */
-	void SendMode(const char **parameters, int pcnt, User *user);
-
 	/** Match two strings using pattern matching.
 	 * This operates identically to the global function match(),
 	 * except for that it takes std::string arguments rather than
@@ -656,23 +585,6 @@ class CoreExport InspIRCd : public classbase
 	 * @param spattern The pattern to match against. CIDR and globs are supported.
 	 */
 	bool MatchText(const std::string &sliteral, const std::string &spattern);
-
-	/** Call the handler for a given command.
-	 * @param commandname The command whos handler you wish to call
-	 * @param parameters The mode parameters
-	 * @param pcnt The number of items you have given in the first parameter
-	 * @param user The user to execute the command as
-	 * @return True if the command handler was called successfully
-	 */
-	CmdResult CallCommandHandler(const std::string &commandname, const char** parameters, int pcnt, User* user);
-
-	/** Return true if the command is a module-implemented command and the given parameters are valid for it
-	 * @param parameters The mode parameters
-	 * @param pcnt The number of items you have given in the first parameter
-	 * @param user The user to test-execute the command as
-	 * @return True if the command handler is a module command, and there are enough parameters and the user has permission to the command
-	 */
-	bool IsValidModuleCommand(const std::string &commandname, int pcnt, User* user);
 
 	/** Return true if the given parameter is a valid nick!user\@host mask
 	 * @param mask A nick!user\@host masak to match against
@@ -684,12 +596,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void RehashServer();
 
-	/** Return the channel whos index number matches that provided
-	 * @param The index number of the channel to fetch
-	 * @return A channel record, or NUll if index < 0 or index >= InspIRCd::ChannelCount()
-	 */
-	Channel* GetChannelIndex(long index);
-
 	/** Dump text to a user target, splitting it appropriately to fit
 	 * @param User the user to dump the text to
 	 * @param LinePrefix text to prefix each complete line with
@@ -697,55 +603,12 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void DumpText(User* User, const std::string &LinePrefix, stringstream &TextStream);
 
-	/** Check if the given nickmask matches too many users, send errors to the given user
-	 * @param nick A nickmask to match against
-	 * @param user A user to send error text to
-	 * @return True if the nick matches too many users
-	 */
-	bool NickMatchesEveryone(const std::string &nick, User* user);
-
-	/** Check if the given IP mask matches too many users, send errors to the given user
-	 * @param ip An ipmask to match against
-	 * @param user A user to send error text to
-	 * @return True if the ip matches too many users
-	 */
-	bool IPMatchesEveryone(const std::string &ip, User* user);
-
-	/** Check if the given hostmask matches too many users, send errors to the given user
-	 * @param mask A hostmask to match against
-	 * @param user A user to send error text to
-	 * @return True if the host matches too many users
-	 */
-	bool HostMatchesEveryone(const std::string &mask, User* user);
-
 	/** Calculate a duration in seconds from a string in the form 1y2w3d4h6m5s
 	 * @param str A string containing a time in the form 1y2w3d4h6m5s
 	 * (one year, two weeks, three days, four hours, six minutes and five seconds)
 	 * @return The total number of seconds
 	 */
 	long Duration(const std::string &str);
-
-	/** Attempt to compare an oper password to a string from the config file.
-	 * This will be passed to handling modules which will compare the data
-	 * against possible hashed equivalents in the input string.
-	 * @param data The data from the config file
-	 * @param input The data input by the oper
-	 * @param tagnum the tag number of the oper's tag in the config file
-	 * @return 0 if the strings match, 1 or -1 if they do not
-	 */
-	int OperPassCompare(const char* data,const char* input, int tagnum);
-
-	/** Check if a given server is a uline.
-	 * An empty string returns true, this is by design.
-	 * @param server The server to check for uline status
-	 * @return True if the server is a uline OR the string is empty
-	 */
-	bool ULine(const char* server);
-
-	/** Returns true if the uline is 'silent' (doesnt generate
-	 * remote connect notices etc).
-	 */
-	bool SilentULine(const char* server);
 
 	/** Returns the subversion revision ID of this ircd
 	 * @return The revision ID or an empty string
@@ -788,23 +651,6 @@ class CoreExport InspIRCd : public classbase
 	 * @param text Text to write to the log
 	 */
 	void Log(int level, const std::string &text);
-
-	/** Send a line of WHOIS data to a user.
-	 * @param user user to send the line to
-	 * @param dest user being WHOISed
-	 * @param numeric Numeric to send
-	 * @param text Text of the numeric
-	 */
-	void SendWhoisLine(User* user, User* dest, int numeric, const std::string &text);
-
-	/** Send a line of WHOIS data to a user.
-	 * @param user user to send the line to
-	 * @param dest user being WHOISed
-	 * @param numeric Numeric to send
-	 * @param format Format string for the numeric
-	 * @param ... Parameters for the format string
-	 */
-	void SendWhoisLine(User* user, User* dest, int numeric, const char* format, ...);
 
 	/** Restart the server.
 	 * This function will not return. If an error occurs,

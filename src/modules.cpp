@@ -18,7 +18,6 @@
 #include "socket.h"
 #include "socketengine.h"
 #include "command_parse.h"
-#include "dns.h"
 #include "exitcodes.h"
 
 #ifndef WIN32
@@ -479,10 +478,6 @@ bool ModuleManager::Unload(const char* filename)
 			modfind->second.second->OnCleanup(TYPE_USER,u->second);
 		}
 
-		/* Tidy up any dangling resolvers */
-		Instance->Res->CleanResolvers(modfind->second.second);
-
-
 		FOREACH_MOD_I(Instance,I_OnUnloadModule,OnUnloadModule(modfind->second.second, modfind->first));
 
 		this->DetachAll(modfind->second.second);
@@ -653,18 +648,6 @@ bool InspIRCd::MatchText(const std::string &sliteral, const std::string &spatter
 User* InspIRCd::FindDescriptorHandler(int socket)
 {
 	return reinterpret_cast<User*>(this->SE->GetRef(socket));
-}
-
-bool InspIRCd::AddResolver(Resolver* r, bool cached)
-{
-	if (!cached)
-		return this->Res->AddResolverClass(r);
-	else
-	{
-		r->TriggerCachedResult();
-		delete r;
-		return true;
-	}
 }
 
 Module* ModuleManager::Find(const std::string &name)

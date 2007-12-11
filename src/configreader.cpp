@@ -61,97 +61,6 @@ void ServerConfig::ClearStack()
 	include_stack.clear();
 }
 
-Module* ServerConfig::GetIOHook(int port)
-{
-	std::map<int,Module*>::iterator x = IOHookModule.find(port);
-	return (x != IOHookModule.end() ? x->second : NULL);
-}
-
-Module* ServerConfig::GetIOHook(BufferedSocket* is)
-{
-	std::map<BufferedSocket*,Module*>::iterator x = SocketIOHookModule.find(is);
-	return (x != SocketIOHookModule.end() ? x->second : NULL);
-}
-
-bool ServerConfig::AddIOHook(int port, Module* iomod)
-{
-	if (!GetIOHook(port))
-	{
-		IOHookModule[port] = iomod;
-		return true;
-	}
-	else
-	{
-		throw ModuleException("Port already hooked by another module");
-		return false;
-	}
-}
-
-bool ServerConfig::AddIOHook(Module* iomod, BufferedSocket* is)
-{
-	if (!GetIOHook(is))
-	{
-		SocketIOHookModule[is] = iomod;
-		is->IsIOHooked = true;
-		return true;
-	}
-	else
-	{
-		throw ModuleException("BufferedSocket derived class already hooked by another module");
-		return false;
-	}
-}
-
-bool ServerConfig::DelIOHook(int port)
-{
-	std::map<int,Module*>::iterator x = IOHookModule.find(port);
-	if (x != IOHookModule.end())
-	{
-		IOHookModule.erase(x);
-		return true;
-	}
-	return false;
-}
-
-bool ServerConfig::DelIOHook(BufferedSocket* is)
-{
-	std::map<BufferedSocket*,Module*>::iterator x = SocketIOHookModule.find(is);
-	if (x != SocketIOHookModule.end())
-	{
-		SocketIOHookModule.erase(x);
-		return true;
-	}
-	return false;
-}
-
-void ServerConfig::Update005()
-{
-	std::stringstream out(data005);
-	std::string token;
-	std::string line5;
-	int token_counter = 0;
-	isupport.clear();
-	while (out >> token)
-	{
-		line5 = line5 + token + " ";
-		token_counter++;
-		if (token_counter >= 13)
-		{
-			char buf[MAXBUF];
-			snprintf(buf, MAXBUF, "%s:are supported by this server", line5.c_str());
-			isupport.push_back(buf);
-			line5.clear();
-			token_counter = 0;
-		}
-	}
-	if (!line5.empty())
-	{
-		char buf[MAXBUF];
-		snprintf(buf, MAXBUF, "%s:are supported by this server", line5.c_str());
-		isupport.push_back(buf);
-	}
-}
-
 bool ServerConfig::CheckOnce(char* tag)
 {
 	int count = ConfValueEnum(this->config_data, tag);
@@ -940,8 +849,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 			FileErrors = 0;
 		}
 
-		if (!ServerInstance->Res)
-			ServerInstance->Res = new DNS(ServerInstance);
 	        /** Note: This is safe, the method checks for user == NULL */
 		ServerInstance->Modules->LoadAll();
 	}

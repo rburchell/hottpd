@@ -20,7 +20,6 @@
 #include "inspstring.h"
 #include "connection.h"
 #include "hashcomp.h"
-#include "dns.h"
 
 /* Required forward declaration */
 class InspIRCd;
