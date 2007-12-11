@@ -313,7 +313,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 
 void User::FullConnect()
 {
-	ServerInstance->stats->statsConnects++;
 	this->idle_lastmsg = ServerInstance->Time();
 
 	FOREACH_MOD(I_OnUserConnect,OnUserConnect(this));
@@ -458,7 +457,6 @@ void User::Write(std::string text)
 	}
 
 	this->AddWriteBuf(text);
-	ServerInstance->stats->statsSent += text.length();
 	this->ServerInstance->SE->WantWrite(this);
 }
 

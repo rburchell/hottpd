@@ -128,39 +128,6 @@ void InspIRCd::Restart(const std::string &reason)
 	}
 }
 
-/** Because hash_map doesnt free its buckets when we delete items (this is a 'feature')
- * we must occasionally rehash the hash (yes really).
- * We do this by copying the entries from the old hash to a new hash, causing all
- * empty buckets to be weeded out of the hash. We dont do this on a timer, as its
- * very expensive, so instead we do it when the user types /REHASH and expects a
- * short delay anyway.
- */
-void InspIRCd::RehashUsersAndChans()
-{
-	user_hash* old_users = this->clientlist;
-	user_hash* old_uuid  = this->uuidlist;
-	chan_hash* old_chans = this->chanlist;
-
-	this->clientlist = new user_hash();
-	this->uuidlist = new user_hash();
-	this->chanlist = new chan_hash();
-
-	for (user_hash::const_iterator n = old_users->begin(); n != old_users->end(); n++)
-		this->clientlist->insert(*n);
-
-	delete old_users;
-
-	for (user_hash::const_iterator n = old_uuid->begin(); n != old_uuid->end(); n++)
-		this->uuidlist->insert(*n);
-
-	delete old_uuid;
-
-	for (chan_hash::const_iterator n = old_chans->begin(); n != old_chans->end(); n++)
-		this->chanlist->insert(*n);
-
-	delete old_chans;
-}
-
 void InspIRCd::CloseLog()
 {
 	if (this->Logger)
@@ -278,15 +245,8 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
 	this->s_signal = 0;
 
-	this->unregistered_count = 0;
-
-	this->clientlist = new user_hash();
-	this->uuidlist = new user_hash();
-	this->chanlist = new chan_hash();
-
 	this->Config = new ServerConfig(this);
 	this->Modules = new ModuleManager(this);
-	this->stats = new serverstats();
 	this->Timers = new TimerManager(this);
 	this->Parser = new CommandParser(this);
 
@@ -521,7 +481,6 @@ int InspIRCd::Run()
 		{
 			if ((TIME % 3600) == 0)
 			{
-				this->RehashUsersAndChans();
 				FOREACH_MOD_I(this, I_OnGarbageCollect, OnGarbageCollect());
 			}
 
@@ -533,23 +492,17 @@ int InspIRCd::Run()
 				FOREACH_MOD_I(this,I_OnBackgroundTimer,OnBackgroundTimer(TIME));
 				Timers->TickMissedTimers(TIME);
 			}
-#ifndef WIN32
-			/* Same change as in cmd_stats.cpp, use RUSAGE_SELF rather than '0' -- Om */
-			if (!getrusage(RUSAGE_SELF, &ru))
-			{
-				gettimeofday(&this->stats->LastSampled, NULL);
-				this->stats->LastCPU = ru.ru_utime;
-			}
-#else
+#ifdef WIN32
 			WindowsIPC->Check();
 	
 			if(Config->nofork)
 			{
 				uptime = Time() - startup_time;
 				stime = gmtime(&uptime);
-				snprintf(window_title, 100, "InspIRCd - %u clients, %u accepted connections - Up %u days, %.2u:%.2u:%.2u",
-					LocalUserCount(), stats->statsAccept, stime->tm_yday, stime->tm_hour, stime->tm_min, stime->tm_sec);
-				SetConsoleTitle(window_title);
+// XXX this needs fixing
+//				snprintf(window_title, 100, "InspIRCd - %u clients, %u accepted connections - Up %u days, %.2u:%.2u:%.2u",
+//					LocalUserCount(), stats->statsAccept, stime->tm_yday, stime->tm_hour, stime->tm_min, stime->tm_sec);
+//				SetConsoleTitle(window_title);
 			}
 #endif
 		}

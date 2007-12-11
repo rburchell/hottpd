@@ -104,14 +104,12 @@ void ListenSocket::HandleEvent(EventType, int)
 		}
 
 		ServerInstance->SE->NonBlocking(incomingSockfd);
-		ServerInstance->stats->statsAccept++;
 		User::AddClient(ServerInstance, incomingSockfd, in_port, false, this->family, client);
 	}
 	else
 	{
 		ServerInstance->SE->Shutdown(incomingSockfd, 2);
 		ServerInstance->SE->Close(incomingSockfd);
-		ServerInstance->stats->statsRefused++;
 	}
 	delete[] client;
 	delete[] sock_us;

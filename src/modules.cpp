@@ -472,12 +472,6 @@ bool ModuleManager::Unload(const char* filename)
 			return false;
 		}
 
-		/* Give the module a chance to tidy out all its metadata */
-		for (user_hash::iterator u = Instance->clientlist->begin(); u != Instance->clientlist->end(); u++)
-		{
-			modfind->second.second->OnCleanup(TYPE_USER,u->second);
-		}
-
 		FOREACH_MOD_I(Instance,I_OnUnloadModule,OnUnloadModule(modfind->second.second, modfind->first));
 
 		this->DetachAll(modfind->second.second);

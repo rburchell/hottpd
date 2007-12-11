@@ -77,38 +77,6 @@ void InspIRCd::Log(int level, const std::string &text)
 	}
 }
 
-bool InspIRCd::IsValidMask(const std::string &mask)
-{
-	char* dest = (char*)mask.c_str();
-	int exclamation = 0;
-	int atsign = 0;
-
-	for (char* i = dest; *i; i++)
-	{
-		/* out of range character, bad mask */
-		if (*i < 32 || *i > 126)
-		{
-			return false;
-		}
-
-		switch (*i)
-		{
-			case '!':
-				exclamation++;
-				break;
-			case '@':
-				atsign++;
-				break;
-		}
-	}
-
-	/* valid masks only have 1 ! and @ */
-	if (exclamation != 1 || atsign != 1)
-		return false;
-
-	return true;
-}
-
 /* open the proper logfile */
 bool InspIRCd::OpenLog(char**, int)
 {

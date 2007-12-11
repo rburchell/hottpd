@@ -34,7 +34,6 @@ void ProcessUserHandler::Call(User* cu)
 		User *current;
 		int currfd;
 
-		Server->stats->statsRecv += result;
 		/*
 		 * perform a check on the raw buffer as an array (not a string!) to remove
 		 * character 0 which is illegal in the RFC - replace them with spaces.

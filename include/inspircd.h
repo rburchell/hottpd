@@ -297,11 +297,6 @@ class CoreExport InspIRCd : public classbase
 
 	User *FindDescriptorHandler(int);
 
-	/** Number of unregistered users online right now.
-	 * (Unregistered means before USER/NICK/dns)
-	 */
-	int unregistered_count;
-
 	/** Time this ircd was booted
 	 */
 	time_t startup_time;
@@ -323,26 +318,9 @@ class CoreExport InspIRCd : public classbase
 	 */
 	ModuleManager* Modules;
 
-	/** Stats class, holds miscellaneous stats counters
-	 */
-	serverstats* stats;
-
 	/**  Server Config class, holds configuration file data
 	 */
 	ServerConfig* Config;
-
-	/** Client list, a hash_map containing all clients, local and remote
-	 */
-	user_hash* clientlist;
-
-	/** Client list stored by UUID. Contains all clients, and is updated
-	 * automatically by the constructor and destructor of User.
-	 */
-	user_hash* uuidlist;
-
-	/** Channel list, a hash_map containing all channels
-	 */
-	chan_hash* chanlist;
 
 	/** Local client list, a vector containing only local clients
 	 */
@@ -411,34 +389,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void CloseLog();
 
-	/** Send a server notice to all local users
-	 * @param text The text format string to send
-	 * @param ... The format arguments
-	 */
-	void ServerNoticeAll(char* text, ...);
-
-	/** Send a server message (PRIVMSG) to all local users
-	 * @param text The text format string to send
-	 * @param ... The format arguments
-	 */
-	void ServerPrivmsgAll(char* text, ...);
-
-	/** Send text to all users with a specific set of modes
-	 * @param modes The modes to check against, without a +, e.g. 'og'
-	 * @param flags one of WM_OR or WM_AND. If you specify WM_OR, any one of the
-	 * mode characters in the first parameter causes receipt of the message, and
-	 * if you specify WM_OR, all the modes must be present.
-	 * @param text The text format string to send
-	 * @param ... The format arguments
-	 */
-	void WriteMode(const char* modes, int flags, const char* text, ...);
-
-	/** Return true if a channel name is valid
-	 * @param chname A channel name to verify
-	 * @return True if the name is valid
-	 */
-	bool IsChannel(const char *chname);
-
 	/** Rehash the local server
 	 */
 	void Rehash();
@@ -475,22 +425,9 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool MatchText(const std::string &sliteral, const std::string &spattern);
 
-	/** Return true if the given parameter is a valid nick!user\@host mask
-	 * @param mask A nick!user\@host masak to match against
-	 * @return True i the mask is valid
-	 */
-	bool IsValidMask(const std::string &mask);
-
 	/** Rehash the local server
 	 */
 	void RehashServer();
-
-	/** Dump text to a user target, splitting it appropriately to fit
-	 * @param User the user to dump the text to
-	 * @param LinePrefix text to prefix each complete line with
-	 * @param TextStream the text to send to the user
-	 */
-	void DumpText(User* User, const std::string &LinePrefix, stringstream &TextStream);
 
 	/** Calculate a duration in seconds from a string in the form 1y2w3d4h6m5s
 	 * @param str A string containing a time in the form 1y2w3d4h6m5s
@@ -554,17 +491,6 @@ class CoreExport InspIRCd : public classbase
 	 * closes all open sockets, and closes the logfile.
 	 */
 	void Cleanup();
-
-	/** This copies the user and channel hash_maps into new hash maps.
-	 * This frees memory used by the hash_map allocator (which it neglects
-	 * to free, most of the time, using tons of ram)
-	 */
-	void RehashUsersAndChans();
-
-	/** Resets the cached max bans value on all channels.
-	 * Called by rehash.
-	 */
-	void ResetMaxBans();
 
 	/** Return a time_t as a human-readable string.
 	 */
