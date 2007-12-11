@@ -16,7 +16,6 @@
 #include "inspircd.h"
 #include <stdarg.h>
 #include "wildcard.h"
-#include "xline.h"
 #include "exitcodes.h"
 
 static char TIMESTR[26];

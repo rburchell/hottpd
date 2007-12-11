@@ -15,7 +15,6 @@
 
 #include "inspircd.h"
 #include "wildcard.h"
-#include "xline.h"
 #include "socket.h"
 #include "socketengine.h"
 #include "command_parse.h"

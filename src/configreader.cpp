@@ -23,7 +23,6 @@
 
 #include "inspircd.h"
 #include <fstream>
-#include "xline.h"
 #include "exitcodes.h"
 
 std::vector<std::string> old_module_names, new_module_names, added_modules, removed_modules;
@@ -719,12 +718,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 				{"",		NULL},
 				{DT_CHARPTR},
 				InitModule, DoModule, DoneModule},
-
-		{"badip",
-				{"reason",	"ipmask",	NULL},
-				{"No reason",	"",		NULL},
-				{DT_CHARPTR,	DT_IPADDRESS|DT_ALLOW_WILD},
-				InitXLine, DoZLine, DoneConfItem},
 
 		{"type",
 				{"name",	"classes",	NULL},
@@ -1992,23 +1985,6 @@ bool DoClass(ServerConfig* conf, const char*, char**, ValueList &values, int*)
  */
 bool DoneClassesAndTypes(ServerConfig*, const char*)
 {
-	return true;
-}
-
-bool InitXLine(ServerConfig* conf, const char* tag)
-{
-	return true;
-}
-
-bool DoZLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types)
-{
-	const char* reason = values[0].GetString();
-	const char* ipmask = values[1].GetString();
-
-	ZLine* zl = new ZLine(conf->GetInstance(), conf->GetInstance()->Time(), 0, "<Config>", reason, ipmask);
-	if (!conf->GetInstance()->XLines->AddLine(zl, NULL))
-		delete zl;
-
 	return true;
 }
 

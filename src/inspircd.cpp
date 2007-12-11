@@ -30,8 +30,6 @@
 #endif
 
 #include <fstream>
-#include "xline.h"
-#include "bancache.h"
 #include "socketengine.h"
 #include "inspircd_se_config.h"
 #include "socket.h"
@@ -271,12 +269,9 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
 	 /* Functor initialisation. Note that the ordering here is very important. */
 	 HandleProcessUser(this),
-	 HandleFloodQuitUser(this),
 
 	 /* Functor pointer initialisation. Must match the order of the list above */
-	 ProcessUser(&HandleProcessUser),
-	 FloodQuitUser(&HandleFloodQuitUser)
-
+	 ProcessUser(&HandleProcessUser)
 {
 
 	int found_ports = 0;
@@ -302,12 +297,10 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->Res = NULL;
 
 	this->Config = new ServerConfig(this);
-	this->BanCache = new BanCacheManager(this);
 	this->Modules = new ModuleManager(this);
 	this->stats = new serverstats();
 	this->Timers = new TimerManager(this);
 	this->Parser = new CommandParser(this);
-	this->XLines = new XLineManager(this);
 
 	this->Config->argv = argv;
 	this->Config->argc = argc;
@@ -450,10 +443,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	Config->Read(true, NULL, 1);
 
         this->AddServerName(Config->ServerName);
-
-        // Get XLine to do it's thing.
-        this->XLines->ApplyLines();
-
 
 	CheckDie();
 	int bounditems = BindPorts(true, found_ports, pl);

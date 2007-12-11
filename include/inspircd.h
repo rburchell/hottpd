@@ -216,11 +216,6 @@ typedef std::map<irc::string, unsigned int> clonemap;
 class InspIRCd;
 
 DEFINE_HANDLER1(ProcessUserHandler, void, User*);
-DEFINE_HANDLER1(FloodQuitUserHandler, void, User*);
-
-/* Forward declaration - required */
-class XLineManager;
-class BanCacheManager;
 
 /** The main class of the irc server.
  * This class contains instances of all the other classes
@@ -303,7 +298,6 @@ class CoreExport InspIRCd : public classbase
 	/**** Functors ****/
 
 	ProcessUserHandler HandleProcessUser;
-	FloodQuitUserHandler HandleFloodQuitUser;
 
 	User *FindDescriptorHandler(int);
 
@@ -336,11 +330,6 @@ class CoreExport InspIRCd : public classbase
 	 * modules.
 	 */
 	ModuleManager* Modules;
-
-	/** BanCacheManager is used to speed up checking of restrictions on connection
-	 * to the IRCd.
-	 */
-	BanCacheManager *BanCache;
 
 	/** Stats class, holds miscellaneous stats counters
 	 */
@@ -386,10 +375,6 @@ class CoreExport InspIRCd : public classbase
 	/** Timer manager class, triggers Timer timer events
 	 */
 	TimerManager* Timers;
-
-	/** X-Line manager. Handles G/K/Q/E line setting, removal and matching
-	 */
-	XLineManager* XLines;
 
 	/** Set to the current signal recieved
 	 */
@@ -820,12 +805,6 @@ class CoreExport InspIRCd : public classbase
 	 * @param ... Parameters for the format string
 	 */
 	void SendWhoisLine(User* user, User* dest, int numeric, const char* format, ...);
-
-	/** Quit a user for excess flood, and if they are not
-	 * fully registered yet, temporarily zline their IP.
-	 * @param current user to quit
-	 */
-	caller1<void, User*> FloodQuitUser;
 
 	/** Restart the server.
 	 * This function will not return. If an error occurs,

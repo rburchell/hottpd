@@ -17,8 +17,6 @@
 #include <stdarg.h>
 #include "socketengine.h"
 #include "wildcard.h"
-#include "xline.h"
-#include "bancache.h"
 
 User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
@@ -335,40 +333,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 		return;
 	}
 #endif
-	/*
-	 * even with bancache, we still have to keep User::exempt current.
-	 * besides that, if we get a positive bancache hit, we still won't fuck
-	 * them over if they are exempt. -- w00t
-	 */
-	//New->exempt = (Instance->XLines->MatchesLine("E",New) != NULL);
-
-	if (BanCacheHit *b = Instance->BanCache->GetHit(New->GetIPString()))
-	{
-		if (!b->Type.empty() && !New->exempt)
-		{
-			/* user banned */
-			Instance->Log(DEBUG, std::string("BanCache: Positive hit for ") + New->GetIPString());
-			User::QuitUser(Instance, New, b->Reason);
-			return;
-		}
-		else
-		{
-			Instance->Log(DEBUG, std::string("BanCache: Negative hit for ") + New->GetIPString());
-		}
-	}
-	else
-	{
-		if (!New->exempt)
-		{
-			XLine* r = Instance->XLines->MatchesLine("Z",New);
-
-			if (r)
-			{
-				r->Apply(New);
-				return;
-			}
-		}
-	}
 
         if (socket > -1)
         {
@@ -399,9 +363,6 @@ void User::FullConnect()
 
 	FOREACH_MOD(I_OnUserConnect,OnUserConnect(this));
 	FOREACH_MOD(I_OnPostConnect,OnPostConnect(this));
-
-	ServerInstance->Log(DEBUG, "BanCache: Adding NEGATIVE hit for %s", this->GetIPString());
-	ServerInstance->BanCache->AddHit(this->GetIPString(), "", "");
 }
 
 void User::SetSockAddr(int protocol_family, const char* ip, int port)

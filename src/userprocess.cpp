@@ -15,21 +15,8 @@
 
 #include "inspircd.h"
 #include "wildcard.h"
-#include "xline.h"
 #include "socketengine.h"
 #include "command_parse.h"
-
-void FloodQuitUserHandler::Call(User* current)
-{
-	Server->Log(DEFAULT,"Excess flood from: %s", current->host);
-	User::QuitUser(Server, current, "Excess flood");
-
-	ZLine* zl = new ZLine(Server, Server->Time(), 0, Server->Config->ServerName, "Flood from unregistered connection", current->GetIPString());
-	if (Server->XLines->AddLine(zl,NULL))
-		Server->XLines->ApplyLines();
-	else
-		delete zl;
-}
 
 void ProcessUserHandler::Call(User* cu)
 {
@@ -97,7 +84,7 @@ void ProcessUserHandler::Call(User* cu)
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// AddBuffer returned false, theres too much data in the user's buffer and theyre up to no good.
-				Server->FloodQuitUser(current);
+				User::QuitUser(Server, current, "AddBuffer failed.");
 				return;
 			}
 
