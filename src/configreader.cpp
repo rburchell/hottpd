@@ -34,26 +34,17 @@ bool DoneELine(ServerConfig* conf, const char* tag);
 ServerConfig::ServerConfig(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	this->ClearStack();
-	*ServerName = *Network = *ServerDesc = *AdminName = '\0';
-	*HideWhoisServer = *AdminEmail = *AdminNick = *FixedQuit = *HideKillsServer = '\0';
-	*DefaultModes = *CustomVersion = *motd = *rules = *PrefixQuit = *DieValue = *DNSServer = '\0';
-	*UserStats = *ModPath = *MyExecutable = *DisabledCommands = *PID = *SuffixQuit = '\0';
-	WhoWasGroupSize = WhoWasMaxGroups = WhoWasMaxKeep = 0;
+	*CustomVersion = *DieValue = '\0';
+	*ModPath = *MyExecutable = *PID = '\0';
 	log_file = NULL;
-	NoUserDns = forcedebug = OperSpyWhois = nofork = HideBans = HideSplits = UndernetMsgPrefix = false;
-	CycleHosts = writelog = AllowHalfop = true;
-	dns_timeout = DieDelay = 5;
-	MaxTargets = 20;
+	forcedebug = nofork = false;
+	writelog = true;
+	DieDelay = 5;
 	NetBufferSize = 10240;
 	SoftLimit = MAXCLIENTS;
 	MaxConn = SOMAXCONN;
-	MaxWhoResults = 0;
 	debugging = 0;
-	MaxChans = 20;
-	OperMaxChans = 30;
 	LogLevel = DEFAULT;
-	maxbans.clear();
-	DNSServerValidator = &ValidateDnsServer;
 }
 
 void ServerConfig::ClearStack()
@@ -246,40 +237,12 @@ bool ValidateDnsServer(ServerConfig* conf, const char*, const char*, ValueItem &
 	return true;
 }
 
-bool ValidateServerName(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	/* If we already have a servername, and they changed it, we should throw an exception. */
-	if ((strcasecmp(conf->ServerName, data.GetString())) && (*conf->ServerName))
-	{
-		throw CoreException("Configuration error: You cannot change your servername at runtime! Please restart your server for this change to be applied.");
-		/* We don't actually reach this return of course... */
-		return false;
-	}
-	if (!strchr(data.GetString(),'.'))
-	{
-		conf->GetInstance()->Log(DEFAULT,"WARNING: <server:name> '%s' is not a fully-qualified domain name. Changed to '%s%c'",data.GetString(),data.GetString(),'.');
-		std::string moo = std::string(data.GetString()).append(".");
-		data.Set(moo.c_str());
-	}
-	return true;
-}
-
 bool ValidateNetBufferSize(ServerConfig* conf, const char*, const char*, ValueItem &data)
 {
 	if ((!data.GetInteger()) || (data.GetInteger() > 65535) || (data.GetInteger() < 1024))
 	{
 		conf->GetInstance()->Log(DEFAULT,"No NetBufferSize specified or size out of range, setting to default of 10240.");
 		data.Set(10240);
-	}
-	return true;
-}
-
-bool ValidateMaxWho(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	if ((data.GetInteger() > 65535) || (data.GetInteger() < 1))
-	{
-		conf->GetInstance()->Log(DEFAULT,"<options:maxwhoresults> size out of range, setting to default of 128.");
-		data.Set(128);
 	}
 	return true;
 }
@@ -305,110 +268,10 @@ bool ValidateLogLevel(ServerConfig* conf, const char*, const char*, ValueItem &d
 	return true;
 }
 
-bool ValidateMotd(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	conf->ReadFile(conf->MOTD, data.GetString());
-	return true;
-}
-
 bool ValidateNotEmpty(ServerConfig*, const char* tag, const char*, ValueItem &data)
 {
 	if (!*data.GetString())
 		throw CoreException(std::string("The value for ")+tag+" cannot be empty!");
-	return true;
-}
-
-bool ValidateRules(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	conf->ReadFile(conf->RULES, data.GetString());
-	return true;
-}
-
-bool ValidateModeLists(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	memset(conf->HideModeLists, 0, 256);
-	for (const unsigned char* x = (const unsigned char*)data.GetString(); *x; ++x)
-		conf->HideModeLists[*x] = true;
-	return true;
-}
-
-bool ValidateExemptChanOps(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	memset(conf->ExemptChanOps, 0, 256);
-	for (const unsigned char* x = (const unsigned char*)data.GetString(); *x; ++x)
-		conf->ExemptChanOps[*x] = true;
-	return true;
-}
-
-bool ValidateInvite(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	std::string v = data.GetString();
-
-	if (v == "ops")
-		conf->AnnounceInvites = ServerConfig::INVITE_ANNOUNCE_OPS;
-	else if (v == "all")
-		conf->AnnounceInvites = ServerConfig::INVITE_ANNOUNCE_ALL;
-	else if (v == "dynamic")
-		conf->AnnounceInvites = ServerConfig::INVITE_ANNOUNCE_DYNAMIC;
-	else
-		conf->AnnounceInvites = ServerConfig::INVITE_ANNOUNCE_NONE;
-
-	return true;
-}
-
-bool ValidateSID(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	int sid = data.GetInteger();
-	if ((sid > 999) || (sid < 0))
-	{
-		sid = sid % 1000;
-		data.Set(sid);
-		conf->GetInstance()->Log(DEFAULT,"WARNING: Server ID is less than 0 or greater than 999. Set to %d", sid);
-	}
-	return true;
-}
-
-bool ValidateWhoWas(ServerConfig* conf, const char*, const char*, ValueItem &data)
-{
-	conf->WhoWasMaxKeep = conf->GetInstance()->Duration(data.GetString());
-
-	if (conf->WhoWasGroupSize < 0)
-		conf->WhoWasGroupSize = 0;
-
-	if (conf->WhoWasMaxGroups < 0)
-		conf->WhoWasMaxGroups = 0;
-
-	if (conf->WhoWasMaxKeep < 3600)
-	{
-		conf->WhoWasMaxKeep = 3600;
-		conf->GetInstance()->Log(DEFAULT,"WARNING: <whowas:maxkeep> value less than 3600, setting to default 3600");
-	}
-
-	return true;
-}
-
-/* Callback called before processing the first <uline> tag
- */
-bool InitULine(ServerConfig* conf, const char*)
-{
-	conf->ulines.clear();
-	return true;
-}
-
-/* Callback called to process a single <uline> tag
- */
-bool DoULine(ServerConfig* conf, const char*, char**, ValueList &values, int*)
-{
-	const char* server = values[0].GetString();
-	const bool silent = values[1].GetBool();
-	conf->ulines[server] = silent;
-	return true;
-}
-
-/* Callback called when there are no more <uline> tags
- */
-bool DoneULine(ServerConfig*, const char*)
-{
 	return true;
 }
 
@@ -467,31 +330,6 @@ bool DoneModule(ServerConfig*, const char*)
 	return true;
 }
 
-/* Callback called before processing the first <banlist> tag
- */
-bool InitMaxBans(ServerConfig* conf, const char*)
-{
-	conf->maxbans.clear();
-	return true;
-}
-
-/* Callback called to process a single <banlist> tag
- */
-bool DoMaxBans(ServerConfig* conf, const char*, char**, ValueList &values, int*)
-{
-	const char* channel = values[0].GetString();
-	int limit = values[1].GetInteger();
-	conf->maxbans[channel] = limit;
-	return true;
-}
-
-/* Callback called when there are no more <banlist> tags.
- */
-bool DoneMaxBans(ServerConfig*, const char*)
-{
-	return true;
-}
-
 void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail, User* user)
 {
 	ServerInstance->Log(DEFAULT, "There were errors in your configuration file: %s", errormessage.c_str());
@@ -523,10 +361,6 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	int rem = 0, add = 0;           /* Number of modules added, number of modules removed */
 
 	static char debug[MAXBUF];	/* Temporary buffer for debugging value */
-	static char maxkeep[MAXBUF];	/* Temporary buffer for WhoWasMaxKeep value */
-	static char hidemodes[MAXBUF];	/* Modes to not allow listing from users below halfop */
-	static char exemptchanops[MAXBUF];	/* Exempt channel ops from these modes */
-	static char announceinvites[MAXBUF];	/* options:announceinvites setting */
 	errstr.clear();
 
 	/* These tags MUST occur and must ONLY occur once in the config file */
@@ -536,51 +370,12 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	InitialConfig Values[] = {
 		{"options",	"softlimit",	MAXCLIENTS_S,		new ValueContainerUInt (&this->SoftLimit),		DT_INTEGER,  ValidateSoftLimit},
 		{"options",	"somaxconn",	SOMAXCONN_S,		new ValueContainerInt  (&this->MaxConn),		DT_INTEGER,  ValidateMaxConn},
-		{"options",	"moronbanner",	"Youre banned!",	new ValueContainerChar (this->MoronBanner),		DT_CHARPTR,  NoValidation},
-		{"server",	"name",		"",			new ValueContainerChar (this->ServerName),		DT_HOSTNAME, ValidateServerName},
-		{"server",	"description",	"Configure Me",		new ValueContainerChar (this->ServerDesc),		DT_CHARPTR,  NoValidation},
-		{"server",	"network",	"Network",		new ValueContainerChar (this->Network),			DT_NOSPACES, NoValidation},
-		{"server",	"id",		"0",			new ValueContainerInt  (&this->sid),			DT_NOSPACES, ValidateSID},
-		{"admin",	"name",		"",			new ValueContainerChar (this->AdminName),		DT_CHARPTR,  NoValidation},
-		{"admin",	"email",	"Mis@configu.red",	new ValueContainerChar (this->AdminEmail),		DT_CHARPTR,  NoValidation},
-		{"admin",	"nick",		"Misconfigured",	new ValueContainerChar (this->AdminNick),		DT_CHARPTR,  NoValidation},
-		{"files",	"motd",		"",			new ValueContainerChar (this->motd),			DT_CHARPTR,  ValidateMotd},
-		{"files",	"rules",	"",			new ValueContainerChar (this->rules),			DT_CHARPTR,  ValidateRules},
-		{"options",	"prefixquit",	"",			new ValueContainerChar (this->PrefixQuit),		DT_CHARPTR,  NoValidation},
-		{"options",	"suffixquit",	"",			new ValueContainerChar (this->SuffixQuit),		DT_CHARPTR,  NoValidation},
-		{"options",	"fixedquit",	"",			new ValueContainerChar (this->FixedQuit),		DT_CHARPTR,  NoValidation},
 		{"options",	"loglevel",	"default",		new ValueContainerChar (debug),				DT_CHARPTR,  ValidateLogLevel},
 		{"options",	"netbuffersize","10240",		new ValueContainerInt  (&this->NetBufferSize),		DT_INTEGER,  ValidateNetBufferSize},
-		{"options",	"maxwho",	"128",			new ValueContainerInt  (&this->MaxWhoResults),		DT_INTEGER,  ValidateMaxWho},
-		{"options",	"allowhalfop",	"0",			new ValueContainerBool (&this->AllowHalfop),		DT_BOOLEAN,  NoValidation},
-		{"dns",		"server",	"",			new ValueContainerChar (this->DNSServer),		DT_IPADDRESS,DNSServerValidator},
-		{"dns",		"timeout",	"5",			new ValueContainerInt  (&this->dns_timeout),		DT_INTEGER,  NoValidation},
 		{"options",	"moduledir",	MOD_PATH,		new ValueContainerChar (this->ModPath),			DT_CHARPTR,  NoValidation},
-		{"disabled",	"commands",	"",			new ValueContainerChar (this->DisabledCommands),	DT_CHARPTR,  NoValidation},
-		{"options",	"userstats",	"",			new ValueContainerChar (this->UserStats),		DT_CHARPTR,  NoValidation},
 		{"options",	"customversion","",			new ValueContainerChar (this->CustomVersion),		DT_CHARPTR,  NoValidation},
-		{"options",	"hidesplits",	"0",			new ValueContainerBool (&this->HideSplits),		DT_BOOLEAN,  NoValidation},
-		{"options",	"hidebans",	"0",			new ValueContainerBool (&this->HideBans),		DT_BOOLEAN,  NoValidation},
-		{"options",	"hidewhois",	"",			new ValueContainerChar (this->HideWhoisServer),		DT_NOSPACES, NoValidation},
-		{"options",	"hidekills",	"",			new ValueContainerChar (this->HideKillsServer),		DT_NOSPACES,  NoValidation},
-		{"options",	"operspywhois",	"0",			new ValueContainerBool (&this->OperSpyWhois),		DT_BOOLEAN,  NoValidation},
-		{"options",	"nouserdns",	"0",			new ValueContainerBool (&this->NoUserDns),		DT_BOOLEAN,  NoValidation},
-		{"options",	"syntaxhints",	"0",			new ValueContainerBool (&this->SyntaxHints),		DT_BOOLEAN,  NoValidation},
-		{"options",	"cyclehosts",	"0",			new ValueContainerBool (&this->CycleHosts),		DT_BOOLEAN,  NoValidation},
-		{"options",	"ircumsgprefix","0",			new ValueContainerBool (&this->UndernetMsgPrefix),	DT_BOOLEAN,  NoValidation},
-		{"options",	"announceinvites", "1",			new ValueContainerChar (announceinvites),		DT_CHARPTR,  ValidateInvite},
-		{"options",	"hostintopic",	"1",			new ValueContainerBool (&this->FullHostInTopic),	DT_BOOLEAN,  NoValidation},
-		{"options",	"hidemodes",	"",			new ValueContainerChar (hidemodes),			DT_CHARPTR,  ValidateModeLists},
-		{"options",	"exemptchanops","",			new ValueContainerChar (exemptchanops),			DT_CHARPTR,  ValidateExemptChanOps},
-		{"options",	"maxtargets",	"20",			new ValueContainerUInt (&this->MaxTargets),		DT_INTEGER,  ValidateMaxTargets},
-		{"options",	"defaultmodes", "nt",			new ValueContainerChar (this->DefaultModes),		DT_CHARPTR,  NoValidation},
 		{"pid",		"file",		"",			new ValueContainerChar (this->PID),			DT_CHARPTR,  NoValidation},
-		{"whowas",	"groupsize",	"10",			new ValueContainerInt  (&this->WhoWasGroupSize),	DT_INTEGER,  NoValidation},
-		{"whowas",	"maxgroups",	"10240",		new ValueContainerInt  (&this->WhoWasMaxGroups),	DT_INTEGER,  NoValidation},
-		{"whowas",	"maxkeep",	"3600",			new ValueContainerChar (maxkeep),			DT_CHARPTR,  ValidateWhoWas},
 		{"die",		"value",	"",			new ValueContainerChar (this->DieValue),		DT_CHARPTR,  NoValidation},
-		{"channels",	"users",	"20",			new ValueContainerUInt (&this->MaxChans),		DT_INTEGER,  NoValidation},
-		{"channels",	"opers",	"60",			new ValueContainerUInt (&this->OperMaxChans),		DT_INTEGER,  NoValidation},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 
@@ -589,36 +384,12 @@ void ServerConfig::Read(bool bail, User* user, int pass)
 	 */
 	MultiConfig MultiValues[] = {
 
-		{"uline",
-				{"server",	"silent",	NULL},
-				{"",		"0",		NULL},
-				{DT_HOSTNAME,	DT_BOOLEAN},
-				InitULine,DoULine,DoneULine},
-
-		{"banlist",
-				{"chan",	"limit",	NULL},
-				{"",		"",		NULL},
-				{DT_CHARPTR,	DT_INTEGER},
-				InitMaxBans, DoMaxBans, DoneMaxBans},
-
 		{"module",
 				{"name",	NULL},
 				{"",		NULL},
 				{DT_CHARPTR},
 				InitModule, DoModule, DoneModule},
 
-		{"type",
-				{"name",	"classes",	NULL},
-				{"",		"",		NULL},
-				{DT_NOSPACES,	DT_CHARPTR},
-				InitTypes, DoType, DoneClassesAndTypes},
-
-		{"class",
-				{"name",	"commands",	NULL},
-				{"",		"",		NULL},
-				{DT_NOSPACES,	DT_CHARPTR},
-				InitClasses, DoClass, DoneClassesAndTypes},
-	
 		{NULL,
 				{NULL},
 				{NULL},
@@ -1741,15 +1512,6 @@ InspIRCd* ServerConfig::GetInstance()
 	return ServerInstance;
 }
 
-std::string ServerConfig::GetSID()
-{
-	std::string OurSID;
-	OurSID += (char)((sid / 100) + 48);
-	OurSID += (char)((sid / 10) % 10 + 48);
-	OurSID += (char)(sid % 10 + 48);
-	return OurSID;
-}
-
 ValueItem::ValueItem(int value)
 {
 	std::stringstream n;
@@ -1803,74 +1565,4 @@ bool ValueItem::GetBool()
 	return (GetInteger() || v == "yes" || v == "true");
 }
 
-
-
-
-/*
- * XXX should this be in a class? -- w00t
- */
-bool InitTypes(ServerConfig* conf, const char*)
-{
-	if (conf->opertypes.size())
-	{
-		for (opertype_t::iterator n = conf->opertypes.begin(); n != conf->opertypes.end(); n++)
-		{
-			if (n->second)
-				delete[] n->second;
-		}
-	}
-
-	conf->opertypes.clear();
-	return true;
-}
-
-/*
- * XXX should this be in a class? -- w00t
- */
-bool InitClasses(ServerConfig* conf, const char*)
-{
-	if (conf->operclass.size())
-	{
-		for (operclass_t::iterator n = conf->operclass.begin(); n != conf->operclass.end(); n++)
-		{
-			if (n->second)
-				delete[] n->second;
-		}
-	}
-
-	conf->operclass.clear();
-	return true;
-}
-
-/*
- * XXX should this be in a class? -- w00t
- */
-bool DoType(ServerConfig* conf, const char*, char**, ValueList &values, int*)
-{
-	const char* TypeName = values[0].GetString();
-	const char* Classes = values[1].GetString();
-
-	conf->opertypes[TypeName] = strnewdup(Classes);
-	return true;
-}
-
-/*
- * XXX should this be in a class? -- w00t
- */
-bool DoClass(ServerConfig* conf, const char*, char**, ValueList &values, int*)
-{
-	const char* ClassName = values[0].GetString();
-	const char* CommandList = values[1].GetString();
-
-	conf->operclass[ClassName] = strnewdup(CommandList);
-	return true;
-}
-
-/*
- * XXX should this be in a class? -- w00t
- */
-bool DoneClassesAndTypes(ServerConfig*, const char*)
-{
-	return true;
-}
 

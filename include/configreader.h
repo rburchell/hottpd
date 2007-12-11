@@ -16,11 +16,6 @@
 
 /* handy defines */
 
-/** Determines if a channel op is exempt from given mode m,
- * in config of server instance s. 
- */
-#define CHANOPS_EXEMPT(s, m) (s->Config->ExemptChanOps[(unsigned char)m])
-
 #include <sstream>
 #include <string>
 #include <vector>
@@ -34,7 +29,6 @@
 /* Required forward definitions */
 class ServerConfig;
 class InspIRCd;
-class BufferedSocket;
 
 /** Types of data in the core config
  */
@@ -199,15 +193,6 @@ struct MultiConfig
 	MultiNotify	finish_function;
 };
 
-/** A set of oper types
- */
-typedef std::map<irc::string,char*> opertype_t;
-
-/** A Set of oper classes
- */
-typedef std::map<irc::string,char*> operclass_t;
-
-
 /** This class holds the bulk of the runtime configuration for the ircd.
  * It allows for reading new config values, accessing configuration files,
  * and storage of the configuration data needed to run the ircd, such as
@@ -254,12 +239,6 @@ class CoreExport ServerConfig : public Extensible
 	size_t TotalDownloaded;
 	size_t FileErrors;
 
-	/** Used to indicate who we announce invites to on a channel */
-	enum InviteAnnounceState { INVITE_ANNOUNCE_NONE, INVITE_ANNOUNCE_ALL, INVITE_ANNOUNCE_OPS, INVITE_ANNOUNCE_DYNAMIC };
-
-	/** Pointer to function that validates dns server addresses (can be changed depending on platform) */
-	Validator DNSServerValidator;
-
 	InspIRCd* GetInstance();
 
 	void DoDownloads();
@@ -269,90 +248,10 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	ConfigDataHash config_data;
 
-	/** Max number of WhoWas entries per user.
-	 */
-	int WhoWasGroupSize;
-
-	/** Max number of cumulative user-entries in WhoWas.
-	 *  When max reached and added to, push out oldest entry FIFO style.
-	 */
-	int WhoWasMaxGroups;
-
-	/** Max seconds a user is kept in WhoWas before being pruned.
-	 */
-	int WhoWasMaxKeep;
-
-	/** Holds the server name of the local server
-	 * as defined by the administrator.
-	 */
-	char ServerName[MAXBUF];
-
-	/** Notice to give to users when they are Xlined
-	 */
-	char MoronBanner[MAXBUF];
-	
-	/* Holds the network name the local server
-	 * belongs to. This is an arbitary field defined
-	 * by the administrator.
-	 */
-	char Network[MAXBUF];
-
-	/** Holds the description of the local server
-	 * as defined by the administrator.
-	 */
-	char ServerDesc[MAXBUF];
-
-	/** Holds the admin's name, for output in
-	 * the /ADMIN command.
-	 */
-	char AdminName[MAXBUF];
-
-	/** Holds the email address of the admin,
-	 * for output in the /ADMIN command.
-	 */
-	char AdminEmail[MAXBUF];
-
-	/** Holds the admin's nickname, for output
-	 * in the /ADMIN command
-	 */
-	char AdminNick[MAXBUF];
-
-	/** The pathname and filename of the message of the
-	 * day file, as defined by the administrator.
-	 */
-	char motd[MAXBUF];
-
-	/** The pathname and filename of the rules file,
-	 * as defined by the administrator.
-	 */
-	char rules[MAXBUF];
-
-	/** The quit prefix in use, or an empty string
-	 */
-	char PrefixQuit[MAXBUF];
-
-	/** The quit suffix in use, or an empty string
-	 */
-	char SuffixQuit[MAXBUF];
-
-	/** The fixed quit message in use, or an empty string
-	 */
-	char FixedQuit[MAXBUF];
-
 	/** The last string found within a <die> tag, or
 	 * an empty string.
 	 */
 	char DieValue[MAXBUF];
-
-	/** The DNS server to use for DNS queries
-	 */
-	char DNSServer[MAXBUF];
-
-	/** This variable contains a space-seperated list
-	 * of commands which are disabled by the
-	 * administrator of the server for non-opers.
-	 */
-	char DisabledCommands[MAXBUF];
 
 	/** The full path to the modules directory.
 	 * This is either set at compile time, or
@@ -399,27 +298,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	bool writelog;
 
-	/** If this value is true, halfops have been
-	 * enabled in the configuration file.
-	 */
-	bool AllowHalfop;
-
-	/** If this is set to true, then mode lists (e.g
-	 * MODE #chan b) are hidden from unprivileged
-	 * users.
-	 */
-	bool HideModeLists[256];
-
-	/** If this is set to true, then channel operators
-	 * are exempt from this channel mode. Used for +Sc etc.
-	 */
-	bool ExemptChanOps[256];
-
-	/** The number of seconds the DNS subsystem
-	 * will wait before timing out any request.
-	 */
-	int dns_timeout;
-
 	/** The size of the read() buffer in the user
 	 * handling code, used to read data into a user's
 	 * recvQ.
@@ -437,16 +315,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	unsigned int SoftLimit;
 
-	/** Maximum number of targets for a multi target command
-	 * such as PRIVMSG or KICK
-	 */
-	unsigned int MaxTargets;
-
-	/** The maximum number of /WHO results allowed
-	 * in any single /WHO command.
-	 */
-	int MaxWhoResults;
-
 	/** True if the DEBUG loglevel is selected.
 	 */
 	int debugging;
@@ -460,40 +328,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	int DieDelay;
 
-	/** True if we're going to hide netsplits as *.net *.split for non-opers
-	 */
-	bool HideSplits;
-
-	/** True if we're going to hide ban reasons for non-opers (e.g. G-Lines,
-	 * K-Lines, Z-Lines)
-	 */
-	bool HideBans;
-
-	/** Announce invites to the channel with a server notice
-	 */
-	InviteAnnounceState AnnounceInvites;
-
-	/** If this is enabled then operators will
-	 * see invisible (+i) channels in /whois.
-	 */
-	bool OperSpyWhois;
-
-	/** Set to a non-empty string to obfuscate the server name of users in WHOIS
-	 */
-	char HideWhoisServer[MAXBUF];
-
-	/** Set to a non empty string to obfuscate nicknames prepended to a KILL.
-	 */
-	char HideKillsServer[MAXBUF];
-
-	/** The MOTD file, cached in a file_cache type.
-	 */
-	file_cache MOTD;
-
-	/** The RULES file, cached in a file_cache type.
-	 */
-	file_cache RULES;
-
 	/** The full pathname and filename of the PID
 	 * file as defined in the configuration.
 	 */
@@ -503,81 +337,17 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	std::vector<ListenSocket*> ports;
 
-	/** A list of ports claimed by IO Modules
-	 */
-	std::map<int,Module*> IOHookModule;
-
-	std::map<BufferedSocket*, Module*> SocketIOHookModule;
-
-	/** The 005 tokens of this server (ISUPPORT)
-	 * populated/repopulated upon loading or unloading
-	 * modules.
-	 */
-	std::string data005;
-
-	/** isupport strings
-	 */
-	std::vector<std::string> isupport;
-
-	/** STATS characters in this list are available
-	 * only to operators.
-	 */
-	char UserStats[MAXBUF];
-	
 	/** The path and filename of the ircd.log file
 	 */
 	std::string logpath;
-
-	/** Default channel modes
-	 */
-	char DefaultModes[MAXBUF];
 
 	/** Custom version string, which if defined can replace the system info in VERSION.
 	 */
 	char CustomVersion[MAXBUF];
 
-	/** List of u-lined servers
-	 */
-	std::map<irc::string, bool> ulines;
-
-	/** Max banlist sizes for channels (the std::string is a glob)
-	 */
-	std::map<std::string, int> maxbans;
-
 	/** Directory where the inspircd binary resides
 	 */
 	std::string MyDir;
-
-	/** If set to true, no user DNS lookups are to be performed
-	 */
-	bool NoUserDns;
-
-	/** If set to true, provide syntax hints for unknown commands
-	 */
-	bool SyntaxHints;
-
-	/** If set to true, users appear to quit then rejoin when their hosts change.
-	 * This keeps clients synchronized properly.
-	 */
-	bool CycleHosts;
-
-	/** If set to true, prefixed channel NOTICEs and PRIVMSGs will have the prefix
-	 *  added to the outgoing text for undernet style msg prefixing.
-	 */
-	bool UndernetMsgPrefix;
-
-	/** If set to true, the full nick!user@host will be shown in the TOPIC command
-	 * for who set the topic last. If false, only the nick is shown.
-	 */
-	bool FullHostInTopic;
-
-	/** All oper type definitions from the config file
-	 */
-	opertype_t opertypes;
-
-	/** All oper class definitions from the config file
-	 */
-	operclass_t operclass;
 
 	/** Saved argv from startup
 	 */
@@ -587,21 +357,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	int argc;
 
-	/** Max channels per user
-	 */
-	unsigned int MaxChans;
-
-	/** Oper max channels per user
-	 */
-	unsigned int OperMaxChans;
-
-	/** TS6-like server ID.
-	 * NOTE: 000...999 are usable for InspIRCd servers. This
-	 * makes code simpler. 0AA, 1BB etc with letters are reserved
-	 * for services use.
-	 */
-	int sid;
-
 	/** Construct a new ServerConfig
 	 */
 	ServerConfig(InspIRCd* Instance);
@@ -609,18 +364,6 @@ class CoreExport ServerConfig : public Extensible
 	/** Clears the include stack in preperation for a Read() call.
 	 */
 	void ClearStack();
-
-	/** Get server ID as string with required leading zeroes
-	 */
-	std::string GetSID();
-
-	/** Update the 005 vector
-	 */
-	void Update005();
-
-	/** Send the 005 numerics (ISUPPORT) to a user
-	 */
-	void Send005(User* user);
 
 	/** Read the entire configuration into memory
 	 * and initialize this class. All other methods
@@ -712,46 +455,6 @@ class CoreExport ServerConfig : public Extensible
 
 	void ValidateNoSpaces(const char* p, const std::string &tag, const std::string &val);
 	
-	/** Get a pointer to the module which has hooked the given port.
-	 * @parameter port Port number
-	 * @return Returns a pointer to the hooking module, or NULL
-	 */
-	Module* GetIOHook(int port);
-
-	/** Hook a module to a client port, so that it can receive notifications
-	 * of low-level port activity.
-	 * @param port The port number
-	 * @param Module the module to hook to the port
-	 * @return True if the hook was successful.
-	 */
-	bool AddIOHook(int port, Module* iomod);
-
-	/** Delete a module hook from a client port.
-	 * @param port The port to detatch from
-	 * @return True if successful
-	 */
-	bool DelIOHook(int port);
-	
-	/** Get a pointer to the module which has hooked the given BufferedSocket class.
-	 * @parameter port Port number
-	 * @return Returns a pointer to the hooking module, or NULL
-	 */
-	Module* GetIOHook(BufferedSocket* is);
-
-	/** Hook a module to an BufferedSocket class, so that it can receive notifications
-	 * of low-level socket activity.
-	 * @param iomod The module to hook to the socket
-	 * @param is The BufferedSocket to attach to
-	 * @return True if the hook was successful.
-	 */
-	bool AddIOHook(Module* iomod, BufferedSocket* is);
-
-	/** Delete a module hook from an BufferedSocket.
-	 * @param is The BufferedSocket to detatch from.
-	 * @return True if the unhook was successful
-	 */
-	bool DelIOHook(BufferedSocket* is);
-
 	/** Returns the fully qualified path to the inspircd directory
 	 * @return The full program directory
 	 */
@@ -776,55 +479,6 @@ class CoreExport ServerConfig : public Extensible
 	static bool FileExists(const char* file);
 	
 };
-
-/** Initialize the disabled commands list
- */
-CoreExport bool InitializeDisabledCommands(const char* data, InspIRCd* ServerInstance);
-
-/** Initialize the oper types
- */
-bool InitTypes(ServerConfig* conf, const char* tag);
-
-/** Initialize the oper classes
- */
-bool InitClasses(ServerConfig* conf, const char* tag);
-
-/** Initialize an oper type 
- */
-bool DoType(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-/** Initialize an oper class
- */
-bool DoClass(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-/** Finish initializing the oper types and classes
- */
-bool DoneClassesAndTypes(ServerConfig* conf, const char* tag);
-
-
-
-/** Initialize x line
- */
-bool InitXLine(ServerConfig* conf, const char* tag);
- 
-/** Add a config-defined zline
- */
-bool DoZLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-/** Add a config-defined qline
- */
-bool DoQLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-/** Add a config-defined kline
- */
-bool DoKLine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-/** Add a config-defined eline
- */
-bool DoELine(ServerConfig* conf, const char* tag, char** entries, ValueList &values, int* types);
-
-
-
 
 #endif
 

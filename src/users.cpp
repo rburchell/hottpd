@@ -266,7 +266,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	inet_ntop(AF_INET, &((const sockaddr_in*)ip)->sin_addr, ipaddr, sizeof(ipaddr));
 
 	New->SetFd(socket);
-	New->signon = Instance->Time() + Instance->Config->dns_timeout;
+	New->signon = Instance->Time();
 	New->lastping = 1;
 
 	New->SetSockAddr(socketfamily, ipaddr, port);

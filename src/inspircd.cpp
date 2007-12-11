@@ -259,9 +259,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 		exit(0);
 	}
 
-	this->Config->opertypes.clear();
-	this->Config->operclass.clear();
-
 	this->TIME = this->OLDTIME = this->startup_time = time(NULL);
 	this->time_delta = 0;
 	srand(this->TIME);
