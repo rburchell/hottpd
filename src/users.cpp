@@ -20,14 +20,10 @@
 
 User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
-	lastping = signon = idle_lastmsg = nping = 0;
-	timeout = bytes_in = bytes_out = cmds_in = cmds_out = 0;
 	quitting = false;
 	fd = -1;
-	recvq.clear();
-	sendq.clear();
-	WriteError.clear();
 	privip = NULL;
+	State = HTTP_WAIT_REQUEST;
 }
 
 User::~User()
@@ -73,176 +69,275 @@ int User::ReadData(void* buffer, size_t size)
  * something we can change anyway. Makes sense to just let
  * the compiler do that copy for us.
  */
-bool User::AddBuffer(std::string a)
+bool User::AddBuffer(const std::string &a)
 {
-	try
+	if (!a.length())
 	{
-		std::string::size_type i = a.rfind('\r');
-
-		while (i != std::string::npos)
-		{
-			a.erase(i, 1);
-			i = a.rfind('\r');
-		}
-
-		if (a.length())
-			recvq.append(a);
-
+		/* how is this possible .. */
 		return true;
 	}
 
-	catch (...)
+	ServerInstance->Log(DEBUG, "Adding to buffer: " + a);
+
+	switch (State)
 	{
-		ServerInstance->Log(DEBUG,"Exception in User::AddBuffer()");
-		return false;
-	}
-}
+		case HTTP_WAIT_REQUEST:
+			requestbuf.append(a);
 
-bool User::BufferIsReady()
-{
-	return (recvq.find('\n') != std::string::npos);
-}
-
-void User::ClearBuffer()
-{
-	recvq.clear();
-}
-
-std::string User::GetBuffer()
-{
-	try
-	{
-		if (recvq.empty())
-			return "";
-
-		/* Strip any leading \r or \n off the string.
-		 * Usually there are only one or two of these,
-		 * so its is computationally cheap to do.
-		 */
-		std::string::iterator t = recvq.begin();
-		while (t != recvq.end() && (*t == '\r' || *t == '\n'))
-		{
-			recvq.erase(t);
-			t = recvq.begin();
-		}
-
-		for (std::string::iterator x = recvq.begin(); x != recvq.end(); x++)
-		{
-			/* Find the first complete line, return it as the
-			 * result, and leave the recvq as whats left
-			 */
-			if (*x == '\n')
+			if (requestbuf.length() > 2000)
 			{
-				std::string ret = std::string(recvq.begin(), x);
-				recvq.erase(recvq.begin(), x + 1);
-				return ret;
+				// XXX this is arbitrary, but it should stop people flooding
+				ServerInstance->Log(DEBUG, "Too much data, setting to SEND");
+				State = HTTP_SEND_DATA;
 			}
-		}
-		return "";
+
+			this->CheckRequest();
+			break;
+		case HTTP_RECV_POSTDATA:
+			return false; // XXX fixme we can't handle POST yet :P
+			break;
+		case HTTP_SEND_DATA:
+		case HTTP_FINISHED:
+			/* Drop it into the bit bucket. Don't care or shouldn't happen. */
+			break;
 	}
 
-	catch (...)
+	return true;
+}
+
+void User::CheckRequest()
+{
+	/* Copied liberally from m_httpd for now */
+
+	ServerInstance->Log(DEBUG, "Checking request.");
+
+	std::string::size_type reqend = requestbuf.find("\r\n\r\n");
+	if (reqend == std::string::npos)
+		return;
+
+	ServerInstance->Log(DEBUG, "Got headers.");
+ 
+	// We have the headers; parse them all
+	std::string::size_type hbegin = 0, hend;
+	while ((hend = requestbuf.find("\r\n", hbegin)) != std::string::npos)
 	{
-		ServerInstance->Log(DEBUG,"Exception in User::GetBuffer()");
-		return "";
+		if (hbegin == hend)
+			break;
+
+		if (request_type.empty())
+		{
+			std::istringstream cheader(std::string(requestbuf, hbegin, hend - hbegin));
+			cheader >> request_type;
+			cheader >> uri;
+			cheader >> http_version;
+
+			if (request_type.empty() || uri.empty() || http_version.empty())
+			{
+				SendError(400);
+				return;
+			}
+
+			hbegin = hend + 2;
+			continue;
+		}
+
+		std::string cheader = requestbuf.substr(hbegin, hend - hbegin);
+
+		std::string::size_type fieldsep = cheader.find(':');
+		if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
+		{
+			SendError(400);
+			return;
+		}
+
+		headers.SetHeader(cheader.substr(0, fieldsep), cheader.substr(fieldsep + 2));
+
+		hbegin = hend + 2;
+	}
+
+	requestbuf.erase(0, reqend + 4);
+
+	std::transform(request_type.begin(), request_type.end(), request_type.begin(), ::toupper);
+	std::transform(http_version.begin(), http_version.end(), http_version.begin(), ::toupper);
+
+	if (http_version != "HTTP/1.1" &&
+	    http_version != "HTTP/1.0")
+	{
+		SendError(505);
+		return;
+	}
+
+	if (strcasecmp(headers.GetHeader("Connection").c_str(), "keep-alive") == 0)
+		keepalive = true;
+
+/*	if (headers.IsSet("Content-Length") && (postsize = atoi(headers.GetHeader("Content-Length").c_str())) != 0)
+	{
+		State = HTTP_RECV_POSTDATA;
+
+		if (requestbuf.length() >= postsize)
+		{
+			postdata = requestbuf.substr(0, postsize);
+			requestbuf.erase(0, postsize);
+		}
+		else if (!requestbuf.empty())
+		{
+			postdata = requestbuf;
+			requestbuf.clear();
+		}
+
+		if (postdata.length() >= postsize)
+			ServeData();
+
+		return;
+	}*/
+
+	ServeData();
+ }
+
+void User::ServeData()
+{
+	ServerInstance->Log(DEBUG, "ServeData: %s %s: %s", request_type.c_str(), http_version.c_str(), uri.c_str());
+	State = HTTP_SEND_DATA;
+
+	if (request_type == "GET")
+	{
+		std::string response = "moocows rule my world";
+		HTTPHeaders empty;
+		this->SendHeaders(response.length(), 200, empty);
+		this->Write(response);
+	}
+	else
+	{
+		this->SendError(404);
 	}
 }
+
+void User::SendError(int code)
+{
+	HTTPHeaders empty;
+	std::string data = "<html><head></head><body>Server error "+ConvToStr(code)+":<br>"+
+	                   "<small>Powered by <a href='http://www.inspircd.org'>InspIRCd</a></small></body></html>";
+		
+	this->SendHeaders(data.length(), code, empty);
+	this->Write(data);
+}
+
+void User::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
+{
+	this->Write(http_version + " "+ConvToStr(response)+"\r\n");
+
+	time_t local = this->ServerInstance->Time();
+	struct tm *timeinfo = gmtime(&local);
+	char *date = asctime(timeinfo);
+	date[strlen(date) - 1] = '\0';
+	rheaders.CreateHeader("Date", date);
+		
+	rheaders.CreateHeader("Server", "InspIRCd/m_httpd.so/1.1");
+	rheaders.SetHeader("Content-Length", ConvToStr(size));
+	
+	if (size)
+		rheaders.CreateHeader("Content-Type", "text/html");
+	else
+		rheaders.RemoveHeader("Content-Type");
+		
+	if (rheaders.GetHeader("Connection") == "Close")
+		keepalive = false;
+	else if (rheaders.GetHeader("Connection") == "Keep-Alive" && !headers.IsSet("Connection"))
+		keepalive = true;
+	else if (!rheaders.IsSet("Connection") && !keepalive)
+		rheaders.SetHeader("Connection", "Close");
+	
+	this->Write(rheaders.GetFormattedHeaders());
+	this->Write("\r\n");
+		
+	if (!size && keepalive)
+		ResetRequest();
+}
+
+void User::ResetRequest()
+{
+	headers.Clear();
+	request_type.clear();
+	uri.clear();
+	http_version.clear();
+	State = HTTP_WAIT_REQUEST;
+		
+	if (requestbuf.size())
+		requestbuf.clear();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void User::AddWriteBuf(const std::string &data)
 {
-	if (*this->GetWriteError())
-		return;
-
-	try
-	{
-		sendq.append(data);
-	}
-	catch (...)
-	{
-		this->SetWriteError("SendQ exceeded");
-	}
+	sendq.append(data);
 }
 
 // send AS MUCH OF THE USERS SENDQ as we are able to (might not be all of it)
 void User::FlushWriteBuf()
 {
-	try
+	if ((sendq.length()) && (this->fd != FD_MAGIC_NUMBER))
 	{
-		if ((this->fd == FD_MAGIC_NUMBER) || (*this->GetWriteError()))
-		{
-			sendq.clear();
-		}
-		if ((sendq.length()) && (this->fd != FD_MAGIC_NUMBER))
-		{
-			int old_sendq_length = sendq.length();
-			int n_sent = ServerInstance->SE->Send(this, this->sendq.data(), this->sendq.length(), 0);
+		int old_sendq_length = sendq.length();
+		int n_sent = ServerInstance->SE->Send(this, this->sendq.data(), this->sendq.length(), 0);
 
-			if (n_sent == -1)
+		if (n_sent == -1)
+		{
+			if (errno == EAGAIN)
 			{
-				if (errno == EAGAIN)
-				{
-					/* The socket buffer is full. This isnt fatal,
-					 * try again later.
-					 */
-					this->ServerInstance->SE->WantWrite(this);
-				}
-				else
-				{
-					/* Fatal error, set write error and bail
-					 */
-					this->SetWriteError(errno ? strerror(errno) : "EOF from client");
-					return;
-				}
+				/* The socket buffer is full. This isnt fatal,
+				 * try again later.
+				 */
+				this->ServerInstance->SE->WantWrite(this);
 			}
 			else
 			{
-				/* advance the queue */
-				if (n_sent)
-					this->sendq = this->sendq.substr(n_sent);
-				/* update the user's stats counters */
-				this->bytes_out += n_sent;
-				this->cmds_out++;
-				if (n_sent != old_sendq_length)
-					this->ServerInstance->SE->WantWrite(this);
+				/* Fatal error, set write error and bail
+				 */
+				User::QuitUser(this->ServerInstance, this); // XXX shouldn't try flush buffer, add a bool?
+				return;
 			}
 		}
-	}
+		else
+		{
+			/* advance the queue */
+			if (n_sent)
+				this->sendq = this->sendq.substr(n_sent);
+			if (n_sent != old_sendq_length)
+				this->ServerInstance->SE->WantWrite(this);
 
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::FlushWriteBuf()");
+		}
 	}
 
 	if (this->sendq.empty())
 	{
 		FOREACH_MOD(I_OnBufferFlushed,OnBufferFlushed(this));
+		if (State == HTTP_SEND_DATA) // XXX reset conn, http 1.1 keepalive!
+			User::QuitUser(this->ServerInstance, this);
 	}
-}
-
-void User::SetWriteError(const std::string &error)
-{
-	try
-	{
-		// don't try to set the error twice, its already set take the first string.
-		if (this->WriteError.empty())
-			this->WriteError = error;
-	}
-
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::SetWriteError()");
-	}
-}
-
-const char* User::GetWriteError()
-{
-	return this->WriteError.c_str();
 }
 
 void User::QuitUser(InspIRCd* Instance, User *user)
 {
 	Instance->GlobalCulls.AddItem(user);
 	user->quitting = true;
+	user->State = HTTP_FINISHED;
 }
 
 /* add a client connection to the sockets list */
@@ -262,10 +357,6 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	inet_ntop(AF_INET, &((const sockaddr_in*)ip)->sin_addr, ipaddr, sizeof(ipaddr));
 
 	New->SetFd(socket);
-	New->signon = Instance->Time();
-	New->timeout = Instance->Time() + 20;
-	New->lastping = 1;
-
 	New->SetSockAddr(socketfamily, ipaddr, port);
 	New->ip = New->GetIPString();
 
@@ -295,23 +386,21 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	}
 #endif
 
-        if (socket > -1)
-        {
-                if (!Instance->SE->AddFd(New))
-                {
+	if (socket > -1)
+	{
+		if (!Instance->SE->AddFd(New))
+		{
 			Instance->Log(DEBUG,"Internal error on new connection");
 			User::QuitUser(Instance, New);
 			return;
-                }
-        }
+		}
+	}
 
 	New->FullConnect();
 }
 
 void User::FullConnect()
 {
-	this->idle_lastmsg = ServerInstance->Time();
-
 	FOREACH_MOD(I_OnUserConnect,OnUserConnect(this));
 	FOREACH_MOD(I_OnPostConnect,OnPostConnect(this));
 }
@@ -473,8 +562,7 @@ void User::HandleEvent(EventType et, int errornum)
 				this->FlushWriteBuf();
 			break;
 			case EVENT_ERROR:
-				if (!this->quitting)
-					this->SetWriteError(errornum ? strerror(errornum) : "EOF from client");
+				User::QuitUser(this->ServerInstance, this);
 			break;
 		}
 	}

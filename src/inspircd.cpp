@@ -82,7 +82,6 @@ void InspIRCd::Cleanup()
 	/* Close all client sockets, or the new process inherits them */
 	for (std::vector<User*>::const_iterator i = this->local_users.begin(); i != this->local_users.end(); i++)
 	{
-		(*i)->SetWriteError("Server shutdown");
 		(*i)->CloseSocket();
 	}
 
@@ -248,7 +247,6 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->Config = new ServerConfig(this);
 	this->Modules = new ModuleManager(this);
 	this->Timers = new TimerManager(this);
-	this->Parser = new CommandParser(this);
 
 	this->Config->argv = argv;
 	this->Config->argc = argc;

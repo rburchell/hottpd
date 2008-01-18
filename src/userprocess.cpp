@@ -51,17 +51,16 @@ void ProcessUserHandler::Call(User* cu)
 		current = cu;
 		currfd = current->GetFd();
 
-		// add the data to the users buffer
+		// add the data to the users buffer (which will process it if necessary)
 		if (result > 0)
 		{
 			if (!current->AddBuffer(ReadBuffer))
 			{
-				// AddBuffer returned false, theres too much data in the user's buffer and theyre up to no good.
+				// fuck, something exploded
 				User::QuitUser(Server, current);
 				return;
 			}
 
-			Server->Parser->DoLines(current);
 			return;
 		}
 
@@ -94,21 +93,19 @@ void InspIRCd::DoBackgroundUserStuff()
 	/*
 	 * loop over all local users..
 	 */
+/*
+XXX not required, AddBuffer handles it all ok.. we need to add timers to connections, tho.
 	for (std::vector<User*>::iterator count2 = local_users.begin(); count2 != local_users.end(); count2++)
 	{
 		User *curr = *count2;
 
-		/* process input if it's there (XXX I'm sure this could be done only on reading of data) */
-		Parser->DoLines(curr);
-
 		if (TIME > curr->timeout)
 		{
-			/*
-			 * timeout: they've been connected too long ..
-			 */
+			// timeout: they've been connected too long ..
 			User::QuitUser(this, curr);
 			continue;
 		}
 	}
+*/
 }
 

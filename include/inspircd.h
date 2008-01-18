@@ -305,10 +305,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	char ConfigFileName[MAXBUF];
 
-	/** Command parser, handles client to server commands
-	 */
-	CommandParser* Parser;
-
 	/** Socket engine, handles socket activity events
 	 */
 	SocketEngine* SE;

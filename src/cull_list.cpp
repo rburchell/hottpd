@@ -39,12 +39,6 @@ int CullList::Apply()
 
 		User *c = (*a);
 
-		if (IS_LOCAL(c))
-		{
-			if ((!c->sendq.empty()) && (!(*c->GetWriteError())))
-				c->FlushWriteBuf();
-		}
-
 		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(c));
 
 		if (IS_LOCAL(c))

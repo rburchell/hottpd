@@ -14,15 +14,99 @@
 #ifndef __USERS_H__
 #define __USERS_H__
 
-#include <string>
 #include "inspircd_config.h"
 #include "socket.h"
 #include "inspstring.h"
 #include "hashcomp.h"
 
-/* Required forward declaration */
-class InspIRCd;
-class User;
+
+/** HTTP socket states
+ */
+enum HttpState
+{
+	HTTP_WAIT_REQUEST = 0, /* Waiting for a full request */
+	HTTP_RECV_POSTDATA = 1, /* Waiting to finish recieving POST data */
+	HTTP_SEND_DATA = 2, /* Sending response */
+	HTTP_FINISHED = 3
+};
+
+
+/** A modifyable list of HTTP header fields
+ */
+class HTTPHeaders
+{
+ protected:
+	std::map<std::string,std::string> headers;
+ public:
+	
+	/** Set the value of a header
+	 * Sets the value of the named header. If the header is already present, it will be replaced
+	 */
+	void SetHeader(const std::string &name, const std::string &data)
+	{
+		headers[name] = data;
+	}
+	
+	/** Set the value of a header, only if it doesn't exist already
+	 * Sets the value of the named header. If the header is already present, it will NOT be updated
+	 */
+	void CreateHeader(const std::string &name, const std::string &data)
+	{
+		if (!IsSet(name))
+			SetHeader(name, data);
+	}
+	
+	/** Remove the named header
+	 */
+	void RemoveHeader(const std::string &name)
+	{
+		headers.erase(name);
+	}
+	
+	/** Remove all headers
+	 */
+	void Clear()
+	{
+		headers.clear();
+	}
+	
+	/** Get the value of a header
+	 * @return The value of the header, or an empty string
+	 */
+	std::string GetHeader(const std::string &name)
+	{
+		std::map<std::string,std::string>::iterator it = headers.find(name);
+		if (it == headers.end())
+			return std::string();
+		
+		return it->second;
+	}
+	
+	/** Check if the given header is specified
+	 * @return true if the header is specified
+	 */
+	bool IsSet(const std::string &name)
+	{
+		std::map<std::string,std::string>::iterator it = headers.find(name);
+		return (it != headers.end());
+	}
+	
+	/** Get all headers, formatted by the HTTP protocol
+	 * @return Returns all headers, formatted according to the HTTP protocol. There is no request terminator at the end
+	 */
+	std::string GetFormattedHeaders()
+	{
+		std::string re;
+		
+		for (std::map<std::string,std::string>::iterator i = headers.begin(); i != headers.end(); i++)
+			re += i->first + ": " + i->second + "\r\n";
+		
+		return re;
+	}
+};
+
+
+
 
 /** Holds all information about a user
  * This class stores all information about a user connected to the irc server. Everything about a
@@ -40,6 +124,9 @@ class CoreExport User : public EventHandler
 	 */
 	InspIRCd* ServerInstance;
 
+	HttpState State;
+
+	HTTPHeaders headers;
 
 	/** Get IP string from sockaddr, using static internal buffer
 	 * @return The IP string
@@ -50,56 +137,19 @@ class CoreExport User : public EventHandler
 	 */
 	std::string ip;
 
-	/** Stats counter for bytes inbound
-	 */
-	int bytes_in;
-
-	/** Stats counter for bytes outbound
-	 */
-	int bytes_out;
-
-	/** Stats counter for commands inbound
-	 */
-	int cmds_in;
-
-	/** Stats counter for commands outbound
-	 */
-	int cmds_out;
-
-	/** Time the connection was last pinged
-	 */
-	time_t lastping;
-	
-	/** Time the connection was created, set in the constructor. This
-	 * may be different from the time the user's classbase object was
-	 * created.
-	 */
-	time_t signon;
-	
-	/** Time that the connection last sent a message, used to calculate idle time
-	 */
-	time_t idle_lastmsg;
-	
-	/** Used by PING checking code
-	 */
-	time_t nping;
-
-	/** Timestamp of current time + connection class timeout.
-	 * This user must send USER/NICK before this timestamp is
-	 * reached or they will be disconnected.
-	 */
-	time_t timeout;
-
-	/** User's receive queue.
-	 * Lines from the IRCd awaiting processing are stored here.
-	 * Upgraded april 2005, old system a bit hairy.
-	 */
-	std::string recvq;
-
 	/** User's send queue.
 	 * Lines waiting to be sent are stored here until their buffer is flushed.
 	 */
 	std::string sendq;
+
+	/** The request buffer from this connection.
+	 */
+	std::string requestbuf;
+
+	std::string request_type;
+	std::string uri;
+	std::string http_version;
+	bool keepalive;
 
 	/** If this is set to true, then all read/error operations for the user
 	 * are dropped into the bit-bucket.
@@ -146,36 +196,17 @@ class CoreExport User : public EventHandler
 	 */
 	int ReadData(void* buffer, size_t size);
 
-	/** This method adds data to the read buffer of the user.
-	 * The buffer can grow to any size within limits of the available memory,
-	 * managed by the size of a std::string, however if any individual line in
-	 * the buffer grows over 600 bytes in length (which is 88 chars over the
-	 * RFC-specified limit per line) then the method will return false and the
-	 * text will not be inserted.
-	 * @param a The string to add to the users read buffer
-	 * @return True if the string was successfully added to the read buffer
-	 */
-	bool AddBuffer(std::string a);
+	bool AddBuffer(const std::string &a);
 
-	/** This method returns true if the buffer contains at least one carriage return
-	 * character (e.g. one complete line may be read)
-	 * @return True if there is at least one complete line in the users buffer
-	 */
-	bool BufferIsReady();
+	void CheckRequest();
 
-	/** This function clears the entire buffer by setting it to an empty string.
-	 */
-	void ClearBuffer();
+	void ServeData();
 
-	/** This method returns the first available string at the tail end of the buffer
-	 * and advances the tail end of the buffer past the string. This means it is
-	 * a one way operation in a similar way to strtok(), and multiple calls return
-	 * multiple lines if they are available. The results of this function if there
-	 * are no lines to be read are unknown, always use BufferIsReady() to check if
-	 * it is ok to read the buffer before calling GetBuffer().
-	 * @return The string at the tail end of this users buffer
-	 */
-	std::string GetBuffer();
+	void SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders);
+
+	void SendError(int code);
+
+	void ResetRequest();
 
 	/** Sets the write error for a connection. This is done because the actual disconnect
 	 * of a client may occur at an inopportune time such as half way through /LIST output.
