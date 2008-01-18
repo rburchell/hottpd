@@ -57,20 +57,17 @@ void ProcessUserHandler::Call(User* cu)
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// AddBuffer returned false, theres too much data in the user's buffer and theyre up to no good.
-				User::QuitUser(Server, current, "AddBuffer failed.");
+				User::QuitUser(Server, current);
 				return;
 			}
 
-			/* If user is over penalty, dont process here, just build up */
-			if (!current->OverPenalty)
-				Server->Parser->DoLines(current);
-
+			Server->Parser->DoLines(current);
 			return;
 		}
 
 		if ((result == -1) && (errno != EAGAIN) && (errno != EINTR))
 		{
-			User::QuitUser(Server, cu, errno ? strerror(errno) : "EOF from client");
+			User::QuitUser(Server, cu);
 			return;
 		}
 	}
@@ -82,7 +79,7 @@ void ProcessUserHandler::Call(User* cu)
 	}
 	else if (result == 0)
 	{
-		User::QuitUser(Server, cu, "Connection closed");
+		User::QuitUser(Server, cu);
 		return;
 	}
 }
@@ -109,8 +106,7 @@ void InspIRCd::DoBackgroundUserStuff()
 			/*
 			 * timeout: they've been connected too long ..
 			 */
-			curr->muted = true;
-			User::QuitUser(this, curr, "Registration timeout");
+			User::QuitUser(this, curr);
 			continue;
 		}
 	}

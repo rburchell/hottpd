@@ -242,11 +242,11 @@ const char* User::GetWriteError()
 	return this->WriteError.c_str();
 }
 
-void User::QuitUser(InspIRCd* Instance, User *user, const std::string &quitreason, const char* operreason)
+void User::QuitUser(InspIRCd* Instance, User *user)
 {
 	user->Write("Link closed. :)");
-	user->quitting = true;
 	Instance->GlobalCulls.AddItem(user);
+	user->quitting = true;
 }
 
 /* add a client connection to the sockets list */
@@ -277,7 +277,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 
 	if ((Instance->local_users.size() > Instance->Config->SoftLimit) || (Instance->local_users.size() >= MAXCLIENTS))
 	{
-		User::QuitUser(Instance, New,"No more connections allowed");
+		User::QuitUser(Instance, New);
 		return;
 	}
 
@@ -294,7 +294,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 #ifndef WINDOWS
 	if ((unsigned int)socket >= MAX_DESCRIPTORS)
 	{
-		User::QuitUser(Instance, New, "Server is full");
+		User::QuitUser(Instance, New);
 		return;
 	}
 #endif
@@ -304,7 +304,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
                 if (!Instance->SE->AddFd(New))
                 {
 			Instance->Log(DEBUG,"Internal error on new connection");
-			User::QuitUser(Instance, New, "Internal error handling connection");
+			User::QuitUser(Instance, New);
 			return;
                 }
         }
@@ -507,7 +507,7 @@ void User::HandleEvent(EventType et, int errornum)
 	{
 		if (!WriteError.empty())
 		{
-			User::QuitUser(ServerInstance, this, GetWriteError());
+			User::QuitUser(ServerInstance, this);
 		}
 	}
 }
