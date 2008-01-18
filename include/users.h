@@ -101,13 +101,11 @@ class CoreExport User : public EventHandler
 	 */
 	std::string sendq;
 
-	/** If this is set to true, then all read operations for the user
+	/** If this is set to true, then all read/error operations for the user
 	 * are dropped into the bit-bucket.
-	 * This is used by the global CullList, but please note that setting this value
-	 * alone will NOT cause the user to quit. This means it can be used seperately,
-	 * for example by shun modules etc.
+	 * This is used by the global CullList.
 	 */
-	bool muted;
+	bool quitting;
 
 	/** IPV4 or IPV6 ip address. Use SetSockAddr to set this and GetProtocolFamily/
 	 * GetIPString/GetPort to obtain its values.
@@ -134,23 +132,6 @@ class CoreExport User : public EventHandler
 	/* Write error string
 	 */
 	std::string WriteError;
-
-	/** This is true if the user matched an exception (E:Line). It is used to save time on ban checks.
-	 */
-	bool exempt;
-
-	/** This value contains how far into the penalty threshold the user is. Once its over
-	 * the penalty threshold then commands are held and processed on-timer.
-	 */
-	int Penalty;
-
-	/** True if we are flushing penalty lines
-	 */
-	bool OverPenalty;
-
-	/** If this bool is set then penalty rules do not apply to this user
-	 */
-	bool ExemptFromPenalty;
 
 	/** Default constructor
 	 * @throw CoreException if the UID allocated to the user already exists
@@ -290,9 +271,6 @@ class CoreExport User : public EventHandler
 	 */
 	virtual ~User();
 };
-
-/* Configuration callbacks */
-//class ServerConfig;
 
 #endif
 

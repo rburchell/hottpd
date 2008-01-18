@@ -16,92 +16,18 @@
 #include "inspircd.h"
 #include "cull_list.h"
 
-CullItem::CullItem(User* u, std::string &r, const char* o_reason)
-{
-	this->user = u;
-	this->reason = r;
-	this->silent = false;
-	/* Seperate oper reason not set, use the user reason */
-	if (*o_reason)
-		this->oper_reason = o_reason;
-	else
-		this->oper_reason = r;
-}
-
-CullItem::CullItem(User* u, const char* r, const char* o_reason)
-{
-	this->user = u;
-	this->reason = r;
-	this->silent = false;
-	/* Seperate oper reason not set, use the user reason */
-	if (*o_reason)
-		this->oper_reason = o_reason;
-	else
-		this->oper_reason = r;
-}
-
-void CullItem::MakeSilent()
-{
-	this->silent = true;
-}
-
-bool CullItem::IsSilent()
-{
-	return this->silent;
-}
-
-CullItem::~CullItem()
-{
-}
-
-User* CullItem::GetUser()
-{
-	return this->user;
-}
-
-std::string& CullItem::GetReason()
-{
-	return this->reason;
-}
-
-std::string& CullItem::GetOperReason()
-{
-	return this->oper_reason;
-}
-
 CullList::CullList(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	list.clear();
-	exempt.clear();
 }
 
-void CullList::AddItem(User* user, std::string &reason, const char* o_reason)
+void CullList::AddItem(User *c)
 {
-	AddItem(user, reason.c_str(), o_reason);
-}
+	if (c->quitting) // don't quit them twice
+		return;
 
-
-void CullList::AddItem(User* user, const char* reason, const char* o_reason)
-{
-	if (exempt.find(user) == exempt.end())
-	{
-		CullItem item(user, reason, o_reason);
-		list.push_back(item);
-		exempt[user] = user;
-	}
-}
-
-void CullList::MakeSilent(User* user)
-{
-	for (std::vector<CullItem>::iterator a = list.begin(); a != list.end(); ++a)
-	{
-		if (a->GetUser() == user)
-		{
-			a->MakeSilent();
-			break;
-		}
-	}
-	return;
+	list.push_back(c);
+	c->quitting = true;
 }
 
 int CullList::Apply()
@@ -109,36 +35,35 @@ int CullList::Apply()
 	int n = list.size();
 	while (list.size())
 	{
-		std::vector<CullItem>::iterator a = list.begin();
+		std::vector<User *>::iterator a = list.begin();
 
-		User *u = a->GetUser();
-		std::map<User*, User*>::iterator exemptiter = exempt.find(u);
+		User *c = (*a);
 
-		if (IS_LOCAL(u))
+		if (IS_LOCAL(c))
 		{
-			if ((!u->sendq.empty()) && (!(*u->GetWriteError())))
-				u->FlushWriteBuf();
+			if ((!c->sendq.empty()) && (!(*c->GetWriteError())))
+				c->FlushWriteBuf();
 		}
 
-		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(u));
+		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(c));
 
-		if (IS_LOCAL(u))
+		if (IS_LOCAL(c))
 		{
-			ServerInstance->SE->DelFd(u);
-			u->CloseSocket();
+			ServerInstance->SE->DelFd(c);
+			c->CloseSocket();
 		}
 
-		if (IS_LOCAL(u))
+		if (IS_LOCAL(c))
 		{
-			std::vector<User*>::iterator x = find(ServerInstance->local_users.begin(),ServerInstance->local_users.end(),u);
+			std::vector<User*>::iterator x = find(ServerInstance->local_users.begin(),ServerInstance->local_users.end(),c);
 			if (x != ServerInstance->local_users.end())
 				ServerInstance->local_users.erase(x);
-			delete u;
 		}
 
+		delete c;
 		list.erase(list.begin());
-		exempt.erase(exemptiter);
 	}
+
 	return n;
 }
 

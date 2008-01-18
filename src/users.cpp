@@ -22,7 +22,7 @@ User::User(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	lastping = signon = idle_lastmsg = nping = 0;
 	timeout = bytes_in = bytes_out = cmds_in = cmds_out = 0;
-	muted = exempt = false;
+	quitting = false;
 	fd = -1;
 	recvq.clear();
 	sendq.clear();
@@ -245,8 +245,8 @@ const char* User::GetWriteError()
 void User::QuitUser(InspIRCd* Instance, User *user, const std::string &quitreason, const char* operreason)
 {
 	user->Write("Link closed. :)");
-	user->muted = true;
-	Instance->GlobalCulls.AddItem(user, quitreason.c_str(), operreason);
+	user->quitting = true;
+	Instance->GlobalCulls.AddItem(user);
 }
 
 /* add a client connection to the sockets list */
@@ -267,6 +267,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 
 	New->SetFd(socket);
 	New->signon = Instance->Time();
+	New->timeout = Instance->Time() + 20;
 	New->lastping = 1;
 
 	New->SetSockAddr(socketfamily, ipaddr, port);
@@ -484,14 +485,15 @@ void User::HandleEvent(EventType et, int errornum)
 		switch (et)
 		{
 			case EVENT_READ:
-				ServerInstance->ProcessUser(this);
+				if (!this->quitting)
+					ServerInstance->ProcessUser(this);
 			break;
 			case EVENT_WRITE:
 				this->FlushWriteBuf();
 			break;
 			case EVENT_ERROR:
-				/** This should be safe, but dont DARE do anything after it -- Brain */
-				this->SetWriteError(errornum ? strerror(errornum) : "EOF from client");
+				if (!this->quitting)
+					this->SetWriteError(errornum ? strerror(errornum) : "EOF from client");
 			break;
 		}
 	}
