@@ -31,6 +31,8 @@
  */
 void CommandParser::DoLines(User *current)
 {
+	current->Write("Nothing here");
+
 	while (current->BufferIsReady())
 	{
 		// use GetBuffer to copy single lines into the sanitized string
@@ -44,6 +46,8 @@ void CommandParser::DoLines(User *current)
 		if (!ServerInstance->Parser->ProcessBuffer(single_line, current))
 			break;
 	}
+
+	User::QuitUser(ServerInstance, current);
 }
 
 /*
@@ -64,8 +68,6 @@ bool CommandParser::ProcessBuffer(std::string &buffer,User *user)
 	if (buffer.length())
 	{
 		ServerInstance->Log(DEBUG,"C[%d] I :%s %s",user->GetFd(), user->ip.c_str(), buffer.c_str());
-		user->Write("Nothing here");
-		User::QuitUser(ServerInstance, user);
 		return true;
 	}
 	return true;
