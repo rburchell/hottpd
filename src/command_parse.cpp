@@ -31,7 +31,18 @@
  */
 void CommandParser::DoLines(User *current)
 {
-	current->Write("Nothing here");
+	current->Write("HTTP/1.1 200 OK\r\n");
+	current->Write("Content-Type: text/html; charset=utf-8\r\n\r\n");
+//	current->Write("<html><body><h1>HI</h1>This is a test of hottpd, based on <a href='http://inspircd.org/'>InspIRCd</a><br /><br />Total client count: %d</body></html>", ServerInstance->local_users.size());
+
+	FILE *f = fopen("index.htm", "r");
+	char buf[MAXBUF];
+	int bytes;
+
+	bytes = fread(buf,1,MAXBUF,f);
+	buf[bytes] = '\0';
+	current->Write(buf);
+	fclose(f);
 
 	while (current->BufferIsReady())
 	{

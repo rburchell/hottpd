@@ -155,10 +155,7 @@ void User::AddWriteBuf(const std::string &data)
 
 	try
 	{
-		if (data.length() > MAXBUF - 2) /* MAXBUF has a value of 514, to account for line terminators */
-			sendq.append(data.substr(0,MAXBUF - 4)).append("\r\n"); /* MAXBUF-4 = 510 */
-		else
-			sendq.append(data);
+		sendq.append(data);
 	}
 	catch (...)
 	{
@@ -244,7 +241,6 @@ const char* User::GetWriteError()
 
 void User::QuitUser(InspIRCd* Instance, User *user)
 {
-	user->Write("Link closed. :)");
 	Instance->GlobalCulls.AddItem(user);
 	user->quitting = true;
 }
@@ -437,25 +433,10 @@ const char* User::GetIPString()
  * something we can change anyway. Makes sense to just let
  * the compiler do that copy for us.
  */
-void User::Write(std::string text)
+void User::Write(const std::string &text)
 {
 	if (!ServerInstance->SE->BoundsCheckFd(this))
 		return;
-
-	try
-	{
-		/* ServerInstance->Log(DEBUG,"C[%d] O %s", this->GetFd(), text.c_str());
-		 * WARNING: The above debug line is VERY loud, do NOT
-		 * enable it till we have a good way of filtering it
-		 * out of the logs (e.g. 1.2 would be good).
-		 */
-		text.append("\r\n");
-	}
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::Write() std::string::append");
-		return;
-	}
 
 	this->AddWriteBuf(text);
 	this->ServerInstance->SE->WantWrite(this);

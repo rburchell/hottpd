@@ -453,6 +453,8 @@ InspIRCd::InspIRCd(int argc, char** argv)
 
 int InspIRCd::Run()
 {
+	int times = 0;
+
 	while (true)
 	{
 #ifndef WIN32
@@ -469,6 +471,13 @@ int InspIRCd::Run()
 		OLDTIME = TIME;
 		TIME = time(NULL);
 
+		times++;
+
+		if (times > 10)
+		{
+			times = 0;
+		}
+
 		/* Run background module timers every few seconds
 		 * (the docs say modules shouldnt rely on accurate
 		 * timing using this event, so we dont have to
@@ -476,6 +485,9 @@ int InspIRCd::Run()
 		 */
 		if (TIME != OLDTIME)
 		{
+			/* if any users was quit, take them out */
+			this->GlobalCulls.Apply();
+
 			if ((TIME % 3600) == 0)
 			{
 				FOREACH_MOD_I(this, I_OnGarbageCollect, OnGarbageCollect());
@@ -512,9 +524,6 @@ int InspIRCd::Run()
 		 * dispatched to their handlers.
 		 */
 		this->SE->DispatchEvents();
-
-		/* if any users was quit, take them out */
-		this->GlobalCulls.Apply();
 
 		if (this->s_signal)
 		{

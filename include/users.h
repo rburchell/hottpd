@@ -248,12 +248,12 @@ class CoreExport User : public EventHandler
 	 */
 	void RemoveCloneCounts();
 
-	/** Write text to this user, appending CR/LF.
+	/** Write text to this user
 	 * @param text A std::string to send to the user
 	 */
-	void Write(std::string text);
+	void Write(const std::string &text);
 
-	/** Write text to this user, appending CR/LF.
+	/** Write text to this user
 	 * @param text The format string for text to send to the user
 	 * @param ... POD-type format arguments
 	 */
