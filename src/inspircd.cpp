@@ -247,6 +247,7 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->Config = new ServerConfig(this);
 	this->Modules = new ModuleManager(this);
 	this->Timers = new TimerManager(this);
+	this->FOpen = new FOpenBackend(this);
 
 	this->Config->argv = argv;
 	this->Config->argc = argc;

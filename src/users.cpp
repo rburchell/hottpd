@@ -201,10 +201,28 @@ void User::ServeData()
 
 	if (request_type == "GET")
 	{
-		std::string response = "moocows rule my world";
-		HTTPHeaders empty;
-		this->SendHeaders(response.length(), 200, empty);
-		this->Write(response);
+		// remove /
+		while (uri[0] == '/')
+			uri.erase(0, 1);
+
+		// This is temporary.
+		while (size_t s = uri.find("..", 0) != std::string::npos)
+			uri.erase(s, 2);
+
+		ServerInstance->Log(DEBUG, "Looking for %s", uri.c_str());
+
+		if (!ServerInstance->FOpen->Request(uri))
+		{
+			// error 404, or whatever.
+			this->SendError(404);
+		}
+		else
+		{
+			std::string response = ServerInstance->FOpen->Fetch();
+			HTTPHeaders empty;
+			this->SendHeaders(response.length(), 200, empty);
+			this->Write(response);
+		}
 	}
 	else
 	{
@@ -550,26 +568,20 @@ void User::HandleEvent(EventType et, int errornum)
 	/* WARNING: May delete this user! */
 	int thisfd = this->GetFd();
 
-	try
+	switch (et)
 	{
-		switch (et)
-		{
-			case EVENT_READ:
-				if (!this->quitting)
-					ServerInstance->ProcessUser(this);
-			break;
-			case EVENT_WRITE:
-				this->FlushWriteBuf();
-			break;
-			case EVENT_ERROR:
-				User::QuitUser(this->ServerInstance, this);
-			break;
-		}
+		case EVENT_READ:
+			if (!this->quitting)
+				ServerInstance->ProcessUser(this);
+		break;
+		case EVENT_WRITE:
+			this->FlushWriteBuf();
+		break;
+		case EVENT_ERROR:
+			User::QuitUser(this->ServerInstance, this);
+		break;
 	}
-	catch (...)
-	{
-		ServerInstance->Log(DEBUG,"Exception in User::HandleEvent intercepted");
-	}
+
 
 	/* If the user has raised an error whilst being processed, quit them now we're safe to */
 	if ((ServerInstance->SE->GetRef(thisfd) == this))

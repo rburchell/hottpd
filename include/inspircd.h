@@ -41,6 +41,8 @@
 #include "modules.h"
 #include "configreader.h"
 
+class FOpenBackend; // XXX shitty required forward dec, remove when fopen moves out of backend.h
+
 /**
  * Used to define the maximum number of parameters a command may have.
  */
@@ -286,6 +288,7 @@ class CoreExport InspIRCd : public classbase
 #endif
 
  public:
+	FOpenBackend *FOpen;
 
 	/** Global cull list, will be processed on next iteration
 	 */
@@ -505,4 +508,6 @@ class CoreExport InspIRCd : public classbase
 	}
 };
 
+
+#include "backend.h" // XXX move this to the right place when fopen is moved out of it
 #endif
