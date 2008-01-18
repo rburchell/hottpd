@@ -73,13 +73,12 @@ class FOpenBackend : public Backend
 		while (!this->IsEOF())
 		{
 			len = fread(buf, 1, MAXBUF - 1, fd);
-			buf[len] = '\0'; // null term
-			ServerInstance->Log(DEBUG, std::string("FOpen: Appending ") + buf);
-
-			sbuf += buf;
+			//buf[len] = '\0'; // null term
+			sbuf.append(buf, len);
 		}
 
 		fclose(fd);
+		ServerInstance->Log(DEBUG, "FOpen: %d bytes ", sbuf.length());
 
 		return sbuf;
 	}

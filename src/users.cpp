@@ -77,8 +77,6 @@ bool User::AddBuffer(const std::string &a)
 		return true;
 	}
 
-	ServerInstance->Log(DEBUG, "Adding to buffer: " + a);
-
 	switch (State)
 	{
 		case HTTP_WAIT_REQUEST:
@@ -108,8 +106,6 @@ bool User::AddBuffer(const std::string &a)
 void User::CheckRequest()
 {
 	/* Copied liberally from m_httpd for now */
-
-	ServerInstance->Log(DEBUG, "Checking request.");
 
 	std::string::size_type reqend = requestbuf.find("\r\n\r\n");
 	if (reqend == std::string::npos)
@@ -250,11 +246,24 @@ void User::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
 	date[strlen(date) - 1] = '\0';
 	rheaders.CreateHeader("Date", date);
 		
-	rheaders.CreateHeader("Server", "InspIRCd/m_httpd.so/1.1");
+	rheaders.CreateHeader("Server", "hottpd");
 	rheaders.SetHeader("Content-Length", ConvToStr(size));
 	
 	if (size)
-		rheaders.CreateHeader("Content-Type", "text/html");
+	{
+		size_t p = uri.find_last_of("."); // XXX hack of sorts
+		std::string mime;
+
+		if (p != std::string::npos)
+			mime = ServerInstance->MimeTypes->GetType(uri.substr(p + 1, uri.size()));
+
+		if (mime.empty())
+			mime = "application/x-octet-stream";
+
+		ServerInstance->Log(DEBUG, "Sending mimetype %s for %s", mime.c_str(), uri.c_str());
+
+		rheaders.CreateHeader("Content-Type", mime);
+	}
 	else
 		rheaders.RemoveHeader("Content-Type");
 		
@@ -346,8 +355,17 @@ void User::FlushWriteBuf()
 	if (this->sendq.empty())
 	{
 		FOREACH_MOD(I_OnBufferFlushed,OnBufferFlushed(this));
-		if (State == HTTP_SEND_DATA) // XXX reset conn, http 1.1 keepalive!
-			User::QuitUser(this->ServerInstance, this);
+		if (State == HTTP_SEND_DATA)
+		{
+			if (keepalive)
+			{
+				this->ResetRequest();
+			}
+			else
+			{
+				User::QuitUser(this->ServerInstance, this);
+			}
+		}
 	}
 }
 

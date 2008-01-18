@@ -40,6 +40,7 @@
 #include "timer.h"
 #include "modules.h"
 #include "configreader.h"
+#include "mimetypes.h"
 
 class FOpenBackend; // XXX shitty required forward dec, remove when fopen moves out of backend.h
 
@@ -153,62 +154,6 @@ template<typename T, typename V, typename R> inline char* itoa(const T &in, V *r
 	return res;
 }
 
-/** This class contains various STATS counters
- * It is used by the InspIRCd class, which internally
- * has an instance of it.
- */
-class serverstats : public classbase
-{
-  public:
-	/** Number of accepted connections
-	 */
-	unsigned long statsAccept;
-	/** Number of failed accepts
-	 */
-	unsigned long statsRefused;
-	/** Number of unknown commands seen
-	 */
-	unsigned long statsUnknown;
-	/** Number of nickname collisions handled
-	 */
-	unsigned long statsCollisions;
-	/** Number of DNS queries sent out
-	 */
-	unsigned long statsDns;
-	/** Number of good DNS replies received
-	 * NOTE: This may not tally to the number sent out,
-	 * due to timeouts and other latency issues.
-	 */
-	unsigned long statsDnsGood;
-	/** Number of bad (negative) DNS replies received
-	 * NOTE: This may not tally to the number sent out,
-	 * due to timeouts and other latency issues.
-	 */
-	unsigned long statsDnsBad;
-	/** Number of inbound connections seen
-	 */
-	unsigned long statsConnects;
-	/** Total bytes of data transmitted
-	 */
-	double statsSent;
-	/** Total bytes of data received
-	 */
-	double statsRecv;
-	/** Cpu usage at last sample
-	 */
-	timeval LastCPU;
-	/** Time last sample was read
-	 */
-	timeval LastSampled;
-	/** The constructor initializes all the counts to zero
-	 */
-	serverstats()
-		: statsAccept(0), statsRefused(0), statsUnknown(0), statsCollisions(0), statsDns(0),
-		statsDnsGood(0), statsDnsBad(0), statsConnects(0), statsSent(0.0), statsRecv(0.0)
-	{
-	}
-};
-
 /** A list of failed port bindings, used for informational purposes on startup */
 typedef std::vector<std::pair<std::string, long> > FailedPortList;
 
@@ -289,6 +234,8 @@ class CoreExport InspIRCd : public classbase
 
  public:
 	FOpenBackend *FOpen;
+
+	MimeManager *MimeTypes;
 
 	/** Global cull list, will be processed on next iteration
 	 */

@@ -248,6 +248,15 @@ InspIRCd::InspIRCd(int argc, char** argv)
 	this->Modules = new ModuleManager(this);
 	this->Timers = new TimerManager(this);
 	this->FOpen = new FOpenBackend(this);
+	this->MimeTypes = new MimeManager(this);
+
+	// XXX this is kinda an ugly way to do it, might want to move this to a config tag.
+	this->MimeTypes->AddType("jpg", "image/jpeg");
+	this->MimeTypes->AddType("gif", "image/gif");
+	this->MimeTypes->AddType("css", "text/html");
+	this->MimeTypes->AddType("php", "text/html");
+	this->MimeTypes->AddType("htm", "text/html");
+	this->MimeTypes->AddType("html", "text/html");
 
 	this->Config->argv = argv;
 	this->Config->argc = argc;
