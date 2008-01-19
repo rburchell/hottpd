@@ -318,11 +318,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void CheckDie();
 
-	/** Check we aren't running as root, and exit if we are
-	 * @return Depending on the configuration, this function may never return
-	 */
-	void CheckRoot();
-
 	/** Determine the right path for, and open, the logfile
 	 * @param argv The argv passed to main() initially, used to calculate program path
 	 * @param argc The argc passed to main() initially, used to calculate program path

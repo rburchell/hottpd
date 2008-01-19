@@ -346,31 +346,15 @@ InspIRCd::InspIRCd(int argc, char** argv)
 		Exit(EXIT_STATUS_CONFIG);
 	}
 
-	printf_c("\033[1;32mInspire Internet Relay Chat Server, compiled %s at %s\n",__DATE__,__TIME__);
-	printf_c("(C) InspIRCd Development Team.\033[0m\n\n");
-	printf_c("Developers:\t\t\033[1;32mBrain, FrostyCoolSlug, w00t, Om, Special, pippijn, peavey, Burlex\033[0m\n");
-	printf_c("Others:\t\t\t\033[1;32mSee /INFO Output\033[0m\n");
+	printf_c("\033[1;32mhottpd - compiled %s at %s\n",__DATE__,__TIME__);
+	printf_c("(C) hottpd development team.\033[0m\n\n");
+	printf_c("Developers:\t\t\033[1;32mw00t, Special\033[0m\n");
 
 	/* Set the finished argument values */
 	Config->nofork = do_nofork;
 	Config->forcedebug = do_debug;
 	Config->writelog = !do_nolog;	
 	Config->ClearStack();
-
-	if (!do_root)
-		this->CheckRoot();
-	else
-	{
-		printf("* WARNING * WARNING * WARNING * WARNING * WARNING * \n\n");
-		printf("YOU ARE RUNNING INSPIRCD AS ROOT. THIS IS UNSUPPORTED\n");
-		printf("AND IF YOU ARE HACKED, CRACKED, SPINDLED OR MUTILATED\n");
-		printf("OR ANYTHING ELSE UNEXPECTED HAPPENS TO YOU OR YOUR\n");
-		printf("SERVER, THEN IT IS YOUR OWN FAULT. IF YOU DID NOT MEAN\n");
-		printf("TO START INSPIRCD AS ROOT, HIT CTRL+C NOW AND RESTART\n");
-		printf("THE PROGRAM AS A NORMAL USER. YOU HAVE BEEN WARNED!\n");
-		printf("\nInspIRCd starting in 20 seconds, ctrl+c to abort...\n");
-		sleep(20);
-	}
 
 	this->SetSignals();
 
