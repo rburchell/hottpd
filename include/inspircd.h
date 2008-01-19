@@ -30,7 +30,7 @@
 #include <sstream>
 #include <list>
 #include "inspircd_config.h"
-#include "users.h"
+#include "connections.h"
 #include "socket.h"
 #include "socketengine.h"
 #include "command_parse.h"
