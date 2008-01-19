@@ -115,7 +115,7 @@ void ListenSocket::HandleEvent(EventType, int)
 		}
 
 		ServerInstance->SE->NonBlocking(incomingSockfd);
-		User::AddClient(ServerInstance, incomingSockfd, in_port, false, this->family, client);
+		Connection::AddClient(ServerInstance, incomingSockfd, in_port, false, this->family, client);
 	}
 	else
 	{

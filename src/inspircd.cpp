@@ -80,7 +80,7 @@ void InspIRCd::Cleanup()
 	}
 
 	/* Close all client sockets, or the new process inherits them */
-	for (std::vector<User*>::const_iterator i = this->local_users.begin(); i != this->local_users.end(); i++)
+	for (std::vector<Connection*>::const_iterator i = this->local_connections.begin(); i != this->local_connections.end(); i++)
 	{
 		(*i)->CloseSocket();
 	}
@@ -493,7 +493,7 @@ int InspIRCd::Run()
 		 */
 		if (TIME != OLDTIME)
 		{
-			/* if any users was quit, take them out */
+			/* if any connections were quit, take them out */
 			this->GlobalCulls.Apply();
 
 			if ((TIME % 3600) == 0)

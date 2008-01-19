@@ -330,7 +330,7 @@ bool DoneModule(ServerConfig*, const char*)
 	return true;
 }
 
-void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail, User* user)
+void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail, Connection* user)
 {
 	ServerInstance->Log(DEFAULT, "There were errors in your configuration file: %s", errormessage.c_str());
 	if (bail)
@@ -356,7 +356,7 @@ void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail,
 	}
 }
 
-void ServerConfig::Read(bool bail, User* user, int pass)
+void ServerConfig::Read(bool bail, Connection* user, int pass)
 {
 	int rem = 0, add = 0;           /* Number of modules added, number of modules removed */
 

@@ -52,12 +52,11 @@ class CoreExport classbase
 	virtual ~classbase() { }
 };
 
-/** class Extensible is the parent class of many classes such as User and Channel.
+/** class Extensible is the parent class of many classes.
  * class Extensible implements a system which allows modules to 'extend' the class by attaching data within
- * a map associated with the object. In this way modules can store their own custom information within user
- * objects, channel objects and server objects, without breaking other modules (this is more sensible than using
- * a flags variable, and each module defining bits within the flag as 'theirs' as it is less prone to conflict and
- * supports arbitary data storage).
+ * a map associated with the object. In this way modules can store their own custom information within objects
+ * without breaking other modules (this is more sensible than using a flags variable, and each module defining
+ * bits within the flag as 'theirs' as it is less prone to conflict and supports arbitary data storage).
  */
 class CoreExport Extensible : public classbase
 {
@@ -226,8 +225,7 @@ class CoreExport BoolSet : public classbase
 /** This class can be used on its own to represent an exception, or derived to represent a module-specific exception.
  * When a module whishes to abort, e.g. within a constructor, it should throw an exception using ModuleException or
  * a class derived from ModuleException. If a module throws an exception during its constructor, the module will not
- * be loaded. If this happens, the error message returned by ModuleException::GetReason will be displayed to the user
- * attempting to load the module, or dumped to the console if the ircd is currently loading for the first time.
+ * be loaded.
  */
 class CoreExport CoreException : public std::exception
 {
@@ -255,7 +253,7 @@ class CoreExport CoreException : public std::exception
 	 */
 	virtual ~CoreException() throw() {};
 	/** Returns the reason for the exception.
-	 * The module should probably put something informative here as the user will see this upon failure.
+	 * The module should probably put something informative here
 	 */
 	virtual const char* GetReason()
 	{

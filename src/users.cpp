@@ -11,14 +11,14 @@
  * ---------------------------------------------------
  */
 
-/* $Core: libIRCDusers */
+/* $Core: libhttpd_connections */
 
 #include "inspircd.h"
 #include <stdarg.h>
 #include "socketengine.h"
 #include "wildcard.h"
 
-User::User(InspIRCd* Instance) : ServerInstance(Instance)
+Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	quitting = false;
 	fd = -1;
@@ -26,7 +26,7 @@ User::User(InspIRCd* Instance) : ServerInstance(Instance)
 	State = HTTP_WAIT_REQUEST;
 }
 
-User::~User()
+Connection::~Connection()
 {
 	if (privip)
 	{
@@ -43,13 +43,13 @@ User::~User()
 	}
 }
 
-void User::CloseSocket()
+void Connection::CloseSocket()
 {
 	ServerInstance->SE->Shutdown(this, 2);
 	ServerInstance->SE->Close(this);
 }
 
-int User::ReadData(void* buffer, size_t size)
+int Connection::ReadData(void* buffer, size_t size)
 {
 	if (IS_LOCAL(this))
 	{
@@ -69,7 +69,7 @@ int User::ReadData(void* buffer, size_t size)
  * something we can change anyway. Makes sense to just let
  * the compiler do that copy for us.
  */
-bool User::AddBuffer(const std::string &a)
+bool Connection::AddBuffer(const std::string &a)
 {
 	if (!a.length())
 	{
@@ -103,7 +103,7 @@ bool User::AddBuffer(const std::string &a)
 	return true;
 }
 
-void User::CheckRequest()
+void Connection::CheckRequest()
 {
 	/* Copied liberally from m_httpd for now */
 
@@ -190,20 +190,20 @@ void User::CheckRequest()
 	ServeData();
  }
 
-void User::ServeData()
+void Connection::ServeData()
 {
 	ServerInstance->Log(DEBUG, "ServeData: %s %s: %s", request_type.c_str(), http_version.c_str(), uri.c_str());
 	State = HTTP_SEND_DATA;
 
 	if (request_type == "GET")
 	{
-		// remove /
-		while (uri[0] == '/')
-			uri.erase(0, 1);
-
 		// This is temporary.
 		while (size_t s = uri.find("..", 0) != std::string::npos)
 			uri.erase(s, 2);
+
+		// remove /
+		while (uri[0] == '/')
+			uri.erase(0, 1);
 
 		ServerInstance->Log(DEBUG, "Looking for %s", uri.c_str());
 
@@ -226,17 +226,17 @@ void User::ServeData()
 	}
 }
 
-void User::SendError(int code)
+void Connection::SendError(int code)
 {
 	HTTPHeaders empty;
 	std::string data = "<html><head></head><body>Server error "+ConvToStr(code)+":<br>"+
 	                   "<small>Powered by <a href='http://www.inspircd.org'>InspIRCd</a></small></body></html>";
-		
+	uri = "error.htm";	
 	this->SendHeaders(data.length(), code, empty);
 	this->Write(data);
 }
 
-void User::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
+void Connection::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
 {
 	this->Write(http_version + " "+ConvToStr(response)+"\r\n");
 
@@ -281,7 +281,7 @@ void User::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
 		ResetRequest();
 }
 
-void User::ResetRequest()
+void Connection::ResetRequest()
 {
 	headers.Clear();
 	request_type.clear();
@@ -311,13 +311,13 @@ void User::ResetRequest()
 
 
 
-void User::AddWriteBuf(const std::string &data)
+void Connection::AddWriteBuf(const std::string &data)
 {
 	sendq.append(data);
 }
 
-// send AS MUCH OF THE USERS SENDQ as we are able to (might not be all of it)
-void User::FlushWriteBuf()
+// send AS MUCH OF THE ConnectionS SENDQ as we are able to (might not be all of it)
+void Connection::FlushWriteBuf()
 {
 	if ((sendq.length()) && (this->fd != FD_MAGIC_NUMBER))
 	{
@@ -337,7 +337,7 @@ void User::FlushWriteBuf()
 			{
 				/* Fatal error, set write error and bail
 				 */
-				User::QuitUser(this->ServerInstance, this); // XXX shouldn't try flush buffer, add a bool?
+				Connection::QuitConnection(this->ServerInstance, this); // XXX shouldn't try flush buffer, add a bool?
 				return;
 			}
 		}
@@ -363,13 +363,13 @@ void User::FlushWriteBuf()
 			}
 			else
 			{
-				User::QuitUser(this->ServerInstance, this);
+				Connection::QuitConnection(this->ServerInstance, this);
 			}
 		}
 	}
 }
 
-void User::QuitUser(InspIRCd* Instance, User *user)
+void Connection::QuitConnection(InspIRCd* Instance, Connection *user)
 {
 	Instance->GlobalCulls.AddItem(user);
 	user->quitting = true;
@@ -377,10 +377,10 @@ void User::QuitUser(InspIRCd* Instance, User *user)
 }
 
 /* add a client connection to the sockets list */
-void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, int socketfamily, sockaddr* ip)
+void Connection::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, int socketfamily, sockaddr* ip)
 {
-	User* New = NULL;
-	New = new User(Instance);
+	Connection* New = NULL;
+	New = new Connection(Instance);
 
 	Instance->Log(DEBUG,"New user fd: %d", socket);
 
@@ -396,11 +396,11 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	New->SetSockAddr(socketfamily, ipaddr, port);
 	New->ip = New->GetIPString();
 
-	Instance->local_users.push_back(New);
+	Instance->local_connections.push_back(New);
 
-	if ((Instance->local_users.size() > Instance->Config->SoftLimit) || (Instance->local_users.size() >= MAXCLIENTS))
+	if ((Instance->local_connections.size() > Instance->Config->SoftLimit) || (Instance->local_connections.size() >= MAXCLIENTS))
 	{
-		User::QuitUser(Instance, New);
+		Connection::QuitConnection(Instance, New);
 		return;
 	}
 
@@ -417,7 +417,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 #ifndef WINDOWS
 	if ((unsigned int)socket >= MAX_DESCRIPTORS)
 	{
-		User::QuitUser(Instance, New);
+		Connection::QuitConnection(Instance, New);
 		return;
 	}
 #endif
@@ -427,7 +427,7 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 		if (!Instance->SE->AddFd(New))
 		{
 			Instance->Log(DEBUG,"Internal error on new connection");
-			User::QuitUser(Instance, New);
+			Connection::QuitConnection(Instance, New);
 			return;
 		}
 	}
@@ -435,13 +435,13 @@ void User::AddClient(InspIRCd* Instance, int socket, int port, bool iscached, in
 	New->FullConnect();
 }
 
-void User::FullConnect()
+void Connection::FullConnect()
 {
 	FOREACH_MOD(I_OnUserConnect,OnUserConnect(this));
 	FOREACH_MOD(I_OnPostConnect,OnPostConnect(this));
 }
 
-void User::SetSockAddr(int protocol_family, const char* ip, int port)
+void Connection::SetSockAddr(int protocol_family, const char* ip, int port)
 {
 	switch (protocol_family)
 	{
@@ -471,7 +471,7 @@ void User::SetSockAddr(int protocol_family, const char* ip, int port)
 	}
 }
 
-int User::GetPort()
+int Connection::GetPort()
 {
 	if (this->privip == NULL)
 		return 0;
@@ -498,7 +498,7 @@ int User::GetPort()
 	return 0;
 }
 
-int User::GetProtocolFamily()
+int Connection::GetProtocolFamily()
 {
 	if (this->privip == NULL)
 		return 0;
@@ -512,7 +512,7 @@ int User::GetProtocolFamily()
  * do we really need two methods doing essentially the same thing?
  * should cache, too!
  */
-const char* User::GetIPString()
+const char* Connection::GetIPString()
 {
 	static char buf[1024];
 
@@ -558,7 +558,7 @@ const char* User::GetIPString()
  * something we can change anyway. Makes sense to just let
  * the compiler do that copy for us.
  */
-void User::Write(const std::string &text)
+void Connection::Write(const std::string &text)
 {
 	if (!ServerInstance->SE->BoundsCheckFd(this))
 		return;
@@ -569,7 +569,7 @@ void User::Write(const std::string &text)
 
 /** Write()
  */
-void User::Write(const char *text, ...)
+void Connection::Write(const char *text, ...)
 {
 	va_list argsPtr;
 	char textbuffer[MAXBUF];
@@ -581,9 +581,9 @@ void User::Write(const char *text, ...)
 	this->Write(std::string(textbuffer));
 }
 
-void User::HandleEvent(EventType et, int errornum)
+void Connection::HandleEvent(EventType et, int errornum)
 {
-	/* WARNING: May delete this user! */
+	/* WARNING: May delete this connection! */
 	int thisfd = this->GetFd();
 
 	switch (et)
@@ -596,18 +596,8 @@ void User::HandleEvent(EventType et, int errornum)
 			this->FlushWriteBuf();
 		break;
 		case EVENT_ERROR:
-			User::QuitUser(this->ServerInstance, this);
+			Connection::QuitConnection(this->ServerInstance, this);
 		break;
-	}
-
-
-	/* If the user has raised an error whilst being processed, quit them now we're safe to */
-	if ((ServerInstance->SE->GetRef(thisfd) == this))
-	{
-		if (!WriteError.empty())
-		{
-			User::QuitUser(ServerInstance, this);
-		}
 	}
 }
 

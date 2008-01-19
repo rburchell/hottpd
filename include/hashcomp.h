@@ -176,69 +176,6 @@ namespace irc
 		std::string& GetJoined();
 	};
 
-	/** irc::modestacker stacks mode sequences into a list.
-	 * It can then reproduce this list, clamped to a maximum of MAXMODES
-	 * values per line.
-	 */
-	class CoreExport modestacker
-	{
-	 private:
-		/** The mode sequence and its parameters
-		 */
-		std::deque<std::string> sequence;
-		/** True if the mode sequence is initially adding
-		 * characters, false if it is initially removing
-		 * them
-		 */
-		bool adding;
-	 public:
-		/** Construct a new modestacker.
-		 * @param add True if the stack is adding modes,
-		 * false if it is removing them
-		 */
-		modestacker(bool add);
-		/** Push a modeletter and its parameter onto the stack.
-		 * No checking is performed as to if this mode actually
-		 * requires a parameter. If you stack invalid mode
-		 * sequences, they will be tidied if and when they are
-		 * passed to a mode parser.
-		 * @param modeletter The mode letter to insert
-		 * @param parameter The parameter for the mode
-		 */
-		void Push(char modeletter, const std::string &parameter);
-		/** Push a modeletter without parameter onto the stack.
-		 * No checking is performed as to if this mode actually
-		 * requires a parameter. If you stack invalid mode
-		 * sequences, they will be tidied if and when they are
-		 * passed to a mode parser.
-		 * @param modeletter The mode letter to insert
-		 */
-		void Push(char modeletter);
-		/** Push a '+' symbol onto the stack.
-		 */
-		void PushPlus();
-		/** Push a '-' symbol onto the stack.
-		 */
-		void PushMinus();
-		/** Return zero or more elements which form the
-		 * mode line. This will be clamped to a max of
-		 * MAXMODES items (MAXMODES-1 mode parameters and
-		 * one mode sequence string), and max_line_size
-		 * characters. As specified below, this function
-		 * should be called in a loop until it returns zero,
-		 * indicating there are no more modes to return.
-		 * @param result The deque to populate. This will
-		 * be cleared before it is used.
-		 * @param max_line_size The maximum size of the line
-		 * to build, in characters, seperate to MAXMODES.
-		 * @return The number of elements in the deque.
-		 * The function should be called repeatedly until it
-		 * returns 0, in case there are multiple lines of
-		 * mode changes to be obtained.
-		 */
-		int GetStackedLine(std::deque<std::string> &result, int max_line_size = 360);
-	};
-
 	/** irc::tokenstream reads a string formatted as per RFC1459 and RFC2812.
 	 * It will split the string into 'tokens' each containing one parameter
 	 * from the string.
@@ -438,7 +375,7 @@ namespace irc
 	 * To use this class, you must derive from it.
 	 * This is because each derived instance has its own freebits array
 	 * which can determine what bitfields are allocated on a TYPE BY TYPE
-	 * basis, e.g. an irc::dynamicbitmask type for Users, and one for
+	 * basis, e.g. an irc::dynamicbitmask type for users, and one for
 	 * Channels, etc. You should inheret it in a very simple way as follows.
 	 * The base class will resize and maintain freebits as required, you are
 	 * just required to make the pointer static and specific to this class

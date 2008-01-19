@@ -11,8 +11,8 @@
  * ---------------------------------------------------
  */
 
-#ifndef __USERS_H__
-#define __USERS_H__
+#ifndef __CONNECTION_H__
+#define __CONNECTION_H__
 
 #include "inspircd_config.h"
 #include "socket.h"
@@ -108,19 +108,14 @@ class HTTPHeaders
 
 
 
-/** Holds all information about a user
- * This class stores all information about a user connected to the irc server. Everything about a
- * connection is stored here primarily, from the user's socket ID (file descriptor) through to the
- * user's nickname and hostname. Use the FindNick method of the InspIRCd class to locate a specific user
- * by nickname, or the FindDescriptor method of the InspIRCd class to find a specific user by their
- * file descriptor value.
+/** Holds all information about a connection
  */
-class CoreExport User : public EventHandler
+class CoreExport Connection : public EventHandler
 {
  private:
 	/** Pointer to creator.
 	 * This is required to make use of core functions
-	 * from within the User class.
+	 * from within the Connection class.
 	 */
 	InspIRCd* ServerInstance;
 
@@ -137,7 +132,7 @@ class CoreExport User : public EventHandler
 	 */
 	std::string ip;
 
-	/** User's send queue.
+	/** Connection's send queue.
 	 * Lines waiting to be sent are stored here until their buffer is flushed.
 	 */
 	std::string sendq;
@@ -151,7 +146,7 @@ class CoreExport User : public EventHandler
 	std::string http_version;
 	bool keepalive;
 
-	/** If this is set to true, then all read/error operations for the user
+	/** If this is set to true, then all read/error operations for the connection
 	 * are dropped into the bit-bucket.
 	 * This is used by the global CullList.
 	 */
@@ -164,18 +159,18 @@ class CoreExport User : public EventHandler
 
 	/** Initialize the clients sockaddr
 	 * @param protocol_family The protocol family of the IP address, AF_INET or AF_INET6
-	 * @param ip A human-readable IP address for this user matching the protcol_family
-	 * @param port The port number of this user or zero for a remote user
+	 * @param ip A human-readable IP address for this connection matching the protcol_family
+	 * @param port The port number of this connection
 	 */
 	void SetSockAddr(int protocol_family, const char* ip, int port);
 
 	/** Get port number from sockaddr
-	 * @return The port number of this user.
+	 * @return The port number of this connection.
 	 */
 	int GetPort();
 
 	/** Get protocol family from sockaddr
-	 * @return The protocol family of this user, either AF_INET or AF_INET6
+	 * @return The protocol family of this connection, either AF_INET or AF_INET6
 	 */
 	int GetProtocolFamily();
 
@@ -184,12 +179,11 @@ class CoreExport User : public EventHandler
 	std::string WriteError;
 
 	/** Default constructor
-	 * @throw CoreException if the UID allocated to the user already exists
 	 * @param Instance Creator instance
 	 */
-	User(InspIRCd* Instance);
+	Connection(InspIRCd* Instance);
 
-	/** Calls read() to read some data for this user using their fd.
+	/** Calls read() to read some data for this connection using their fd.
 	 * @param buffer The buffer to read into
 	 * @param size The size of data to read
 	 * @return The number of bytes read, or -1 if an error occured.
@@ -218,19 +212,19 @@ class CoreExport User : public EventHandler
 
 	/** Returns the write error which last occured on this connection or an empty string
 	 * if none occured.
-	 * @return The error string which has occured for this user
+	 * @return The error string which has occured for this connection
 	 */
 	const char* GetWriteError();
 
-	/** Adds to the user's write buffer.
-	 * You may add any amount of text up to this users sendq value, if you exceed the
-	 * sendq value, SetWriteError() will be called to set the users error string to
+	/** Adds to the connection's write buffer.
+	 * You may add any amount of text up to this connections sendq value, if you exceed the
+	 * sendq value, SetWriteError() will be called to set the connections error string to
 	 * "SendQ exceeded", and further buffer adds will be dropped.
 	 * @param data The data to add to the write buffer
 	 */
 	void AddWriteBuf(const std::string &data);
 
-	/** Flushes as much of the user's buffer to the file descriptor as possible.
+	/** Flushes as much of the connection's buffer to the file descriptor as possible.
 	 * This function may not always flush the entire buffer, rather instead as much of it
 	 * as it possibly can. If the send() call fails to send the entire buffer, the buffer
 	 * position is advanced forwards and the rest of the data sent at the next call to
@@ -238,54 +232,54 @@ class CoreExport User : public EventHandler
 	 */
 	void FlushWriteBuf();
 
-	/** Shuts down and closes the user's socket
-	 * This will not cause the user to be deleted. Use InspIRCd::QuitUser for this,
+	/** Shuts down and closes the connection's socket
+	 * This will not cause the connection to be deleted. Use InspIRCd::QuitConnection for this,
 	 * which will call CloseSocket() for you.
 	 */
 	void CloseSocket();
 
-	/** Disconnect a user gracefully
-	 * @param user The user to remove
-	 * @param r The quit reason to show to normal users
-	 * @return Although this function has no return type, on exit the user provided will no longer exist.
+	/** Disconnect a connection gracefully
+	 * @param connection The connection to remove
+	 * @param r The quit reason to show to normal connections
+	 * @return Although this function has no return type, on exit the connection provided will no longer exist.
 	 */
-	static void QuitUser(InspIRCd* Instance, User *user);
+	static void QuitConnection(InspIRCd* Instance, Connection *connection);
 
-	/** Use this method to fully connect a user.
+	/** Use this method to fully connect a connection.
 	 * This will send the message of the day, check G/K/E lines, etc.
 	 */
 	void FullConnect();
 
 	/** Add a client to the system.
-	 * This will create a new User, insert it into the user_hash,
+	 * This will create a new Connection, insert it into the connection_hash,
 	 * initialize it as not yet registered, and add it to the socket engine.
 	 * @param Instance a pointer to the server instance
-	 * @param socket The socket id (file descriptor) this user is on
-	 * @param port The port number this user connected on
+	 * @param socket The socket id (file descriptor) this connection is on
+	 * @param port The port number this connection connected on
 	 * @param iscached This variable is reserved for future use
-	 * @param ip The IP address of the user
-	 * @return This function has no return value, but a call to AddClient may remove the user.
+	 * @param ip The IP address of the connection
+	 * @return This function has no return value, but a call to AddClient may remove the connection.
 	 */
 	static void AddClient(InspIRCd* Instance, int socket, int port, bool iscached, int socketfamily, sockaddr* ip);
 
-	/** Return the number of local clones of this user
-	 * @return The local clone count of this user
+	/** Return the number of local clones of this connection
+	 * @return The local clone count of this connection
 	 */
 	unsigned long LocalCloneCount();
 
-	/** Remove all clone counts from the user, you should
-	 * use this if you change the user's IP address in
-	 * User::ip after they have registered.
+	/** Remove all clone counts from the connection, you should
+	 * use this if you change the connection's IP address in
+	 * Connection::ip after they have registered.
 	 */
 	void RemoveCloneCounts();
 
-	/** Write text to this user
-	 * @param text A std::string to send to the user
+	/** Write text to this connection
+	 * @param text A std::string to send to the connection
 	 */
 	void Write(const std::string &text);
 
-	/** Write text to this user
-	 * @param text The format string for text to send to the user
+	/** Write text to this connection
+	 * @param text The format string for text to send to the connection
 	 * @param ... POD-type format arguments
 	 */
 	void Write(const char *text, ...);
@@ -299,7 +293,7 @@ class CoreExport User : public EventHandler
 
 	/** Default destructor
 	 */
-	virtual ~User();
+	virtual ~Connection();
 };
 
 #endif

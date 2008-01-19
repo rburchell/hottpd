@@ -18,7 +18,7 @@
 #include "socketengine.h"
 #include "command_parse.h"
 
-void ProcessUserHandler::Call(User* cu)
+void ProcessUserHandler::Call(Connection* cu)
 {
 	int result = EAGAIN;
 
@@ -31,7 +31,7 @@ void ProcessUserHandler::Call(User* cu)
 
 	if ((result) && (result != -EAGAIN))
 	{
-		User *current;
+		Connection *current;
 		int currfd;
 
 		/*
@@ -51,13 +51,13 @@ void ProcessUserHandler::Call(User* cu)
 		current = cu;
 		currfd = current->GetFd();
 
-		// add the data to the users buffer (which will process it if necessary)
+		// add the data to the connection's buffer (which will process it if necessary)
 		if (result > 0)
 		{
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// fuck, something exploded
-				User::QuitUser(Server, current);
+				Connection::QuitConnection(Server, current);
 				return;
 			}
 
@@ -66,7 +66,7 @@ void ProcessUserHandler::Call(User* cu)
 
 		if ((result == -1) && (errno != EAGAIN) && (errno != EINTR))
 		{
-			User::QuitUser(Server, cu);
+			Connection::QuitConnection(Server, cu);
 			return;
 		}
 	}
@@ -78,7 +78,7 @@ void ProcessUserHandler::Call(User* cu)
 	}
 	else if (result == 0)
 	{
-		User::QuitUser(Server, cu);
+		Connection::QuitConnection(Server, cu);
 		return;
 	}
 }

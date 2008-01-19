@@ -106,58 +106,58 @@ std::string Event::GetEventID()
 		Module::~Module() { }
 void		Module::OnReadConfig(ServerConfig*, ConfigReader*) { }
 int		Module::OnDownloadFile(const std::string&, std::istream*&) { return 0; }
-void		Module::OnUserConnect(User*) { }
-void		Module::OnUserDisconnect(User*) { }
-void		Module::OnRehash(User*, const std::string&) { }
-void		Module::OnServerRaw(std::string&, bool, User*) { }
-void		Module::OnMode(User*, void*, int, const std::string&) { }
+void		Module::OnUserConnect(Connection*) { }
+void		Module::OnUserDisconnect(Connection*) { }
+void		Module::OnRehash(Connection*, const std::string&) { }
+void		Module::OnServerRaw(std::string&, bool, Connection*) { }
+void		Module::OnMode(Connection*, void*, int, const std::string&) { }
 Version		Module::GetVersion() { return Version(1,0,0,0,VF_VENDOR,-1); }
-void		Module::OnOper(User*, const std::string&) { }
-void		Module::OnPostOper(User*, const std::string&) { }
-void		Module::OnInfo(User*) { }
-void		Module::OnWhois(User*, User*) { }
-int		Module::OnUserPreNick(User*, const std::string&) { return 0; }
-void		Module::OnUserPostNick(User*, const std::string&) { }
-int		Module::OnKill(User*, User*, const std::string&) { return 0; }
+void		Module::OnOper(Connection*, const std::string&) { }
+void		Module::OnPostOper(Connection*, const std::string&) { }
+void		Module::OnInfo(Connection*) { }
+void		Module::OnWhois(Connection*, Connection*) { }
+int		Module::OnUserPreNick(Connection*, const std::string&) { return 0; }
+void		Module::OnUserPostNick(Connection*, const std::string&) { }
+int		Module::OnKill(Connection*, Connection*, const std::string&) { return 0; }
 void		Module::OnLoadModule(Module*, const std::string&) { }
 void		Module::OnUnloadModule(Module*, const std::string&) { }
 void		Module::OnBackgroundTimer(time_t) { }
-int		Module::OnPreCommand(const std::string&, const char**, int, User *, bool, const std::string&) { return 0; }
-void		Module::OnPostCommand(const std::string&, const char**, int, User *, CmdResult, const std::string&) { }
-bool		Module::OnCheckReady(User*) { return true; }
-int		Module::OnUserRegister(User*) { return 0; }
-int		Module::OnStats(char, User*, string_list&) { return 0; }
-int		Module::OnChangeLocalUserHost(User*, const std::string&) { return 0; }
-int		Module::OnChangeLocalUserGECOS(User*, const std::string&) { return 0; }
+int		Module::OnPreCommand(const std::string&, const char**, int, Connection *, bool, const std::string&) { return 0; }
+void		Module::OnPostCommand(const std::string&, const char**, int, Connection *, CmdResult, const std::string&) { }
+bool		Module::OnCheckReady(Connection*) { return true; }
+int		Module::OnUserRegister(Connection*) { return 0; }
+int		Module::OnStats(char, Connection*, string_list&) { return 0; }
+int		Module::OnChangeLocalUserHost(Connection*, const std::string&) { return 0; }
+int		Module::OnChangeLocalUserGECOS(Connection*, const std::string&) { return 0; }
 void		Module::OnEvent(Event*) { return; }
 char*		Module::OnRequest(Request*) { return NULL; }
 int		Module::OnOperCompare(const std::string&, const std::string&, int) { return 0; }
-void		Module::OnGlobalOper(User*) { }
-void		Module::OnPostConnect(User*) { }
+void		Module::OnGlobalOper(Connection*) { }
+void		Module::OnPostConnect(Connection*) { }
 void		Module::OnRawSocketAccept(int, const std::string&, int) { }
 int		Module::OnRawSocketWrite(int, const char*, int) { return 0; }
 void		Module::OnRawSocketClose(int) { }
 void		Module::OnRawSocketConnect(int) { }
 int		Module::OnRawSocketRead(int, char*, unsigned int, int&) { return 0; }
-void 		Module::OnRemoteKill(User*, User*, const std::string&, const std::string&) { }
+void 		Module::OnRemoteKill(Connection*, Connection*, const std::string&, const std::string&) { }
 void		Module::OnGetServerDescription(const std::string&, std::string&) { }
-void		Module::OnSyncUser(User*, Module*, void*) { }
+void		Module::OnSyncUser(Connection*, Module*, void*) { }
 void		Module::ProtoSendMode(void*, int, void*, const std::string&) { }
-void		Module::OnSyncUserMetaData(User*, Module*, void*, const std::string&, bool) { }
+void		Module::OnSyncUserMetaData(Connection*, Module*, void*, const std::string&, bool) { }
 void		Module::OnSyncOtherMetaData(Module*, void*, bool) { }
 void		Module::OnDecodeMetaData(int, void*, const std::string&, const std::string&) { }
 void		Module::ProtoSendMetaData(void*, int, void*, const std::string&, const std::string&) { }
-void		Module::OnWallops(User*, const std::string&) { }
-void		Module::OnChangeHost(User*, const std::string&) { }
-void		Module::OnChangeName(User*, const std::string&) { }
-void		Module::OnAddLine(User*, XLine*) { }
-void		Module::OnDelLine(User*, XLine*) { }
+void		Module::OnWallops(Connection*, const std::string&) { }
+void		Module::OnChangeHost(Connection*, const std::string&) { }
+void		Module::OnChangeName(Connection*, const std::string&) { }
+void		Module::OnAddLine(Connection*, XLine*) { }
+void		Module::OnDelLine(Connection*, XLine*) { }
 void 		Module::OnCleanup(int, void*) { }
-void		Module::OnSetAway(User*) { }
-void		Module::OnCancelAway(User*) { }
-int		Module::OnWhoisLine(User*, User*, int&, std::string&) { return 0; }
+void		Module::OnSetAway(Connection*) { }
+void		Module::OnCancelAway(Connection*) { }
+int		Module::OnWhoisLine(Connection*, Connection*, int&, std::string&) { return 0; }
 void		Module::OnGarbageCollect() { }
-void		Module::OnBufferFlushed(User*) { }
+void		Module::OnBufferFlushed(Connection*) { }
 
 
 ModuleManager::ModuleManager(InspIRCd* Ins) : ModCount(0), Instance(Ins)
@@ -637,9 +637,9 @@ bool InspIRCd::MatchText(const std::string &sliteral, const std::string &spatter
 	return match(sliteral.c_str(),spattern.c_str());
 }
 
-User* InspIRCd::FindDescriptorHandler(int socket)
+Connection* InspIRCd::FindDescriptorHandler(int socket)
 {
-	return reinterpret_cast<User*>(this->SE->GetRef(socket));
+	return reinterpret_cast<Connection*>(this->SE->GetRef(socket));
 }
 
 Module* ModuleManager::Find(const std::string &name)
@@ -760,7 +760,7 @@ long ConfigReader::GetError()
 	return olderr;
 }
 
-void ConfigReader::DumpErrors(bool bail, User* user)
+void ConfigReader::DumpErrors(bool bail, Connection* user)
 {
 	ServerInstance->Config->ReportConfigError(this->errorlog->str(), bail, user);
 }

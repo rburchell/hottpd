@@ -21,7 +21,7 @@ CullList::CullList(InspIRCd* Instance) : ServerInstance(Instance)
 	list.clear();
 }
 
-void CullList::AddItem(User *c)
+void CullList::AddItem(Connection *c)
 {
 	if (c->quitting) // don't quit them twice
 		return;
@@ -35,9 +35,9 @@ int CullList::Apply()
 	int n = list.size();
 	while (list.size())
 	{
-		std::vector<User *>::iterator a = list.begin();
+		std::vector<Connection *>::iterator a = list.begin();
 
-		User *c = (*a);
+		Connection *c = (*a);
 
 		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(c));
 
@@ -49,9 +49,9 @@ int CullList::Apply()
 
 		if (IS_LOCAL(c))
 		{
-			std::vector<User*>::iterator x = find(ServerInstance->local_users.begin(),ServerInstance->local_users.end(),c);
-			if (x != ServerInstance->local_users.end())
-				ServerInstance->local_users.erase(x);
+			std::vector<Connection*>::iterator x = find(ServerInstance->local_connections.begin(),ServerInstance->local_connections.end(),c);
+			if (x != ServerInstance->local_connections.end())
+				ServerInstance->local_connections.erase(x);
 		}
 
 		delete c;

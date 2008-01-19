@@ -298,9 +298,7 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	bool writelog;
 
-	/** The size of the read() buffer in the user
-	 * handling code, used to read data into a user's
-	 * recvQ.
+	/** The size of the read() buffer
 	 */
 	int NetBufferSize;
 
@@ -309,9 +307,8 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	int MaxConn;
 
-	/** The soft limit value assigned to the irc server.
-	 * The IRC server will not allow more than this
-	 * number of local users.
+	/** The soft limit value
+	 * The server will not allow more than this number of connections.
 	 */
 	unsigned int SoftLimit;
 
@@ -369,7 +366,7 @@ class CoreExport ServerConfig : public Extensible
 	 * and initialize this class. All other methods
 	 * should be used only by the core.
 	 */
-	void Read(bool bail, User* user, int pass);
+	void Read(bool bail, Connection* connection, int pass);
 
 	/** Read a file into a file_cache object
 	 */
@@ -377,11 +374,11 @@ class CoreExport ServerConfig : public Extensible
 
 	/** Report a configuration error given in errormessage.
 	 * @param bail If this is set to true, the error is sent to the console, and the program exits
-	 * @param user If this is set to a non-null value, and bail is false, the errors are spooled to
-	 * this user as SNOTICEs.
-	 * If the parameter is NULL, the messages are spooled to all users via WriteOpers as SNOTICEs.
+	 * @param connection If this is set to a non-null value, and bail is false, the errors are spooled to
+	 * this connection as SNOTICEs.
+	 * If the parameter is NULL, the messages are spooled to all connections via WriteOpers as SNOTICEs.
 	 */
-	void ReportConfigError(const std::string &errormessage, bool bail, User* user);
+	void ReportConfigError(const std::string &errormessage, bool bail, Connection* connection);
 
 	/** Load 'filename' into 'target', with the new config parser everything is parsed into
 	 * tag/key/value at load-time rather than at read-value time.

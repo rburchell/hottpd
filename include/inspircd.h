@@ -162,7 +162,7 @@ typedef std::map<irc::string, unsigned int> clonemap;
 
 class InspIRCd;
 
-DEFINE_HANDLER1(ProcessUserHandler, void, User*);
+DEFINE_HANDLER1(ProcessUserHandler, void, Connection*);
 
 /** The main class of the irc server.
  * This class contains instances of all the other classes
@@ -189,15 +189,15 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool DaemonSeed();
 
-	/** Perform background user events such as PING checks
+	/** Perform background connection events such as PING checks
 	 */
 	void DoBackgroundUserStuff();
 
-	/** Returns true when all modules have done pre-registration checks on a user
-	 * @param user The user to verify
-	 * @return True if all modules have finished checking this user
+	/** Returns true when all modules have done pre-registration checks on a connection
+	 * @param connection The connection to verify
+	 * @return True if all modules have finished checking this connection
 	 */
-	bool AllModulesReportReady(User* user);
+	bool AllModulesReportReady(Connection* connection);
 
 	/** Logfile pathname specified on the commandline, or empty string
 	 */
@@ -245,7 +245,7 @@ class CoreExport InspIRCd : public classbase
 
 	ProcessUserHandler HandleProcessUser;
 
-	User *FindDescriptorHandler(int);
+	Connection *FindDescriptorHandler(int);
 
 	/** Time this ircd was booted
 	 */
@@ -270,7 +270,7 @@ class CoreExport InspIRCd : public classbase
 
 	/** Local client list, a vector containing only local clients
 	 */
-	std::vector<User*> local_users;
+	std::vector<Connection*> local_connections;
 
 	/** Timer manager class, triggers Timer timer events
 	 */
@@ -287,17 +287,17 @@ class CoreExport InspIRCd : public classbase
 	 */
 	time_t Time();
 
-	/** Add a user to the local clone map
-	 * @param user The user to add
+	/** Add a connection to the local clone map
+	 * @param connection The connection to add
 	 */
-	void AddLocalClone(User* user);
+	void AddLocalClone(Connection *c);
 
-	/** Process a user whos socket has been flagged as active
-	 * @param cu The user to process
-	 * @return There is no actual return value, however upon exit, the user 'cu' may have been
+	/** Process a connection whos socket has been flagged as active
+	 * @param cu The connection to process
+	 * @return There is no actual return value, however upon exit, the connection 'cu' may have been
 	 * marked for deletion in the global CullList.
 	 */
-	caller1<void, User*> ProcessUser;
+	caller1<void, Connection*> ProcessUser;
 
 	/** Bind all ports specified in the configuration file.
 	 * @param bail True if the function should bail back to the shell on failure
