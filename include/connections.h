@@ -1,14 +1,12 @@
-/*       +------------------------------------+
- *       | Inspire Internet Relay Chat Daemon |
- *       +------------------------------------+
+/*
+ *   hottpd - a fast, extensible, featureful http server
+ *          (C) 2007-2008 hottpd development team
  *
- *  InspIRCd: (C) 2002-2007 InspIRCd Development Team
- * See: http://www.inspircd.org/wiki/index.php/Credits
+ * Based on InspIRCd - (C) 2002-2007 InspIRCd Development Team
  *
- * This program is free but copyrighted software; see
- *            the file COPYING for details.
+ *    This program is free but copyrighted software; see
+ *              the file COPYING for details.
  *
- * ---------------------------------------------------
  */
 
 #ifndef __CONNECTION_H__
@@ -122,12 +120,13 @@ class CoreExport Connection : public EventHandler
 	HttpState State;
 
 	HTTPHeaders headers;
-
-	/** Get IP string from sockaddr, using static internal buffer
+ public:
+	/** Get IP string from sockaddr, using static internal buffer.
+	 * This should not be called after the connection is setup.
 	 * @return The IP string
 	 */
 	const char* GetIPString();
- public:
+
 	/** IP of connection.
 	 */
 	std::string ip;
@@ -249,18 +248,6 @@ class CoreExport Connection : public EventHandler
 	 * This will send the message of the day, check G/K/E lines, etc.
 	 */
 	void FullConnect();
-
-	/** Add a client to the system.
-	 * This will create a new Connection, insert it into the connection_hash,
-	 * initialize it as not yet registered, and add it to the socket engine.
-	 * @param Instance a pointer to the server instance
-	 * @param socket The socket id (file descriptor) this connection is on
-	 * @param port The port number this connection connected on
-	 * @param iscached This variable is reserved for future use
-	 * @param ip The IP address of the connection
-	 * @return This function has no return value, but a call to AddClient may remove the connection.
-	 */
-	static void AddClient(InspIRCd* Instance, int socket, int port, bool iscached, int socketfamily, sockaddr* ip);
 
 	/** Return the number of local clones of this connection
 	 * @return The local clone count of this connection

@@ -41,6 +41,7 @@
 #include "modules.h"
 #include "configreader.h"
 #include "mimetypes.h"
+#include "connectionmanager.h"
 
 class FOpenBackend; // XXX shitty required forward dec, remove when fopen moves out of backend.h
 
@@ -233,6 +234,8 @@ class CoreExport InspIRCd : public classbase
 #endif
 
  public:
+	ConnectionManager *Connections;
+
 	FOpenBackend *FOpen;
 
 	MimeManager *MimeTypes;
