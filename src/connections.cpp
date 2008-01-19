@@ -335,7 +335,7 @@ void Connection::FlushWriteBuf()
 			{
 				/* Fatal error, set write error and bail
 				 */
-				Connection::QuitConnection(this->ServerInstance, this); // XXX shouldn't try flush buffer, add a bool?
+				ServerInstance->Connections->Delete(this); // XXX shouldn't try flush buffer, add a bool?
 				return;
 			}
 		}
@@ -361,17 +361,10 @@ void Connection::FlushWriteBuf()
 			}
 			else
 			{
-				Connection::QuitConnection(this->ServerInstance, this);
+				ServerInstance->Connections->Delete(this);
 			}
 		}
 	}
-}
-
-void Connection::QuitConnection(InspIRCd* Instance, Connection *user)
-{
-	Instance->GlobalCulls.AddItem(user);
-	user->quitting = true;
-	user->State = HTTP_FINISHED;
 }
 
 void Connection::FullConnect()
@@ -535,7 +528,7 @@ void Connection::HandleEvent(EventType et, int errornum)
 			this->FlushWriteBuf();
 		break;
 		case EVENT_ERROR:
-			Connection::QuitConnection(this->ServerInstance, this);
+			ServerInstance->Connections->Delete(this);
 		break;
 	}
 }

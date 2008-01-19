@@ -503,7 +503,6 @@ int InspIRCd::Run()
 			}
 
 			Timers->TickTimers(TIME);
-			this->DoBackgroundUserStuff();
 
 			if ((TIME % 5) == 0)
 			{

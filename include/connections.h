@@ -117,10 +117,11 @@ class CoreExport Connection : public EventHandler
 	 */
 	InspIRCd* ServerInstance;
 
-	HttpState State;
-
 	HTTPHeaders headers;
  public:
+
+	HttpState State;
+
 	/** Get IP string from sockaddr, using static internal buffer.
 	 * This should not be called after the connection is setup.
 	 * @return The IP string
@@ -236,13 +237,6 @@ class CoreExport Connection : public EventHandler
 	 * which will call CloseSocket() for you.
 	 */
 	void CloseSocket();
-
-	/** Disconnect a connection gracefully
-	 * @param connection The connection to remove
-	 * @param r The quit reason to show to normal connections
-	 * @return Although this function has no return type, on exit the connection provided will no longer exist.
-	 */
-	static void QuitConnection(InspIRCd* Instance, Connection *connection);
 
 	/** Use this method to fully connect a connection.
 	 * This will send the message of the day, check G/K/E lines, etc.

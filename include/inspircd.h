@@ -190,10 +190,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool DaemonSeed();
 
-	/** Perform background connection events such as PING checks
-	 */
-	void DoBackgroundUserStuff();
-
 	/** Returns true when all modules have done pre-registration checks on a connection
 	 * @param connection The connection to verify
 	 * @return True if all modules have finished checking this connection

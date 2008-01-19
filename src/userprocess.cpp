@@ -34,17 +34,6 @@ void ProcessUserHandler::Call(Connection* cu)
 		Connection *current;
 		int currfd;
 
-		/*
-		 * perform a check on the raw buffer as an array (not a string!) to remove
-		 * character 0 which is illegal in the RFC - replace them with spaces.
-		 */
-
-		for (int checker = 0; checker < result; checker++)
-		{
-			if (ReadBuffer[checker] == 0)
-				ReadBuffer[checker] = ' ';
-		}
-
 		if (result > 0)
 			ReadBuffer[result] = '\0';
 
@@ -57,7 +46,7 @@ void ProcessUserHandler::Call(Connection* cu)
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// fuck, something exploded
-				Connection::QuitConnection(Server, current);
+				Server->Connections->Delete(current);
 				return;
 			}
 
@@ -66,7 +55,7 @@ void ProcessUserHandler::Call(Connection* cu)
 
 		if ((result == -1) && (errno != EAGAIN) && (errno != EINTR))
 		{
-			Connection::QuitConnection(Server, cu);
+			Server->Connections->Delete(cu);
 			return;
 		}
 	}
@@ -78,34 +67,9 @@ void ProcessUserHandler::Call(Connection* cu)
 	}
 	else if (result == 0)
 	{
-		Connection::QuitConnection(Server, cu);
+		Server->Connections->Delete(cu);
 		return;
 	}
 }
 
-/**
- * This function is called once a second from the mainloop.
- * It is intended to do background checking on all the user structs, e.g.
- * stuff like ping checks, registration timeouts, etc.
- */
-void InspIRCd::DoBackgroundUserStuff()
-{
-	/*
-	 * loop over all local users..
-	 */
-/*
-XXX not required, AddBuffer handles it all ok.. we need to add timers to connections, tho.
-	for (std::vector<User*>::iterator count2 = local_users.begin(); count2 != local_users.end(); count2++)
-	{
-		User *curr = *count2;
-
-		if (TIME > curr->timeout)
-		{
-			// timeout: they've been connected too long ..
-			User::QuitUser(this, curr);
-			continue;
-		}
-	}
-*/
-}
 

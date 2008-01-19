@@ -24,4 +24,10 @@ class ConnectionManager : public classbase
 	 * @return This function has no return value, but may not succeed always. XXX fix this
 	 */
 	void Add(int socket, int port, int socketfamily, sockaddr *ip);
+
+	/** Disconnect a connection gracefully
+	 * @param connection The connection to remove
+	 * @return Although this function has no return type, on exit the connection provided will no longer exist. XXX fix this
+	 */
+	void Delete(Connection *c);
 };

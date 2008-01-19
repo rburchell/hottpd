@@ -37,7 +37,7 @@ void ConnectionManager::Add(int socket, int port, int socketfamily, sockaddr *ip
 
 	if ((ServerInstance->local_connections.size() > ServerInstance->Config->SoftLimit) || (ServerInstance->local_connections.size() >= MAXCLIENTS))
 	{
-		Connection::QuitConnection(ServerInstance, New);
+		this->Delete(New);
 		return;
 	}
 
@@ -54,21 +54,26 @@ void ConnectionManager::Add(int socket, int port, int socketfamily, sockaddr *ip
 #ifndef WINDOWS
 	if ((unsigned int)socket >= MAX_DESCRIPTORS)
 	{
-		Connection::QuitConnection(ServerInstance, New);
+		this->Delete(New);
 		return;
 	}
 #endif
 
-	if (socket > -1)
+	if (!ServerInstance->SE->AddFd(New))
 	{
-		if (!ServerInstance->SE->AddFd(New))
-		{
-			ServerInstance->Log(DEBUG,"Internal error on new connection");
-			Connection::QuitConnection(ServerInstance, New);
-			return;
-		}
+		ServerInstance->Log(DEBUG,"Internal error on new connection");
+		this->Delete(New);
+		return;
 	}
 
 	New->FullConnect();
 }
+
+void ConnectionManager::Delete(Connection *c)
+{
+	ServerInstance->GlobalCulls.AddItem(c);
+	c->quitting = true;
+	c->State = HTTP_FINISHED;
+}
+
 
