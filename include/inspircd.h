@@ -346,10 +346,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool MatchText(const std::string &sliteral, const std::string &spattern);
 
-	/** Rehash the local server
-	 */
-	void RehashServer();
-
 	/** Calculate a duration in seconds from a string in the form 1y2w3d4h6m5s
 	 * @param str A string containing a time in the form 1y2w3d4h6m5s
 	 * (one year, two weeks, three days, four hours, six minutes and five seconds)

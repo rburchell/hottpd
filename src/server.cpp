@@ -52,10 +52,6 @@ void InspIRCd::Rehash()
 	FOREACH_MOD_I(this,I_OnRehash,OnRehash());
 }
 
-void InspIRCd::RehashServer()
-{
-}
-
 std::string InspIRCd::GetVersionString()
 {
 	char versiondata[MAXBUF];
