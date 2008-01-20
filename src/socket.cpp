@@ -65,20 +65,19 @@ ListenSocket::~ListenSocket()
 	}
 }
 
-//static sockaddr *sock_us;
-//static sockaddr *client;
-//static bool setup_sock;
+// XXX - There's probably a nicer way to do this.
+static sockaddr *sock_us;
+static sockaddr *client;
+static bool setup_sock;
 
 void ListenSocket::HandleEvent(EventType, int)
 {
-//	if (!setup_sock)
-//	{
-//		sock_us = new sockaddr[2];
-//		client = new sockaddr[2];
-//		setup_sock = true;
-//	}
-	sockaddr *sock_us = new sockaddr[2];
-	sockaddr *client = new sockaddr[2];
+	if (!setup_sock)
+	{
+		sock_us = new sockaddr[2];
+		client = new sockaddr[2];
+		setup_sock = true;
+	}
 
 	socklen_t uslen, length;		// length of our port number
 	int incomingSockfd, in_port;
@@ -122,9 +121,6 @@ void ListenSocket::HandleEvent(EventType, int)
 		ServerInstance->SE->Shutdown(incomingSockfd, 2);
 		ServerInstance->SE->Close(incomingSockfd);
 	}
-
-	delete[] client;
-	delete[] sock_us;
 }
 
 /* Match raw bytes using CIDR bit matching, used by higher level MatchCIDR() */
