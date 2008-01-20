@@ -66,7 +66,7 @@ void ConnectionManager::Add(int socket, int port, int socketfamily, sockaddr *ip
 		return;
 	}
 
-	New->FullConnect();
+	FOREACH_MOD(I_OnConnectionConnect, OnConnectionConnect(New));
 }
 
 void ConnectionManager::Delete(Connection *c)

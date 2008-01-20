@@ -271,7 +271,7 @@ void Connection::SendError(int code)
 	HTTPHeaders empty;
 	std::string data = "<html><head></head><body>Server error "+ConvToStr(code)+":<br>"+
 	                   "<small>Powered by <a href='http://www.inspircd.org'>InspIRCd</a></small></body></html>";
-	uri = "error.htm";	
+	uri = "error.htm"; // hack to ensure correct content-type
 	this->SendHeaders(data.length(), code, empty);
 	this->Write(data);
 }
@@ -407,12 +407,6 @@ void Connection::FlushWriteBuf()
 			}
 		}
 	}
-}
-
-void Connection::FullConnect()
-{
-	FOREACH_MOD(I_OnUserConnect,OnUserConnect(this));
-	FOREACH_MOD(I_OnPostConnect,OnPostConnect(this));
 }
 
 void Connection::SetSockAddr(int protocol_family, const char* ip, int port)

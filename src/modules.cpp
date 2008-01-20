@@ -106,56 +106,21 @@ std::string Event::GetEventID()
 		Module::~Module() { }
 void		Module::OnReadConfig(ServerConfig*, ConfigReader*) { }
 int		Module::OnDownloadFile(const std::string&, std::istream*&) { return 0; }
-void		Module::OnUserConnect(Connection*) { }
-void		Module::OnUserDisconnect(Connection*) { }
-void		Module::OnRehash(Connection*, const std::string&) { }
-void		Module::OnServerRaw(std::string&, bool, Connection*) { }
-void		Module::OnMode(Connection*, void*, int, const std::string&) { }
+void		Module::OnConnectionConnect(Connection*) { }
+void		Module::OnConnectionDisconnect(Connection*) { }
+void		Module::OnRehash() { }
 Version		Module::GetVersion() { return Version(1,0,0,0,VF_VENDOR,-1); }
-void		Module::OnOper(Connection*, const std::string&) { }
-void		Module::OnPostOper(Connection*, const std::string&) { }
-void		Module::OnInfo(Connection*) { }
-void		Module::OnWhois(Connection*, Connection*) { }
-int		Module::OnUserPreNick(Connection*, const std::string&) { return 0; }
-void		Module::OnUserPostNick(Connection*, const std::string&) { }
-int		Module::OnKill(Connection*, Connection*, const std::string&) { return 0; }
 void		Module::OnLoadModule(Module*, const std::string&) { }
 void		Module::OnUnloadModule(Module*, const std::string&) { }
 void		Module::OnBackgroundTimer(time_t) { }
-int		Module::OnPreCommand(const std::string&, const char**, int, Connection *, bool, const std::string&) { return 0; }
-void		Module::OnPostCommand(const std::string&, const char**, int, Connection *, CmdResult, const std::string&) { }
-bool		Module::OnCheckReady(Connection*) { return true; }
-int		Module::OnUserRegister(Connection*) { return 0; }
-int		Module::OnStats(char, Connection*, string_list&) { return 0; }
-int		Module::OnChangeLocalUserHost(Connection*, const std::string&) { return 0; }
-int		Module::OnChangeLocalUserGECOS(Connection*, const std::string&) { return 0; }
 void		Module::OnEvent(Event*) { return; }
 char*		Module::OnRequest(Request*) { return NULL; }
-int		Module::OnOperCompare(const std::string&, const std::string&, int) { return 0; }
-void		Module::OnGlobalOper(Connection*) { }
-void		Module::OnPostConnect(Connection*) { }
 void		Module::OnRawSocketAccept(int, const std::string&, int) { }
 int		Module::OnRawSocketWrite(int, const char*, int) { return 0; }
 void		Module::OnRawSocketClose(int) { }
 void		Module::OnRawSocketConnect(int) { }
 int		Module::OnRawSocketRead(int, char*, unsigned int, int&) { return 0; }
-void 		Module::OnRemoteKill(Connection*, Connection*, const std::string&, const std::string&) { }
-void		Module::OnGetServerDescription(const std::string&, std::string&) { }
-void		Module::OnSyncUser(Connection*, Module*, void*) { }
-void		Module::ProtoSendMode(void*, int, void*, const std::string&) { }
-void		Module::OnSyncUserMetaData(Connection*, Module*, void*, const std::string&, bool) { }
-void		Module::OnSyncOtherMetaData(Module*, void*, bool) { }
-void		Module::OnDecodeMetaData(int, void*, const std::string&, const std::string&) { }
-void		Module::ProtoSendMetaData(void*, int, void*, const std::string&, const std::string&) { }
-void		Module::OnWallops(Connection*, const std::string&) { }
-void		Module::OnChangeHost(Connection*, const std::string&) { }
-void		Module::OnChangeName(Connection*, const std::string&) { }
-void		Module::OnAddLine(Connection*, XLine*) { }
-void		Module::OnDelLine(Connection*, XLine*) { }
-void 		Module::OnCleanup(int, void*) { }
-void		Module::OnSetAway(Connection*) { }
-void		Module::OnCancelAway(Connection*) { }
-int		Module::OnWhoisLine(Connection*, Connection*, int&, std::string&) { return 0; }
+void 		Module::OnCleanup(Connection*) { }
 void		Module::OnGarbageCollect() { }
 void		Module::OnBufferFlushed(Connection*) { }
 

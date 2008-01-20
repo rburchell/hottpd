@@ -39,20 +39,14 @@ int CullList::Apply()
 
 		Connection *c = (*a);
 
-		FOREACH_MOD_I(ServerInstance,I_OnUserDisconnect,OnUserDisconnect(c));
+		FOREACH_MOD_I(ServerInstance,I_OnConnectionDisconnect, OnConnectionDisconnect(c));
 
-		if (IS_LOCAL(c))
-		{
-			ServerInstance->SE->DelFd(c);
-			c->CloseSocket();
-		}
+		ServerInstance->SE->DelFd(c);
+		c->CloseSocket();
 
-		if (IS_LOCAL(c))
-		{
-			std::vector<Connection*>::iterator x = find(ServerInstance->local_connections.begin(),ServerInstance->local_connections.end(),c);
-			if (x != ServerInstance->local_connections.end())
-				ServerInstance->local_connections.erase(x);
-		}
+		std::vector<Connection*>::iterator x = find(ServerInstance->local_connections.begin(),ServerInstance->local_connections.end(),c);
+		if (x != ServerInstance->local_connections.end())
+			ServerInstance->local_connections.erase(x);
 
 		delete c;
 		list.erase(list.begin());

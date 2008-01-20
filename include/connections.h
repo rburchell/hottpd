@@ -235,11 +235,6 @@ class CoreExport Connection : public EventHandler
 	 */
 	void CloseSocket();
 
-	/** Use this method to fully connect a connection.
-	 * This will send the message of the day, check G/K/E lines, etc.
-	 */
-	void FullConnect();
-
 	/** Write text to this connection
 	 * @param text A std::string to send to the connection
 	 */

@@ -353,15 +353,12 @@ enum Priority { PRIORITY_FIRST, PRIORITY_DONTCARE, PRIORITY_LAST, PRIORITY_BEFOR
 enum Implementation
 {
 	I_BEGIN,
-	I_OnUserConnect, I_OnUserDisconnect, I_OnRehash, I_OnServerRaw, 
-	I_OnInfo, I_OnWhois,
-	I_OnAddLine,
-	I_OnDelLine, I_OnCleanup, I_OnLoadModule, I_OnUnloadModule,
+	I_OnConnectionConnect, I_OnConnectionDisconnect, I_OnRehash,
+	I_OnCleanup, I_OnLoadModule, I_OnUnloadModule,
 	I_OnBackgroundTimer,
-	I_OnEvent, I_OnRequest, I_OnPostConnect,
-	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, 
-	I_OnRawSocketRead,
-	I_OnPostCommand, I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
+	I_OnEvent, I_OnRequest,
+	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, I_OnRawSocketRead,
+	I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
 	I_OnReadConfig,
 	I_END
 };
@@ -411,7 +408,7 @@ class CoreExport Module : public Extensible
 	 * The details of the connecting user are available to you in the parameter Connection *user
 	 * @param user The user who is connecting
 	 */
-	virtual void OnUserConnect(Connection* user);
+	virtual void OnConnectionConnect(Connection* user);
 
 	/** Called whenever a user's socket is closed.
 	 * The details of the exiting user are available to you in the parameter Connection *user
@@ -419,267 +416,21 @@ class CoreExport Module : public Extensible
 	 * which might assign resources to user, such as dns lookups, objects and sockets.
 	 * @param user The user who is disconnecting
 	 */
-	virtual void OnUserDisconnect(Connection* user);
+	virtual void OnConnectionDisconnect(Connection* user);
 
 	/** Called on rehash.
-	 * This method is called prior to a /REHASH or when a SIGHUP is received from the operating
-	 * system. You should use it to reload any files so that your module keeps in step with the
-	 * rest of the application. If a parameter is given, the core has done nothing. The module
-	 * receiving the event can decide if this parameter has any relevence to it.
-	 * @param user The user performing the rehash, if any -- if this is server initiated, the
-	 * value of this variable will be NULL.
-	 * @param parameter The (optional) parameter given to REHASH from the user.
+	 * This method is called when a SIGHUP is received from the operating system.
+	 * You should use it to reload any files so that your module keeps in step with the
+	 * rest of the application.
 	 */
- 	virtual void OnRehash(Connection* user, const std::string &parameter);
-
-	/** Called when a raw command is transmitted or received.
-	 * This method is the lowest level of handler available to a module. It will be called with raw
-	 * data which is passing through a connected socket. If you wish, you may munge this data by changing
-	 * the string parameter "raw". If you do this, after your function exits it will immediately be
-	 * cut down to 510 characters plus a carriage return and linefeed. For INBOUND messages only (where
-	 * inbound is set to true) the value of user will be the Connection of the connection sending the
-	 * data. This is not possible for outbound data because the data may be being routed to multiple targets.
-	 * @param raw The raw string in RFC1459 format
-	 * @param inbound A flag to indicate wether the data is coming into the daemon or going out to the user
-	 * @param user The user record sending the text, when inbound == true.
-	 */
- 	virtual void OnServerRaw(std::string &raw, bool inbound, Connection* user);
-
-	/** Called whenever a user opers locally.
-	 * The Connection will contain the oper mode 'o' as this function is called after any modifications
-	 * are made to the user's structure by the core.
-	 * @param user The user who is opering up
-	 * @param opertype The opers type name
-	 */
-	virtual void OnOper(Connection* user, const std::string &opertype);
-
-	/** Called after a user opers locally.
-	 * This is identical to Module::OnOper(), except it is called after OnOper so that other modules
-	 * can be gauranteed to already have processed the oper-up, for example m_spanningtree has sent
-	 * out the OPERTYPE, etc.
-	 * @param user The user who is opering up
-	 * @param opertype The opers type name
-	 */
-	virtual void OnPostOper(Connection* user, const std::string &opertype);
-	
-	/** Called whenever a user types /INFO.
-	 * The Connection will contain the information of the user who typed the command. Modules may use this
-	 * method to output their own credits in /INFO (which is the ircd's version of an about box).
-	 * It is purposefully not possible to modify any info that has already been output, or halt the list.
-	 * You must write a 371 numeric to the user, containing your info in the following format:
-	 *
-	 * &lt;nick&gt; :information here
-	 *
-	 * @param user The user issuing /INFO
-	 */
-	virtual void OnInfo(Connection* user);
-	
-	/** Called whenever a /WHOIS is performed on a local user.
-	 * The source parameter contains the details of the user who issued the WHOIS command, and
-	 * the dest parameter contains the information of the user they are whoising.
-	 * @param source The user issuing the WHOIS command
-	 * @param dest The user who is being WHOISed
-	 */
-	virtual void OnWhois(Connection* source, Connection* dest);
-	
-	/** Called before any nickchange, local or remote. This can be used to implement Q-lines etc.
-	 * Please note that although you can see remote nickchanges through this function, you should
-	 * NOT make any changes to the Connection if the user is a remote user as this may cause a desnyc.
-	 * check user->server before taking any action (including returning nonzero from the method).
-	 * If your method returns nonzero, the nickchange is silently forbidden, and it is down to your
-	 * module to generate some meaninful output.
-	 * @param user The username changing their nick
-	 * @param newnick Their new nickname
-	 * @return 1 to deny the change, 0 to allow
-	 */
-	virtual int OnUserPreNick(Connection* user, const std::string &newnick);
-
-	/** Called after every MODE command sent from a user
-	 * The dest variable contains a Connection* if target_type is TYPE_USER and a Channel*
-	 * if target_type is TYPE_CHANNEL. The text variable contains the remainder of the
-	 * mode string after the target, e.g. "+wsi" or "+ooo nick1 nick2 nick3".
-	 * @param user The user sending the MODEs
-	 * @param dest The target of the modes (Connection* or Channel*)
-	 * @param target_type The type of target (TYPE_USER or TYPE_CHANNEL)
-	 * @param text The actual modes and their parameters if any
-	 */
-	virtual void OnMode(Connection* user, void* dest, int target_type, const std::string &text);
-
-	/** Allows modules to alter or create server descriptions
-	 * Whenever a module requires a server description, for example for display in
-	 * WHOIS, this function is called in all modules. You may change or define the
-	 * description given in std::string &description. If you do, this description
-	 * will be shown in the WHOIS fields.
-	 * @param servername The servername being searched for
-	 * @param description Alterable server description for this server
-	 */
-	virtual void OnGetServerDescription(const std::string &servername,std::string &description);
-
-	/** Allows modules to synchronize data which relates to users during a netburst.
-	 * When this function is called, it will be called from the module which implements
-	 * the linking protocol. This currently is m_spanningtree.so. A pointer to this module
-	 * is given in Module* proto, so that you may call its methods such as ProtoSendMode
-	 * (see below). This function will be called for every user visible on your side
-	 * of the burst, allowing you to for example set modes, etc. Do not use this call to
-	 * synchronize data which you have stored using class Extensible -- There is a specialist
-	 * function OnSyncUserMetaData and OnSyncChannelMetaData for this!
-	 * @param user The user being syncronized
-	 * @param proto A pointer to the module handling network protocol
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 */
-	virtual void OnSyncUser(Connection* user, Module* proto, void* opaque);
-
-	/* Allows modules to syncronize metadata related to users over the network during a netburst.
-	 * Whenever the linking module wants to send out data, but doesnt know what the data
-	 * represents (e.g. it is Extensible metadata, added to a User or Channel by a module) then
-	 * this method is called. You should use the ProtoSendMetaData function after you've
-	 * correctly decided how the data should be represented, to send the metadata on its way if
-	 * if it belongs to your module.
-	 * @param user The user whos metadata is being syncronized
-	 * @param proto A pointer to the module handling network protocol
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 * @param extname The extensions name which is being searched for
-	 * @param displayable If this value is true, the data is going to be displayed to a user,
-	 * and not sent across the network. Use this to determine wether or not to show sensitive data.
-	 */
-	virtual void OnSyncUserMetaData(Connection* user, Module* proto,void* opaque, const std::string &extname, bool displayable = false);
-
-	/* Allows modules to syncronize metadata not related to users or channels, over the network during a netburst.
-	 * Whenever the linking module wants to send out data, but doesnt know what the data
-	 * represents (e.g. it is Extensible metadata, added to a User or Channel by a module) then
-	 * this method is called. You should use the ProtoSendMetaData function after you've
-	 * correctly decided how the data should be represented, to send the metadata on its way if
-	 * if it belongs to your module.
-	 * @param proto A pointer to the module handling network protocol
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 * @param displayable If this value is true, the data is going to be displayed to a user,
-	 * and not sent across the network. Use this to determine wether or not to show sensitive data.
-	 */
-	virtual void OnSyncOtherMetaData(Module* proto, void* opaque, bool displayable = false);
-
-	/** Allows module data, sent via ProtoSendMetaData, to be decoded again by a receiving module.
-	 * Please see src/modules/m_swhois.cpp for a working example of how to use this method call.
-	 * @param target_type The type of item to decode data for, TYPE_USER or TYPE_CHANNEL
-	 * @param target The Channel* or User* that data should be added to
-	 * @param extname The extension name which is being sent
-	 * @param extdata The extension data, encoded at the other end by an identical module through OnSyncChannelMetaData or OnSyncUserMetaData
-	 */
-	virtual void OnDecodeMetaData(int target_type, void* target, const std::string &extname, const std::string &extdata);
-
-	/** Implemented by modules which provide the ability to link servers.
-	 * These modules will implement this method, which allows transparent sending of servermodes
-	 * down the network link as a broadcast, without a module calling it having to know the format
-	 * of the MODE command before the actual mode string.
-	 *
-	 * More documentation to follow soon. Please see src/modules/m_chanprotect.cpp for examples
-	 * of how to use this function.
-	 *
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 * @param target_type The type of item to decode data for, TYPE_USER or TYPE_CHANNEL
-	 * @param target The Channel* or User* that modes should be sent for
-	 * @param modeline The modes and parameters to be sent
-	 */
-	virtual void ProtoSendMode(void* opaque, int target_type, void* target, const std::string &modeline);
-
-	/** Implemented by modules which provide the ability to link servers.
-	 * These modules will implement this method, which allows metadata (extra data added to
-	 * user and channel records using class Extensible, Extensible::Extend, etc) to be sent
-	 * to other servers on a netburst and decoded at the other end by the same module on a
-	 * different server.
-	 *
-	 * More documentation to follow soon. Please see src/modules/m_swhois.cpp for example of
-	 * how to use this function.
-	 * @param opaque An opaque pointer set by the protocol module, should not be modified!
-	 * @param target_type The type of item to decode data for, TYPE_USER or TYPE_CHANNEL
-	 * @param target The Channel* or Connection* that metadata should be sent for
-	 * @param extname The extension name to send metadata for
-	 * @param extdata Encoded data for this extension name, which will be encoded at the oppsite end by an identical module using OnDecodeMetaData
-	 */
-	virtual void ProtoSendMetaData(void* opaque, int target_type, void* target, const std::string &extname, const std::string &extdata);
-	
-	/** Called after every WALLOPS command.
-	 * @param user The user sending the WALLOPS
-	 * @param text The content of the WALLOPS message
-	 */
-	virtual void OnWallops(Connection* user, const std::string &text);
-
-	/** Called whenever a user's hostname is changed.
-	 * This event triggers after the host has been set.
-	 * @param user The user whos host is being changed
-	 * @param newhost The new hostname being set
-	 */
-	virtual void OnChangeHost(Connection* user, const std::string &newhost);
-
-	/** Called whenever a user's GECOS (realname) is changed.
-	 * This event triggers after the name has been set.
-	 * @param user The user who's GECOS is being changed
-	 * @param gecos The new GECOS being set on the user
-	 */
-	virtual void OnChangeName(Connection* user, const std::string &gecos);
-
-	/** Called whenever an xline is added by a local user.
-	 * This method is triggered after the line is added.
-	 * @param source The sender of the line or NULL for local server
-	 * @param line The xline being added
-	 */
-	virtual void OnAddLine(Connection* source, XLine* line);
-
-	/** Called whenever an xline is deleted.
-	 * This method is triggered after the line is deleted.
-	 * @param source The user removing the line or NULL for local server
-	 * @param line the line being deleted
-	 */
-	virtual void OnDelLine(Connection* source, XLine* line);
-
-	/** Called whenever a zline is deleted.
-	 * This method is triggered after the line is deleted.
-	 * @param source The user removing the line
-	 * @param hostmask The hostmask to delete
-	 */
+ 	virtual void OnRehash();
 
 	/** Called before your module is unloaded to clean up Extensibles.
-	 * This method is called once for every user and channel on the network,
+	 * This method is called once for every connection,
 	 * so that when your module unloads it may clear up any remaining data
 	 * in the form of Extensibles added using Extensible::Extend().
-	 * If the target_type variable is TYPE_USER, then void* item refers to
-	 * a User*, otherwise it refers to a Channel*.
-	 * @param target_type The type of item being cleaned
-	 * @param item A pointer to the item's class
 	 */
-	virtual void OnCleanup(int target_type, void* item);
-
-	/** Called after any nickchange, local or remote. This can be used to track users after nickchanges
-	 * have been applied. Please note that although you can see remote nickchanges through this function, you should
-	 * NOT make any changes to the Connection if the user is a remote user as this may cause a desnyc.
-	 * check user->server before taking any action (including returning nonzero from the method).
-	 * Because this method is called after the nickchange is taken place, no return values are possible
-	 * to indicate forbidding of the nick change. Use OnUserPreNick for this.
-	 * @param user The user changing their nick
-	 * @param oldnick The old nickname of the user before the nickchange
-	 */
-	virtual void OnUserPostNick(Connection* user, const std::string &oldnick);
-
-	/** Called when a client is disconnected by KILL.
-	 * If a client is killed by a server, e.g. a nickname collision or protocol error,
-	 * source is NULL.
-	 * Return 1 from this function to prevent the kill, and 0 from this function to allow
-	 * it as normal. If you prevent the kill no output will be sent to the client, it is
-	 * down to your module to generate this information.
-	 * NOTE: It is NOT advisable to stop kills which originate from servers or remote users.
-	 * If you do so youre risking race conditions, desyncs and worse!
-	 * @param source The user sending the KILL
-	 * @param dest The user being killed
-	 * @param reason The kill reason
-	 * @return 1 to prevent the kill, 0 to allow
-	 */
-	virtual int OnKill(Connection* source, Connection* dest, const std::string &reason);
-
-	/** Called when an oper wants to disconnect a remote user via KILL
-	 * @param source The user sending the KILL
-	 * @param dest The user being killed
-	 * @param reason The kill reason
-	 */
-	virtual void OnRemoteKill(Connection* source, Connection* dest, const std::string &reason, const std::string &operreason);
+	virtual void OnCleanup(Connection *);
 
 	/** Called whenever a module is loaded.
 	 * mod will contain a pointer to the module, and string will contain its name,
@@ -717,89 +468,6 @@ class CoreExport Module : public Extensible
 	 */
 	virtual void OnBackgroundTimer(time_t curtime);
 
-	/** Called whenever any command is about to be executed.
-	 * This event occurs for all registered commands, wether they are registered in the core,
-	 * or another module, and for invalid commands. Invalid commands may only be sent to this
-	 * function when the value of validated is false. By returning 1 from this method you may prevent the
-	 * command being executed. If you do this, no output is created by the core, and it is
-	 * down to your module to produce any output neccessary.
-	 * Note that unless you return 1, you should not destroy any structures (e.g. by using
-	 * InspIRCd::QuitUser) otherwise when the command's handler function executes after your
-	 * method returns, it will be passed an invalid pointer to the user object and crash!)
-	 * @param command The command being executed
-	 * @param parameters An array of array of characters containing the parameters for the command
-	 * @param pcnt The nuimber of parameters passed to the command
-	 * @param user the user issuing the command
-	 * @param validated True if the command has passed all checks, e.g. it is recognised, has enough parameters, the user has permission to execute it, etc.
-	 * @param original_line The entire original line as passed to the parser from the user
-	 * @return 1 to block the command, 0 to allow
-	 */
-	virtual int OnPreCommand(const std::string &command, const char** parameters, int pcnt, Connection *user, bool validated, const std::string &original_line);
-
-	/** Called after any command has been executed.
-	 * This event occurs for all registered commands, wether they are registered in the core,
-	 * or another module, but it will not occur for invalid commands (e.g. ones which do not
-	 * exist within the command table). The result code returned by the command handler is
-	 * provided.
-	 * @param command The command being executed
-	 * @param parameters An array of array of characters containing the parameters for the command
-	 * @param pcnt The nuimber of parameters passed to the command
-	 * @param user the user issuing the command
-	 * @param result The return code given by the command handler, one of CMD_SUCCESS or CMD_FAILURE
-	 * @param original_line The entire original line as passed to the parser from the user
-	 */
-	virtual void OnPostCommand(const std::string &command, const char** parameters, int pcnt, Connection *user, CmdResult result, const std::string &original_line);
-
-	/** Called to check if a user who is connecting can now be allowed to register
-	 * If any modules return false for this function, the user is held in the waiting
-	 * state until all modules return true. For example a module which implements ident
-	 * lookups will continue to return false for a user until their ident lookup is completed.
-	 * Note that the registration timeout for a user overrides these checks, if the registration
-	 * timeout is reached, the user is disconnected even if modules report that the user is
-	 * not ready to connect.
-	 * @param user The user to check
-	 * @return true to indicate readiness, false if otherwise
-	 */
-	virtual bool OnCheckReady(Connection* user);
-
-	/** Called whenever a user is about to register their connection (e.g. before the user
-	 * is sent the MOTD etc). Modules can use this method if they are performing a function
-	 * which must be done before the actual connection is completed (e.g. ident lookups,
-	 * dnsbl lookups, etc).
-	 * Note that you should NOT delete the user record here by causing a disconnection!
-	 * Use OnUserConnect for that instead.
-	 * @param user The user registering
-	 * @return 1 to indicate user quit, 0 to continue
-	 */
-	virtual int OnUserRegister(Connection* user);
-
-	/** Called on all /STATS commands
-	 * This method is triggered for all /STATS use, including stats symbols handled by the core.
-	 * @param symbol the symbol provided to /STATS
-	 * @param user the user issuing the /STATS command
-	 * @param results A string_list to append results into. You should put all your results
-	 * into this string_list, rather than displaying them directly, so that your handler will
-	 * work when remote STATS queries are received.
-	 * @return 1 to block the /STATS from being processed by the core, 0 to allow it
-	 */
-	virtual int OnStats(char symbol, Connection* user, string_list &results);
-
-	/** Called whenever a change of a local users displayed host is attempted.
-	 * Return 1 to deny the host change, or 0 to allow it.
-	 * @param user The user whos host will be changed
-	 * @param newhost The new hostname
-	 * @return 1 to deny the host change, 0 to allow
-	 */
-	virtual int OnChangeLocalUserHost(Connection* user, const std::string &newhost);
-
-	/** Called whenever a change of a local users GECOS (fullname field) is attempted.
-	 * return 1 to deny the name change, or 0 to allow it.
-	 * @param user The user whos GECOS will be changed
-	 * @param newhost The new GECOS
-	 * @return 1 to deny the GECOS change, 0 to allow
-	 */
-	virtual int OnChangeLocalUserGECOS(Connection* user, const std::string &newhost); 
-
 	/** Called whenever an Event class is sent to all module by another module.
 	 * Please see the documentation of Event::Send() for further information. The Event sent can
 	 * always be assumed to be non-NULL, you should *always* check the value of Event::GetEventID()
@@ -816,34 +484,6 @@ class CoreExport Module : public Extensible
 	 * @param request The Request class being received
 	 */
 	virtual char* OnRequest(Request* request);
-
-	/** Called whenever an oper password is to be compared to what a user has input.
-	 * The password field (from the config file) is in 'password' and is to be compared against
-	 * 'input'. This method allows for encryption of oper passwords and much more besides.
-	 * You should return a nonzero value if you want to allow the comparison or zero if you wish
-	 * to do nothing.
-	 * @param password The oper's password
-	 * @param input The password entered
-	 * @param tagnumber The tag number (from the configuration file) of this oper's tag
-	 * @return 1 to match the passwords, 0 to do nothing. -1 to not match, and not continue.
-	 */
-	virtual int OnOperCompare(const std::string &password, const std::string &input, int tagnumber);
-
-	/** Called whenever a user is given usermode +o, anywhere on the network.
-	 * You cannot override this and prevent it from happening as it is already happened and
-	 * such a task must be performed by another server. You can however bounce modes by sending
-	 * servermodes out to reverse mode changes.
-	 * @param user The user who is opering
-	 */
-	virtual void OnGlobalOper(Connection* user);
-
-	/** Called after a user has fully connected and all modules have executed OnUserConnect
-	 * This event is informational only. You should not change any user information in this
-	 * event. To do so, use the OnUserConnect method to change the state of local users.
-	 * This is called for both local and remote users.
-	 * @param user The user who is connecting
-	 */
-	virtual void OnPostConnect(Connection* user);
 
 	/** Called immediately after any  connection is accepted. This is intended for raw socket
 	 * processing (e.g. modules which wrap the tcp connection within another library) and provides
@@ -896,31 +536,6 @@ class CoreExport Module : public Extensible
 	 * @return nonzero if the event was handled, in which case readresult must be valid on exit
 	 */
 	virtual int OnRawSocketRead(int fd, char* buffer, unsigned int count, int &readresult);
-
-	/** Called whenever a user sets away.
-	 * This method has no parameter for the away message, as it is available in the
-	 * user record as User::awaymsg.
-	 * @param user The user setting away
-	 */
-	virtual void OnSetAway(Connection* user);
-
-	/** Called when a user cancels their away state.
-	 * @param user The user returning from away
-	 */
-	virtual void OnCancelAway(Connection* user);
-
-	/** Called whenever a line of WHOIS output is sent to a user.
-	 * You may change the numeric and the text of the output by changing
-	 * the values numeric and text, but you cannot change the user the
-	 * numeric is sent to. You may however change the user's Connection values.
-	 * @param user The user the numeric is being sent to
-	 * @param dest The user being WHOISed
-	 * @param numeric The numeric of the line being sent
-	 * @param text The text of the numeric, including any parameters
-	 * @return nonzero to drop the line completely so that the user does not
-	 * receive it, or zero to allow the line to be sent.
-	 */
-	virtual int OnWhoisLine(Connection* user, Connection* dest, int &numeric, std::string &text);
 
 	/** Called at intervals for modules to garbage-collect any hashes etc.
 	 * Certain data types such as hash_map 'leak' buckets, which must be

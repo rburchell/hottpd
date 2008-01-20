@@ -49,7 +49,7 @@ void InspIRCd::Rehash()
 	this->OpenLog(this->Config->argv, this->Config->argc);
 	FOREACH_MOD_I(this, I_OnGarbageCollect, OnGarbageCollect());
 	/*this->Config->Read(false,NULL);*/
-	FOREACH_MOD_I(this,I_OnRehash,OnRehash(NULL,""));
+	FOREACH_MOD_I(this,I_OnRehash,OnRehash());
 }
 
 void InspIRCd::RehashServer()
