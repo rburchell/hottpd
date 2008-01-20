@@ -95,32 +95,35 @@ void ListenSocket::HandleEvent(EventType, int)
 		length = sizeof(sockaddr_in);
 	}
 
-	incomingSockfd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
-
-	if ((incomingSockfd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
+	do
 	{
-		char buf[MAXBUF];
-#ifdef IPV6
-		if (this->family == AF_INET6)
+		incomingSockfd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
+
+		if ((incomingSockfd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
 		{
-			inet_ntop(AF_INET6, &((const sockaddr_in6*)client)->sin6_addr, buf, sizeof(buf));
-			in_port = ntohs(((sockaddr_in6*)sock_us)->sin6_port);
+			char buf[MAXBUF];
+	#ifdef IPV6
+			if (this->family == AF_INET6)
+			{
+				inet_ntop(AF_INET6, &((const sockaddr_in6*)client)->sin6_addr, buf, sizeof(buf));
+				in_port = ntohs(((sockaddr_in6*)sock_us)->sin6_port);
+			}
+			else
+	#endif
+			{
+				inet_ntop(AF_INET, &((const sockaddr_in*)client)->sin_addr, buf, sizeof(buf));
+				in_port = ntohs(((sockaddr_in*)sock_us)->sin_port);
+			}
+
+			ServerInstance->SE->NonBlocking(incomingSockfd);
+			ServerInstance->Connections->Add(incomingSockfd, in_port, this->family, client);
 		}
 		else
-#endif
 		{
-			inet_ntop(AF_INET, &((const sockaddr_in*)client)->sin_addr, buf, sizeof(buf));
-			in_port = ntohs(((sockaddr_in*)sock_us)->sin_port);
+			ServerInstance->SE->Shutdown(incomingSockfd, 2);
+			ServerInstance->SE->Close(incomingSockfd);
 		}
-
-		ServerInstance->SE->NonBlocking(incomingSockfd);
-		ServerInstance->Connections->Add(incomingSockfd, in_port, this->family, client);
-	}
-	else
-	{
-		ServerInstance->SE->Shutdown(incomingSockfd, 2);
-		ServerInstance->SE->Close(incomingSockfd);
-	}
+	} while (ServerInstance->SE->CanMultiaccept && incomingSockfd >= 0);
 }
 
 /* Match raw bytes using CIDR bit matching, used by higher level MatchCIDR() */

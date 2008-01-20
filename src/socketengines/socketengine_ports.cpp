@@ -29,6 +29,7 @@ PortsEngine::PortsEngine(InspIRCd* Instance) : SocketEngine(Instance)
 		ServerInstance->Exit(EXIT_STATUS_SOCKETENGINE);
 	}
 	CurrentSetSize = 0;
+	CanMultiaccept = true;
 }
 
 PortsEngine::~PortsEngine()

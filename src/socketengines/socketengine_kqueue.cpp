@@ -22,6 +22,7 @@
 KQueueEngine::KQueueEngine(InspIRCd* Instance) : SocketEngine(Instance)
 {
 	this->RecoverFromFork();
+	CanMultiaccept = true;
 }
 
 void KQueueEngine::RecoverFromFork()

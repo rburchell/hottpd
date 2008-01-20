@@ -388,6 +388,12 @@ public:
 	 * the shell or operating system on fatal error.
 	 */
 	virtual void RecoverFromFork();
+
+	/** This defines whether or not the current socket engine supports multiaccept (accepting
+	 * until no more connections are available).
+	 * This speeds up processing drastically.
+	 */
+	bool CanMultiaccept;
 };
 
 #endif

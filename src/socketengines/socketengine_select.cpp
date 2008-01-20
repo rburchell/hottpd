@@ -21,6 +21,7 @@ SelectEngine::SelectEngine(InspIRCd* Instance) : SocketEngine(Instance)
 	EngineHandle = 0;
 	CurrentSetSize = 0;
 	memset(writeable, 0, sizeof(writeable));
+	CanMultiaccept = true;
 }
 
 SelectEngine::~SelectEngine()

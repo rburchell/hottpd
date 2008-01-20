@@ -33,6 +33,8 @@ IOCPEngine::IOCPEngine(InspIRCd * Instance) : SocketEngine(Instance)
 	CurrentSetSize = 0;
 	EngineHandle = 0;
 	memset(ref, 0, sizeof(EventHandler*) * MAX_DESCRIPTORS);
+
+	CanMultiaccept = false; // this doesn't work on windows for some reason.
 }
 
 IOCPEngine::~IOCPEngine()
