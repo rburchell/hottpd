@@ -17,7 +17,6 @@
 #include "wildcard.h"
 #include "socket.h"
 #include "socketengine.h"
-#include "command_parse.h"
 #include "exitcodes.h"
 
 #ifndef WIN32

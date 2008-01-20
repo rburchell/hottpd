@@ -119,6 +119,35 @@ void InspIRCd::CheckDie()
 /** Refactored by Brain, Jun 2007. Much faster with some clever O(1) array
  * lookups and pointer maths.
  */
+
+/** A lookup table of values for multiplier characters used by
+ * InspIRCd::Duration(). In this lookup table, the indexes for
+ * the ascii values 'm' and 'M' have the value '60', the indexes
+ * for the ascii values 'D' and 'd' have a value of '86400', etc.
+ */
+const int duration_multi[] =
+{
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 86400, 1, 1, 1, 3600,
+	1, 1, 1, 1, 60, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	604800, 1, 31536000, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 86400, 1, 1, 1, 3600, 1, 1, 1, 1, 60,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 604800, 1, 31536000,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+};
+
+
 long InspIRCd::Duration(const std::string &str)
 {
 	unsigned char multiplier = 0;

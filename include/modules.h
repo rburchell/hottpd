@@ -17,13 +17,7 @@
 #include "globals.h"
 #include "dynamic.h"
 #include "base.h"
-#include "ctables.h"
-#include <string>
-#include <deque>
-#include <sstream>
 #include "timer.h"
-
-class XLine;
 
 /** Used to define a set of behavior bits for a module
  */
