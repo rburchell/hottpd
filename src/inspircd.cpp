@@ -33,7 +33,6 @@
 #include "socketengine.h"
 #include "inspircd_se_config.h"
 #include "socket.h"
-#include "command_parse.h"
 #include "exitcodes.h"
 
 using irc::sockets::insp_ntoa;
