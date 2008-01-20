@@ -18,14 +18,15 @@
 #include "socketengine.h"
 #include "command_parse.h"
 
-void ProcessUserHandler::Call(Connection* cu)
+// XXX this needs to move home to connections.cpp
+void InspIRCd::ProcessUser(Connection* cu)
 {
 	int result = EAGAIN;
 
 	if (cu->GetFd() == FD_MAGIC_NUMBER)
 		return;
 
-	char* ReadBuffer = Server->GetReadBuffer();
+	char* ReadBuffer = GetReadBuffer();
 
 	result = cu->ReadData(ReadBuffer, sizeof(ReadBuffer));
 
@@ -46,7 +47,7 @@ void ProcessUserHandler::Call(Connection* cu)
 			if (!current->AddBuffer(ReadBuffer))
 			{
 				// fuck, something exploded
-				Server->Connections->Delete(current);
+				Connections->Delete(current);
 				return;
 			}
 
@@ -55,7 +56,7 @@ void ProcessUserHandler::Call(Connection* cu)
 
 		if ((result == -1) && (errno != EAGAIN) && (errno != EINTR))
 		{
-			Server->Connections->Delete(cu);
+			Connections->Delete(cu);
 			return;
 		}
 	}
@@ -67,7 +68,7 @@ void ProcessUserHandler::Call(Connection* cu)
 	}
 	else if (result == 0)
 	{
-		Server->Connections->Delete(cu);
+		Connections->Delete(cu);
 		return;
 	}
 }

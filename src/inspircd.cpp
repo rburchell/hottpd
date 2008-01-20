@@ -35,7 +35,6 @@
 #include "socket.h"
 #include "command_parse.h"
 #include "exitcodes.h"
-#include "caller.h"
 
 using irc::sockets::insp_ntoa;
 using irc::sockets::insp_inaddr;
@@ -223,14 +222,7 @@ void InspIRCd::WritePID(const std::string &filename)
 	}
 }
 
-InspIRCd::InspIRCd(int argc, char** argv)
-	: GlobalCulls(this),
-
-	 /* Functor initialisation. Note that the ordering here is very important. */
-	 HandleProcessUser(this),
-
-	 /* Functor pointer initialisation. Must match the order of the list above */
-	 ProcessUser(&HandleProcessUser)
+InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 {
 
 	int found_ports = 0;

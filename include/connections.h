@@ -243,17 +243,6 @@ class CoreExport Connection : public EventHandler
 	 */
 	void FullConnect();
 
-	/** Return the number of local clones of this connection
-	 * @return The local clone count of this connection
-	 */
-	unsigned long LocalCloneCount();
-
-	/** Remove all clone counts from the connection, you should
-	 * use this if you change the connection's IP address in
-	 * Connection::ip after they have registered.
-	 */
-	void RemoveCloneCounts();
-
 	/** Write text to this connection
 	 * @param text A std::string to send to the connection
 	 */

@@ -36,7 +36,6 @@
 #include "command_parse.h"
 #include "cull_list.h"
 #include "filelogger.h"
-#include "caller.h"
 #include "timer.h"
 #include "modules.h"
 #include "configreader.h"
@@ -158,13 +157,6 @@ template<typename T, typename V, typename R> inline char* itoa(const T &in, V *r
 /** A list of failed port bindings, used for informational purposes on startup */
 typedef std::vector<std::pair<std::string, long> > FailedPortList;
 
-/** A list of ip addresses cross referenced against clone counts */
-typedef std::map<irc::string, unsigned int> clonemap;
-
-class InspIRCd;
-
-DEFINE_HANDLER1(ProcessUserHandler, void, Connection*);
-
 /** The main class of the irc server.
  * This class contains instances of all the other classes
  * in this software, with the exception of the base class,
@@ -240,9 +232,12 @@ class CoreExport InspIRCd : public classbase
 	 */
 	CullList GlobalCulls;
 
-	/**** Functors ****/
-
-	ProcessUserHandler HandleProcessUser;
+	/** Process a connection whos socket has been flagged as active
+	 * @param cu The connection to process
+	 * @return There is no actual return value, however upon exit, the connection 'cu' may have been
+	 * marked for deletion in the global CullList.
+	 */
+	void ProcessUser(Connection*);
 
 	Connection *FindDescriptorHandler(int);
 
@@ -290,13 +285,6 @@ class CoreExport InspIRCd : public classbase
 	 * @param connection The connection to add
 	 */
 	void AddLocalClone(Connection *c);
-
-	/** Process a connection whos socket has been flagged as active
-	 * @param cu The connection to process
-	 * @return There is no actual return value, however upon exit, the connection 'cu' may have been
-	 * marked for deletion in the global CullList.
-	 */
-	caller1<void, Connection*> ProcessUser;
 
 	/** Bind all ports specified in the configuration file.
 	 * @param bail True if the function should bail back to the shell on failure
