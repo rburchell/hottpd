@@ -232,13 +232,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	CullList GlobalCulls;
 
-	/** Process a connection whos socket has been flagged as active
-	 * @param cu The connection to process
-	 * @return There is no actual return value, however upon exit, the connection 'cu' may have been
-	 * marked for deletion in the global CullList.
-	 */
-	void ProcessUser(Connection*);
-
 	Connection *FindDescriptorHandler(int);
 
 	/** Time this ircd was booted

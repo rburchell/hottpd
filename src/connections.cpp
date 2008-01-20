@@ -47,18 +47,60 @@ void Connection::CloseSocket()
 	ServerInstance->SE->Close(this);
 }
 
-int Connection::ReadData(void* buffer, size_t size)
+void Connection::ReadData()
 {
-	if (IS_LOCAL(this))
-	{
+	int result = EAGAIN;
+
+	if (this->GetFd() == FD_MAGIC_NUMBER)
+		return;
+
+	char* ReadBuffer = ServerInstance->GetReadBuffer();
+
 #ifndef WIN32
-		return read(this->fd, buffer, size);
+	result = read(this->fd, ReadBuffer, sizeof(ReadBuffer));
 #else
-		return recv(this->fd, (char*)buffer, size, 0);
+	result = recv(this->fd, (char*)ReadBuffer, sizeof(ReadBuffer), 0);
 #endif
+
+	if ((result) && (result != -EAGAIN))
+	{
+		int currfd;
+
+		if (result > 0)
+			ReadBuffer[result] = '\0';
+
+		currfd = this->GetFd();
+
+		// add the data to the connection's buffer (which will process it if necessary)
+		if (result > 0)
+		{
+			if (!this->AddBuffer(ReadBuffer))
+			{
+				// fuck, something exploded
+				ServerInstance->Connections->Delete(this);
+				return;
+			}
+
+			return;
+		}
+
+		if ((result == -1) && (errno != EAGAIN) && (errno != EINTR))
+		{
+			ServerInstance->Connections->Delete(this);
+			return;
+		}
 	}
-	else
-		return 0;
+
+	// result EAGAIN means nothing read
+	else if ((result == EAGAIN) || (result == -EAGAIN))
+	{
+		/* do nothing */
+	}
+	else if (result == 0)
+	{
+		ServerInstance->Connections->Delete(this);
+		return;
+	}
 }
 
 /** NOTE: We cannot pass a const reference to this method.
@@ -516,13 +558,11 @@ void Connection::Write(const char *text, ...)
 void Connection::HandleEvent(EventType et, int errornum)
 {
 	/* WARNING: May delete this connection! */
-	int thisfd = this->GetFd();
-
 	switch (et)
 	{
 		case EVENT_READ:
 			if (!this->quitting)
-				ServerInstance->ProcessUser(this);
+				this->ReadData();
 		break;
 		case EVENT_WRITE:
 			this->FlushWriteBuf();

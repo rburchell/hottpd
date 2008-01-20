@@ -183,12 +183,9 @@ class CoreExport Connection : public EventHandler
 	 */
 	Connection(InspIRCd* Instance);
 
-	/** Calls read() to read some data for this connection using their fd.
-	 * @param buffer The buffer to read into
-	 * @param size The size of data to read
-	 * @return The number of bytes read, or -1 if an error occured.
+	/** Calls read() to read some data for this connection using their fd and process it.
 	 */
-	int ReadData(void* buffer, size_t size);
+	void ReadData();
 
 	bool AddBuffer(const std::string &a);
 
