@@ -34,7 +34,9 @@ void ConnectionManager::Add(int socket, int port, int socketfamily, sockaddr *ip
 	New->ip = New->GetIPString();
 
 	ServerInstance->local_connections.push_back(New);
-
+	
+	/* XXX - Shouldn't this and the MAX_DESCRIPTORS check be done *before* allocating a Connection? Seems much faster. Could avoid cull safely
+	 * in that situation as well (since nothing else has this socket yet). -Special */
 	if ((ServerInstance->local_connections.size() > ServerInstance->Config->SoftLimit) || (ServerInstance->local_connections.size() >= MAXCLIENTS))
 	{
 		this->Delete(New);
