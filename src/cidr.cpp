@@ -76,14 +76,18 @@ bool irc::sockets::MatchCIDR(const char* address, const char* cidr_mask, bool ma
 	 */
 	if (match_with_username)
 	{
+		/* XXX - Duplicating and searching both strings is nasty. It would be
+		 * much better to duplicate after searching, or provide a length counted
+		 * alternative.. -Special */
+		
 		/* Duplicate the strings, and try to find the position
 		 * of the @ symbol in each */
 		char* address_dupe = strdup(address);
 		char* cidr_dupe = strdup(cidr_mask);
 	
 		/* Use strchr not strrchr, because its going to be nearer to the left */
-		char* username_mask_pos = strrchr(cidr_dupe, '@');
-		char* username_addr_pos = strrchr(address_dupe, '@');
+		char* username_mask_pos = strchr(cidr_dupe, '@');
+		char* username_addr_pos = strchr(address_dupe, '@');
 
 		/* Both strings have an @ symbol in them */
 		if (username_mask_pos && username_addr_pos)
