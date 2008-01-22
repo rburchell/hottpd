@@ -189,7 +189,7 @@ class CoreExport Connection : public EventHandler
 
 	bool AddBuffer(const std::string &a);
 
-	void CheckRequest();
+	void CheckRequest(int newpos);
 
 	void ServeData();
 

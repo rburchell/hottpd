@@ -116,20 +116,26 @@ bool Connection::AddBuffer(const std::string &a)
 		/* how is this possible .. */
 		return true;
 	}
-
+	
+	int nspos = 0;
+	
 	switch (State)
 	{
 		case HTTP_WAIT_REQUEST:
+			// The position in the requestbuf that will start *new* data
+			nspos = requestbuf.length();
+			
 			requestbuf.append(a);
 
 			if (requestbuf.length() > 2000)
 			{
-				// XXX this is arbitrary, but it should stop people flooding
+				// XXX arbitrary limit; needs discussion of a proper default
 				ServerInstance->Log(DEBUG, "Too much data, setting to SEND");
 				State = HTTP_SEND_DATA;
+				break;
 			}
-
-			this->CheckRequest();
+			
+			this->CheckRequest(nspos);
 			break;
 		case HTTP_RECV_POSTDATA:
 			return false; // XXX fixme we can't handle POST yet :P
@@ -143,23 +149,27 @@ bool Connection::AddBuffer(const std::string &a)
 	return true;
 }
 
-void Connection::CheckRequest()
+void Connection::CheckRequest(int newpos)
 {
-	/* Copied liberally from m_httpd for now */
-
-	std::string::size_type reqend = requestbuf.find("\r\n\r\n");
+	/* A HTTP request ends with a blank header, i.e. \r\n\r\n. We're trying first
+	 * to search for this sequence, but we only search in new data (and the last
+	 * three bytes of old data) to save time.
+	 *
+	 * rfind can't be used, as it would break pipelining.
+	 */
+	
+	std::string::size_type reqend = requestbuf.find("\r\n\r\n", (newpos >= 3) ? (newpos - 3) : 0);
 	if (reqend == std::string::npos)
 		return;
 
 	ServerInstance->Log(DEBUG, "Got headers.");
- 
-	// We have the headers; parse them all
+	
 	std::string::size_type hbegin = 0, hend;
-	while ((hend = requestbuf.find("\r\n", hbegin)) != std::string::npos)
+	for (; (hend = requestbuf.find("\r\n", hbegin)) != std::string::npos; hbegin = hend + 2)
 	{
 		if (hbegin == hend)
 			break;
-
+		
 		if (request_type.empty())
 		{
 			std::istringstream cheader(std::string(requestbuf, hbegin, hend - hbegin));
@@ -172,23 +182,20 @@ void Connection::CheckRequest()
 				SendError(400);
 				return;
 			}
-
-			hbegin = hend + 2;
-			continue;
 		}
-
-		std::string cheader = requestbuf.substr(hbegin, hend - hbegin);
-
-		std::string::size_type fieldsep = cheader.find(':');
-		if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
+		else
 		{
-			SendError(400);
-			return;
+			std::string cheader = requestbuf.substr(hbegin, hend - hbegin);
+	
+			std::string::size_type fieldsep = cheader.find(':');
+			if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
+			{
+				SendError(400);
+				return;
+			}
+	
+			headers.SetHeader(cheader.substr(0, fieldsep), cheader.substr(fieldsep + 2));
 		}
-
-		headers.SetHeader(cheader.substr(0, fieldsep), cheader.substr(fieldsep + 2));
-
-		hbegin = hend + 2;
 	}
 
 	requestbuf.erase(0, reqend + 4);
