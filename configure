@@ -1262,8 +1262,8 @@ EOF
 	}
 	closedir(DIRHANDLE);
 
-	# Make inspircd executable!
-	chmod 0744, 'inspircd';
+	# Make hottpd executable!
+	chmod 0744, 'hottpd';
 }
 
 sub write_dynamic_modules_makefile {
