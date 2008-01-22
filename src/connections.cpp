@@ -22,6 +22,7 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	fd = -1;
 	privip = NULL;
 	State = HTTP_WAIT_REQUEST;
+	http_version = HTTP_UNSPECIFIED;
 }
 
 Connection::~Connection()
@@ -170,18 +171,28 @@ void Connection::CheckRequest(int newpos)
 		if (hbegin == hend)
 			break;
 		
-		if (request_type.empty())
+		if (method.empty())
 		{
 			std::istringstream cheader(std::string(requestbuf, hbegin, hend - hbegin));
-			cheader >> request_type;
+			std::string tmpversion;
+			cheader >> method;
 			cheader >> uri;
-			cheader >> http_version;
+			cheader >> tmpversion;
 
-			if (request_type.empty() || uri.empty() || http_version.empty())
+			if (method.empty() || uri.empty() || tmpversion.empty())
 			{
 				SendError(400);
 				return;
 			}
+
+			std::transform(tmpversion.begin(), tmpversion.end(), tmpversion.begin(), ::toupper);
+			if (tmpversion != "HTTP/1.1")
+			{
+				SendError(505);
+				return;
+			}
+			
+			http_version = HTTP_1_1;
 		}
 		else
 		{
@@ -200,15 +211,8 @@ void Connection::CheckRequest(int newpos)
 
 	requestbuf.erase(0, reqend + 4);
 
-	std::transform(request_type.begin(), request_type.end(), request_type.begin(), ::toupper);
-	std::transform(http_version.begin(), http_version.end(), http_version.begin(), ::toupper);
-
-	if (http_version != "HTTP/1.1" &&
-	    http_version != "HTTP/1.0")
-	{
-		SendError(505);
-		return;
-	}
+	// In the interest of convention, make the method uppercase
+	std::transform(method.begin(), method.end(), method.begin(), ::toupper);
 
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "keep-alive") == 0)
 		keepalive = true;
@@ -239,10 +243,10 @@ void Connection::CheckRequest(int newpos)
 
 void Connection::ServeData()
 {
-	ServerInstance->Log(DEBUG, "ServeData: %s %s: %s", request_type.c_str(), http_version.c_str(), uri.c_str());
+	ServerInstance->Log(DEBUG, "ServeData: %s: %s", method.c_str(), uri.c_str());
 	State = HTTP_SEND_DATA;
 
-	if (request_type == "GET")
+	if (method == "GET")
 	{
 		// This is temporary.
 		while (size_t s = uri.find("..", 0) != std::string::npos)
@@ -285,7 +289,7 @@ void Connection::SendError(int code)
 
 void Connection::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
 {
-	this->Write(http_version + " "+ConvToStr(response)+"\r\n");
+	this->Write("HTTP/1.1 "+ConvToStr(response)+"\r\n");
 
 	time_t local = this->ServerInstance->Time();
 	struct tm *timeinfo = gmtime(&local);
@@ -331,9 +335,9 @@ void Connection::SendHeaders(unsigned long size, int response, HTTPHeaders &rhea
 void Connection::ResetRequest()
 {
 	headers.Clear();
-	request_type.clear();
+	method.clear();
 	uri.clear();
-	http_version.clear();
+	http_version = HTTP_UNSPECIFIED;
 	State = HTTP_WAIT_REQUEST;
 		
 	if (requestbuf.size())

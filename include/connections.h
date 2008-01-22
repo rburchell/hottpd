@@ -141,9 +141,13 @@ class CoreExport Connection : public EventHandler
 	 */
 	std::string requestbuf;
 
-	std::string request_type;
+	std::string method;
 	std::string uri;
-	std::string http_version;
+	enum
+	{
+		HTTP_UNSPECIFIED,
+		HTTP_1_1
+	} http_version;
 	bool keepalive;
 
 	/** If this is set to true, then all read/error operations for the connection
