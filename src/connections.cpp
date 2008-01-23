@@ -300,7 +300,7 @@ void Connection::SendError(int code, const std::string &text)
 	if (keepalive)
 		ResetRequest();
 	else
-		CloseSocket();
+		ServerInstance->Connections->Delete(this);
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
@@ -349,7 +349,7 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 		if (keepalive)
 			ResetRequest();
 		else
-			CloseSocket(); // XXX Will this cull or remove instantly?
+			ServerInstance->Connections->Delete(this);
 	}
 }
 
