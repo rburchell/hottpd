@@ -1,18 +1,31 @@
-/* Example config for hottpd */
+/* Example config for hottpd
+ *
+ * At present, this lists every known option. Uncommented options
+ * are required. Commented options show their default value.
+ */
+
 server
 {
 	document-root = "/path/to/docroot/"
-	#softlimit = 1024
-	#somaxconn = 128
+	#softlimit = 1024 // Set to maxclients by default
 	#loglevel = "default"
 	#netbuffersize = 10240
 	#moduledir = "/path/to/modules"
-	#customversion = "Apache :P"
+	#customversion = "hottpd"
 	#pidfile = "/path/to/pid"
+	#follow-symlinks = yes
 }
 
+// You can have multiple bind sections
 bind
 {
 	address = 127.0.0.1
 	port = 80
+}
+
+performance
+{
+	#stat-cache-time = 2 // Set to 0 to disable the stat cache
+	#noatime = yes
+	#max-conn-queue = 128 // Set to system maximum by default
 }

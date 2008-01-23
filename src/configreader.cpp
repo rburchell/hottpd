@@ -37,6 +37,8 @@ ServerConfig::ServerConfig(InspIRCd* Instance) : ServerInstance(Instance)
 	MaxConn = SOMAXCONN;
 	debugging = 0;
 	LogLevel = DEFAULT;
+	StatCacheDuration = 2;
+	NoAtime = FollowSymLinks = true;
 }
 
 void ServerConfig::ClearStack()
@@ -370,12 +372,15 @@ void ServerConfig::Read(bool bail)
 	InitialConfig Values[] = {
 		{"server",  "document-root", "", new ValueContainerChar(this->DocRoot), DT_CHARPTR, ValidateDir},
 		{"server",	"softlimit",	MAXCLIENTS_S,		new ValueContainerUInt (&this->SoftLimit),		DT_INTEGER,  ValidateSoftLimit},
-		{"server",	"somaxconn",	SOMAXCONN_S,		new ValueContainerInt  (&this->MaxConn),		DT_INTEGER,  ValidateMaxConn},
 		{"server",	"loglevel",	"default",		new ValueContainerChar (debug),				DT_CHARPTR,  ValidateLogLevel},
 		{"server",	"netbuffersize","10240",		new ValueContainerInt  (&this->NetBufferSize),		DT_INTEGER,  ValidateNetBufferSize},
 		{"server",	"moduledir",	MOD_PATH,		new ValueContainerChar (this->ModPath),			DT_CHARPTR,  NoValidation},
 		{"server",	"customversion","",			new ValueContainerChar (this->CustomVersion),		DT_CHARPTR,  NoValidation},
 		{"server",	"pidfile",		"",			new ValueContainerChar (this->PID),			DT_CHARPTR,  NoValidation},
+		{"server",  "follow-symlinks", "yes", new ValueContainerBool(&this->FollowSymLinks), DT_BOOLEAN, NoValidation},
+		{"performance", "stat-cache-time", "2", new ValueContainerInt(&this->StatCacheDuration), DT_INTEGER, NoValidation},
+		{"performance", "noatime", "yes", new ValueContainerBool(&this->NoAtime), DT_BOOLEAN, NoValidation},
+		{"performance", "max-conn-queue", SOMAXCONN_S, new ValidContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 

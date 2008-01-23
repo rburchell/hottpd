@@ -25,6 +25,9 @@
 #undef ERROR
 #endif
 
+/* Change off_t to a 64bit type on supporting systems, for support of files >2gb */
+#define _FILE_OFFSET_BITS 64
+
 #include <time.h>
 #include <string>
 #include <sstream>
@@ -40,6 +43,7 @@
 #include "configreader.h"
 #include "mimetypes.h"
 #include "connectionmanager.h"
+#include "filesystem.h"
 
 class FOpenBackend; // XXX shitty required forward dec, remove when fopen moves out of backend.h
 
@@ -226,7 +230,9 @@ class CoreExport InspIRCd : public classbase
 	FOpenBackend *FOpen;
 
 	MimeManager *MimeTypes;
-
+	
+	FileSystem *FileSys;
+	
 	/** Global cull list, will be processed on next iteration
 	 */
 	CullList GlobalCulls;

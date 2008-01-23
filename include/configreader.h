@@ -325,6 +325,18 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	char DocRoot[MAXBUF];
 	
+	/** Duration to cache stat() calls (0 is disabled)
+	 */
+	int StatCacheDuration;
+	
+	/** If symlinks should be followed while serving files
+	 */
+	bool FollowSymLinks;
+	
+	/** Disable access time for served files on supporting systems
+	 */
+	bool NoAtime;
+	
 	/** Saved argv from startup
 	 */
 	char** argv;

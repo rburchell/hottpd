@@ -241,6 +241,7 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 	this->FOpen = new FOpenBackend(this);
 	this->MimeTypes = new MimeManager(this);
 	this->Connections = new ConnectionManager(this);
+	this->FileSys = new FileSystem(this);
 
 	// XXX this is kinda an ugly way to do it, might want to move this to a config tag.
 	this->MimeTypes->AddType("jpg", "image/jpeg");
