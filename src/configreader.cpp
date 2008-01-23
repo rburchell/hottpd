@@ -11,7 +11,7 @@
  * ---------------------------------------------------
  */
 
-/* $Core: libIRCDconfigreader */
+/* $Core: libhttpd_config */
 /* $CopyInstall: docs/hottpd.conf.example $(CONPATH) */
 
 #include "inspircd.h"
