@@ -226,17 +226,8 @@ class CoreExport ServerConfig : public Extensible
 
 	ConfigDataHash newconfig;
 
-	std::map<std::string, std::istream*> IncludedFiles;
-
-	std::map<std::string, bool> CompletedFiles;
-
-	size_t TotalDownloaded;
-	size_t FileErrors;
-
 	InspIRCd* GetInstance();
 
-	void DoDownloads();
-	  
   	/** This holds all the information in the config file,
 	 * it's indexed by tag name to a vector of key/values.
 	 */

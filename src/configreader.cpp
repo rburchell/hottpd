@@ -654,47 +654,6 @@ void ServerConfig::Read(bool bail)
 	ServerInstance->Log(DEFAULT,"Successfully unloaded %lu of %lu modules and loaded %lu of %lu modules.",(unsigned long)rem,(unsigned long)removed_modules.size(),(unsigned long)add,(unsigned long)added_modules.size());
 }
 
-/* XXX: This can and will block! */
-void ServerConfig::DoDownloads()
-{
-	ServerInstance->Log(DEBUG,"In DoDownloads()");
-
-	/* Reads all local files into the IncludedFiles map, then initiates sockets for the remote ones */
-	for (std::map<std::string, std::istream*>::iterator x = IncludedFiles.begin(); x != IncludedFiles.end(); ++x)
-	{
-		if (CompletedFiles.find(x->first) != CompletedFiles.end())
-			continue;
-
-		ServerInstance->Log(DEBUG,"StartDownloads File: %s", x->first.c_str());
-
-		std::string file = x->first;
-		if ((file[0] == '/') || (file.substr(0, 7) == "file://"))
-		{
-			/* For file:// schema files, we use std::ifstream which is a derivative of std::istream.
-			 * For all other file schemas, we use a std::stringstream.
-			 */
-
-			/* Add our own ifstream */
-			std::ifstream* conf = new std::ifstream(file.c_str());
-			if (!conf->fail())
-			{
-				ServerInstance->Log(DEBUG,"file:// schema file %s loaded OK", file.c_str());
-				delete x->second;
-				x->second = conf;
-			}
-			else
-			{
-				delete x->second;
-				x->second = NULL;
-				FileErrors++;
-			}
-			TotalDownloaded++;
-		}
-
-		CompletedFiles[x->first] = true;
-	}
-}
-
 bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::ostringstream &errorstream)
 {
 	std::string line, wordbuffer, section, itemname;

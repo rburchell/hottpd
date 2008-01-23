@@ -263,7 +263,7 @@ int irc::sockets::OpenTCPSocket(char* addr, int socktype)
 
 int InspIRCd::BindPorts(bool, int &ports_found, FailedPortList &failed_ports)
 {
-	char configToken[MAXBUF], Addr[MAXBUF], Type[MAXBUF];
+	char configToken[MAXBUF], Addr[MAXBUF];
 	int bound = 0;
 	bool started_with_nothing = (Config->ports.size() == 0);
 	std::vector<std::pair<std::string, int> > old_ports;

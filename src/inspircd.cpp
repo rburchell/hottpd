@@ -434,7 +434,7 @@ int InspIRCd::Run()
 	while (true)
 	{
 #ifndef WIN32
-		static rusage ru;
+//		static rusage ru;
 #else
 		static time_t uptime;
 		static struct tm * stime;
