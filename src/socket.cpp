@@ -276,51 +276,47 @@ int InspIRCd::BindPorts(bool, int &ports_found, FailedPortList &failed_ports)
 	{
 		Config->ConfValue(Config->config_data, "bind", "port", count, configToken, MAXBUF);
 		Config->ConfValue(Config->config_data, "bind", "address", count, Addr, MAXBUF);
-		Config->ConfValue(Config->config_data, "bind", "type", count, Type, MAXBUF);
 		
 		if (strncmp(Addr, "::ffff:", 7) == 0)
 			this->Log(DEFAULT, "Using 4in6 (::ffff:) isn't recommended. You should bind IPv4 addresses directly instead.");
 		
-		if ((!*Type) || (!strcmp(Type,"clients")))
+		irc::portparser portrange(configToken, false);
+		int portno = -1;
+		while ((portno = portrange.GetToken()))
 		{
-			irc::portparser portrange(configToken, false);
-			int portno = -1;
-			while ((portno = portrange.GetToken()))
-			{
-				if (*Addr == '*')
-					*Addr = 0;
+			if (*Addr == '*')
+				*Addr = 0;
 
-				bool skip = false;
-				for (std::vector<ListenSocket*>::iterator n = Config->ports.begin(); n != Config->ports.end(); ++n)
+			bool skip = false;
+			for (std::vector<ListenSocket*>::iterator n = Config->ports.begin(); n != Config->ports.end(); ++n)
+			{
+				if (((*n)->GetIP() == Addr) && ((*n)->GetPort() == portno))
 				{
-					if (((*n)->GetIP() == Addr) && ((*n)->GetPort() == portno))
+					skip = true;
+					/* XXX: Here, erase from our copy of the list */
+					for (std::vector<std::pair<std::string, int> >::iterator k = old_ports.begin(); k != old_ports.end(); ++k)
 					{
-						skip = true;
-						/* XXX: Here, erase from our copy of the list */
-						for (std::vector<std::pair<std::string, int> >::iterator k = old_ports.begin(); k != old_ports.end(); ++k)
+						if ((k->first == Addr) && (k->second == portno))
 						{
-							if ((k->first == Addr) && (k->second == portno))
-							{
-								old_ports.erase(k);
-								break;
-							}
+							old_ports.erase(k);
+							break;
 						}
 					}
 				}
-				if (!skip)
+			}
+			if (!skip)
+			{
+				ListenSocket* ll = new ListenSocket(this, portno, Addr);
+				if (ll->GetFd() > -1)
 				{
-					ListenSocket* ll = new ListenSocket(this, portno, Addr);
-					if (ll->GetFd() > -1)
-					{
-						bound++;
-						Config->ports.push_back(ll);
-					}
-					else
-					{
-						failed_ports.push_back(std::make_pair(Addr, portno));
-					}
-					ports_found++;
+					bound++;
+					Config->ports.push_back(ll);
 				}
+				else
+				{
+					failed_ports.push_back(std::make_pair(Addr, portno));
+				}
+				ports_found++;
 			}
 		}
 	}
