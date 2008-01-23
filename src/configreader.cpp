@@ -703,6 +703,7 @@ bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::o
 	bool in_word = false;
 	bool in_quote = false;
 	bool in_ml_comment = false;
+	KeyValList sectiondata;
 
 	if (conf.fail())
 	{
@@ -828,7 +829,10 @@ bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::o
 					return false;
 				}
 				
+				target.insert(std::pair<std::string, KeyValList > (section, sectiondata));
+				
 				section.clear();
+				sectiondata.clear();
 			}
 			else if ((ch == ';') || (ch == '\r'))
 			{
@@ -872,6 +876,7 @@ bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::o
 			}
 			
 			ServerInstance->Log(DEBUG, "ln %d EOL: s='%s' '%s' set to '%s'", linenumber, section.c_str(), itemname.c_str(), wordbuffer.c_str());
+			sectiondata.push_back(KeyVal(itemname, wordbuffer));
 			wordbuffer.clear();
 			itemname.clear();
 		}
@@ -907,130 +912,6 @@ bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::o
 bool ServerConfig::LoadConf(ConfigDataHash &target, const std::string &filename, std::ostringstream &errorstream)
 {
 	return this->LoadConf(target, filename.c_str(), errorstream);
-}
-
-bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &linenumber, std::ostringstream &errorstream)
-{
-	std::string tagname;
-	std::string current_key;
-	std::string current_value;
-	KeyValList results;
-	bool got_name;
-	bool got_key;
-	bool in_quote;
-
-	got_name = got_key = in_quote = false;
-
-	for(std::string::iterator c = line.begin(); c != line.end(); c++)
-	{
-		if (!got_name)
-		{
-			/* We don't know the tag name yet. */
-
-			if (*c != ' ')
-			{
-				if (*c != '<')
-				{
-					tagname += *c;
-				}
-			}
-			else
-			{
-				/* We got to a space, we should have the tagname now. */
-				if(tagname.length())
-				{
-					got_name = true;
-				}
-			}
-		}
-		else
-		{
-			/* We have the tag name */
-			if (!got_key)
-			{
-				/* We're still reading the key name */
-				if (*c != '=')
-				{
-					if (*c != ' ')
-					{
-						current_key += *c;
-					}
-				}
-				else
-				{
-					/* We got an '=', end of the key name. */
-					got_key = true;
-				}
-			}
-			else
-			{
-				/* We have the key name, now we're looking for quotes and the value */
-
-				/* Correctly handle escaped characters here.
-				 * See the XXX'ed section above.
-				 */
-				if ((*c == '\\') && (in_quote))
-				{
-					c++;
-					if (*c == 'n')
-						current_value += '\n';
-					else
-						current_value += *c;
-					continue;
-				}
-				else if ((*c == '\n') && (in_quote))
-				{
-					/* Got a 'real' \n, treat it as part of the value */
-					current_value += '\n';
-					linenumber++;
-					continue;
-				}
-				else if ((*c == '\r') && (in_quote))
-					/* Got a \r, drop it */
-					continue;
-
-				if (*c == '"')
-				{
-					if (!in_quote)
-					{
-						/* We're not already in a quote. */
-						in_quote = true;
-					}
-					else
-					{
-						/* Leaving quotes, we have the value */
-						results.push_back(KeyVal(current_key, current_value));
-
-						// std::cout << "<" << tagname << ":" << current_key << "> " << current_value << std::endl;
-
-						in_quote = false;
-						got_key = false;
-
-						if ((tagname == "include") && (current_key == "file"))
-						{	
-							if (!this->DoInclude(target, current_value, errorstream))
-								return false;
-						}
-
-						current_key.clear();
-						current_value.clear();
-					}
-				}
-				else
-				{
-					if (in_quote)
-					{
-						current_value += *c;
-					}
-				}
-			}
-		}
-	}
-
-	/* Finished parsing the tag, add it to the config hash */
-	target.insert(std::pair<std::string, KeyValList > (tagname, results));
-
-	return true;
 }
 
 bool ServerConfig::DoInclude(ConfigDataHash &target, const std::string &file, std::ostringstream &errorstream)

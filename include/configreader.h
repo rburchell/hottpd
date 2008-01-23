@@ -212,12 +212,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	std::vector<std::string> include_stack;
 
-	/** This private method processes one line of
-	 * configutation, appending errors to errorstream
-	 * and setting error if an error has occured.
-	 */
-	bool ParseLine(ConfigDataHash &target, std::string &line, long &linenumber, std::ostringstream &errorstream);
-  
 	/** Process an include directive
 	 */
 	bool DoInclude(ConfigDataHash &target, const std::string &file, std::ostringstream &errorstream);
