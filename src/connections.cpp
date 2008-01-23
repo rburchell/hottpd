@@ -18,7 +18,7 @@
 
 Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 {
-	quitting = false;
+	keepalive = quitting = false;
 	fd = -1;
 	privip = NULL;
 	State = HTTP_WAIT_REQUEST;

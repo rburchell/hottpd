@@ -34,7 +34,8 @@ enum HttpState
 class HTTPHeaders
 {
  protected:
-	std::map<std::string,std::string> headers;
+	typedef std::map<std::string,std::string,utils::StrCaseLess> HeaderMap;
+	HeaderMap headers;
  public:
 	
 	/** Set the value of a header
@@ -73,7 +74,7 @@ class HTTPHeaders
 	 */
 	std::string GetHeader(const std::string &name)
 	{
-		std::map<std::string,std::string>::iterator it = headers.find(name);
+		HeaderMap::iterator it = headers.find(name);
 		if (it == headers.end())
 			return std::string();
 		
@@ -85,7 +86,7 @@ class HTTPHeaders
 	 */
 	bool IsSet(const std::string &name)
 	{
-		std::map<std::string,std::string>::iterator it = headers.find(name);
+		HeaderMap::iterator it = headers.find(name);
 		return (it != headers.end());
 	}
 	
@@ -96,7 +97,7 @@ class HTTPHeaders
 	{
 		std::string re;
 		
-		for (std::map<std::string,std::string>::iterator i = headers.begin(); i != headers.end(); i++)
+		for (HeaderMap::iterator i = headers.begin(); i != headers.end(); i++)
 			re += i->first + ": " + i->second + "\r\n";
 		
 		return re;

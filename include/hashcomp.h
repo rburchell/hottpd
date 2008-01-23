@@ -17,6 +17,7 @@
 #include "inspircd_config.h"
 #include "socket.h"
 #include "hash_map.h"
+#include <algorithm>
 
 /*******************************************************
  * This file contains classes and templates that deal
@@ -62,6 +63,22 @@ unsigned const char lowermap[256] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
 				240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255				/* 240-255 */
 };
 #endif
+
+namespace utils
+{
+	struct StrCaseLess
+	{
+		static bool charicmp(char c1, char c2)
+		{
+			return tolower(c1) < tolower(c2);
+		}
+		
+		bool operator()(const std::string &s1, const std::string &s2) const
+		{
+			return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), charicmp);
+		}
+	};
+}
 
 /** The irc namespace contains a number of helper classes.
  */
