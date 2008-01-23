@@ -18,11 +18,13 @@
 
 Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 {
-	keepalive = quitting = false;
+	quitting = false;
 	fd = -1;
 	privip = NULL;
 	State = HTTP_WAIT_REQUEST;
 	http_version = HTTP_UNSPECIFIED;
+	// XXX - Make keepalive by default an option?
+	keepalive = true;
 }
 
 Connection::~Connection()
@@ -181,14 +183,14 @@ void Connection::CheckRequest(int newpos)
 
 			if (method.empty() || uri.empty() || tmpversion.empty())
 			{
-				SendError(400);
+				SendError(400, "Bad Request");
 				return;
 			}
 
 			std::transform(tmpversion.begin(), tmpversion.end(), tmpversion.begin(), ::toupper);
 			if (tmpversion != "HTTP/1.1")
 			{
-				SendError(505);
+				SendError(505, "Version Not Supported");
 				return;
 			}
 			
@@ -201,7 +203,7 @@ void Connection::CheckRequest(int newpos)
 			std::string::size_type fieldsep = cheader.find(':');
 			if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
 			{
-				SendError(400);
+				SendError(400, "Bad Request");
 				return;
 			}
 	
@@ -213,10 +215,11 @@ void Connection::CheckRequest(int newpos)
 
 	// In the interest of convention, make the method uppercase
 	std::transform(method.begin(), method.end(), method.begin(), ::toupper);
-
-	if (strcasecmp(headers.GetHeader("Connection").c_str(), "keep-alive") == 0)
-		keepalive = true;
-
+	
+	// Parse a few important headers
+	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
+		keepalive = false;
+	
 /*	if (headers.IsSet("Content-Length") && (postsize = atoi(headers.GetHeader("Content-Length").c_str())) != 0)
 	{
 		State = HTTP_RECV_POSTDATA;
@@ -261,42 +264,40 @@ void Connection::ServeData()
 		if (!ServerInstance->FOpen->Request(uri))
 		{
 			// error 404, or whatever.
-			this->SendError(404);
+			this->SendError(404, "File Not Found");
 		}
 		else
 		{
 			std::string response = ServerInstance->FOpen->Fetch();
 			HTTPHeaders empty;
-			this->SendHeaders(response.length(), 200, empty);
+			this->SendHeaders(response.length(), 200, "OK", empty);
 			this->Write(response);
 		}
 	}
 	else
 	{
-		this->SendError(404);
+		this->SendError(501, "Not Implemented");
 	}
 }
 
-void Connection::SendError(int code)
+void Connection::SendError(int code, const std::string &text)
 {
 	HTTPHeaders empty;
-	std::string data = "<html><head></head><body>Server error "+ConvToStr(code)+":<br>"+
-	                   "<small>Powered by <a href='http://www.inspircd.org'>InspIRCd</a></small></body></html>";
-	uri = "error.htm"; // hack to ensure correct content-type
-	this->SendHeaders(data.length(), code, empty);
+	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
+	this->SendHeaders(data.length(), code, text, empty);
 	this->Write(data);
 }
 
-void Connection::SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders)
+void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
 {
-	this->Write("HTTP/1.1 "+ConvToStr(response)+"\r\n");
+	this->Write("HTTP/1.1 "+ConvToStr(response)+" "+rtext+"\r\n");
 
 	time_t local = this->ServerInstance->Time();
 	struct tm *timeinfo = gmtime(&local);
 	char *date = asctime(timeinfo);
 	date[strlen(date) - 1] = '\0';
 	rheaders.CreateHeader("Date", date);
-		
+	
 	rheaders.CreateHeader("Server", "hottpd");
 	rheaders.SetHeader("Content-Length", ConvToStr(size));
 	
@@ -318,18 +319,23 @@ void Connection::SendHeaders(unsigned long size, int response, HTTPHeaders &rhea
 	else
 		rheaders.RemoveHeader("Content-Type");
 		
-	if (rheaders.GetHeader("Connection") == "Close")
+	if (strcasecmp(rheaders.GetHeader("Connection").c_str(), "Close") == 0)
 		keepalive = false;
-	else if (rheaders.GetHeader("Connection") == "Keep-Alive" && !headers.IsSet("Connection"))
-		keepalive = true;
-	else if (!rheaders.IsSet("Connection") && !keepalive)
+	else if (keepalive)
+		rheaders.SetHeader("Connection", "Keep-Alive");
+	else
 		rheaders.SetHeader("Connection", "Close");
 	
 	this->Write(rheaders.GetFormattedHeaders());
 	this->Write("\r\n");
 		
-	if (!size && keepalive)
-		ResetRequest();
+	if (!size)
+	{
+		if (keepalive)
+			ResetRequest();
+		else
+			CloseSocket(); // XXX Will this cull or remove instantly?
+	}
 }
 
 void Connection::ResetRequest()
@@ -339,9 +345,9 @@ void Connection::ResetRequest()
 	uri.clear();
 	http_version = HTTP_UNSPECIFIED;
 	State = HTTP_WAIT_REQUEST;
-		
-	if (requestbuf.size())
-		requestbuf.clear();
+	
+	if (requestbuf.length())
+		this->CheckRequest(0);
 }
 
 

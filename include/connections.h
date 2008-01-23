@@ -198,9 +198,9 @@ class CoreExport Connection : public EventHandler
 
 	void ServeData();
 
-	void SendHeaders(unsigned long size, int response, HTTPHeaders &rheaders);
+	void SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders);
 
-	void SendError(int code);
+	void SendError(int code, const std::string &text);
 
 	void ResetRequest();
 
