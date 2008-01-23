@@ -1,6 +1,7 @@
 /* Example config for hottpd */
 server
 {
+	document-root = "/path/to/docroot/"
 	#softlimit = 1024
 	#somaxconn = 128
 	#loglevel = "default"

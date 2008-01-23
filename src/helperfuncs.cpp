@@ -106,16 +106,6 @@ bool InspIRCd::OpenLog(char**, int)
 	return true;
 }
 
-void InspIRCd::CheckDie()
-{
-	if (*Config->DieValue)
-	{
-		printf("WARNING: %s\n\n",Config->DieValue);
-		this->Log(DEFAULT,"Died because of <die> tag: %s",Config->DieValue);
-		Exit(EXIT_STATUS_DIETAG);
-	}
-}
-
 /** Refactored by Brain, Jun 2007. Much faster with some clever O(1) array
  * lookups and pointer maths.
  */

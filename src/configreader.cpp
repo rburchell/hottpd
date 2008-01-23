@@ -27,12 +27,11 @@ bool DoneELine(ServerConfig* conf, const char* tag);
 ServerConfig::ServerConfig(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	this->ClearStack();
-	*CustomVersion = *DieValue = '\0';
+	*CustomVersion = *DocRoot = '\0';
 	*ModPath = *MyExecutable = *PID = '\0';
 	log_file = NULL;
 	forcedebug = nofork = false;
 	writelog = true;
-	DieDelay = 5;
 	NetBufferSize = 10240;
 	SoftLimit = MAXCLIENTS;
 	MaxConn = SOMAXCONN;
@@ -268,6 +267,14 @@ bool ValidateNotEmpty(ServerConfig*, const char* tag, const char*, ValueItem &da
 	return true;
 }
 
+bool ValidateDir(ServerConfig*, const char *tag, const char*, ValueItem &data)
+{
+	if (!ServerConfig::DirValid(data.GetString()))
+		throw CoreException(std::string("The value for ")+tag+" must be an existing directory");
+	
+	return true;
+}
+
 /* Callback called before processing the first <module> tag
  */
 bool InitModule(ServerConfig* conf, const char*)
@@ -361,6 +368,7 @@ void ServerConfig::Read(bool bail)
 
 	/* These tags can occur ONCE or not at all */
 	InitialConfig Values[] = {
+		{"server",  "document-root", "", new ValueContainerChar(this->DocRoot), DT_CHARPTR, ValidateDir},
 		{"server",	"softlimit",	MAXCLIENTS_S,		new ValueContainerUInt (&this->SoftLimit),		DT_INTEGER,  ValidateSoftLimit},
 		{"server",	"somaxconn",	SOMAXCONN_S,		new ValueContainerInt  (&this->MaxConn),		DT_INTEGER,  ValidateMaxConn},
 		{"server",	"loglevel",	"default",		new ValueContainerChar (debug),				DT_CHARPTR,  ValidateLogLevel},

@@ -144,6 +144,7 @@ class CoreExport Connection : public EventHandler
 
 	std::string method;
 	std::string uri;
+	std::string upath;
 	enum
 	{
 		HTTP_UNSPECIFIED,
@@ -193,7 +194,9 @@ class CoreExport Connection : public EventHandler
 	void ReadData();
 
 	bool AddBuffer(const std::string &a);
-
+	
+	void HandleURI();
+	
 	void CheckRequest(int newpos);
 
 	void ServeData();

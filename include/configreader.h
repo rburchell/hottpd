@@ -233,11 +233,6 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	ConfigDataHash config_data;
 
-	/** The last string found within a <die> tag, or
-	 * an empty string.
-	 */
-	char DieValue[MAXBUF];
-
 	/** The full path to the modules directory.
 	 * This is either set at compile time, or
 	 * overridden in the configuration file via
@@ -305,15 +300,10 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	int LogLevel;
 
-	/** How many seconds to wait before exiting
-	 * the program when /DIE is correctly issued.
-	 */
-	int DieDelay;
-
 	/** The full pathname and filename of the PID
 	 * file as defined in the configuration.
 	 */
-	char PID[1024];
+	char PID[MAXBUF];
 
 	/** A list of the classes for listening client ports
 	 */
@@ -330,7 +320,11 @@ class CoreExport ServerConfig : public Extensible
 	/** Directory where the inspircd binary resides
 	 */
 	std::string MyDir;
-
+	
+	/** Base directory for serving HTTP files
+	 */
+	char DocRoot[MAXBUF];
+	
 	/** Saved argv from startup
 	 */
 	char** argv;

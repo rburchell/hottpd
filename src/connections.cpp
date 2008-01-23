@@ -220,29 +220,49 @@ void Connection::CheckRequest(int newpos)
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
 		keepalive = false;
 	
-/*	if (headers.IsSet("Content-Length") && (postsize = atoi(headers.GetHeader("Content-Length").c_str())) != 0)
-	{
-		State = HTTP_RECV_POSTDATA;
-
-		if (requestbuf.length() >= postsize)
-		{
-			postdata = requestbuf.substr(0, postsize);
-			requestbuf.erase(0, postsize);
-		}
-		else if (!requestbuf.empty())
-		{
-			postdata = requestbuf;
-			requestbuf.clear();
-		}
-
-		if (postdata.length() >= postsize)
-			ServeData();
-
-		return;
-	}*/
-
+	HandleURI();
+	
 	ServeData();
  }
+
+void Connection::HandleURI()
+{
+	// TODO absolute URLs (i.e. http://[HOST HEADER VALUE]/blah), hex decoding
+	if (uri[0] != '/')
+		return;
+	
+	irc::sepstream sep(uri, '/');
+	std::string ptoken;
+	
+	std::string sanepath = "/";
+	
+	while (sep.GetToken(ptoken))
+	{
+		if (!ptoken.length() || (ptoken == "."))
+			continue;
+		
+		if (ptoken == "..")
+		{
+			std::string::size_type spos = sanepath.rfind('/');
+			if ((spos == std::string::npos) || (spos == 0))
+				continue;
+			
+			sanepath = sanepath.substr(0, spos - 1);
+			continue;
+		}
+		
+		if (sanepath[sanepath.length() - 1] != '/')
+			sanepath += "/";
+		sanepath += ptoken;
+	}
+	
+	upath = ServerInstance->Config->DocRoot;
+	if (upath[upath.length() - 1] != '/')
+		upath += "/";
+	upath.append(sanepath.substr(1));
+	
+	ServerInstance->Log(DEBUG, "Mapped URI '%s' to path %s", uri.c_str(), upath.c_str());
+}
 
 void Connection::ServeData()
 {
@@ -251,17 +271,7 @@ void Connection::ServeData()
 
 	if (method == "GET")
 	{
-		// This is temporary.
-		while (size_t s = uri.find("..", 0) != std::string::npos)
-			uri.erase(s, 2);
-
-		// remove /
-		while (uri[0] == '/')
-			uri.erase(0, 1);
-
-		ServerInstance->Log(DEBUG, "Looking for %s", uri.c_str());
-
-		if (!ServerInstance->FOpen->Request(uri))
+		if (!ServerInstance->FOpen->Request(upath))
 		{
 			// error 404, or whatever.
 			this->SendError(404, "File Not Found");
@@ -286,6 +296,10 @@ void Connection::SendError(int code, const std::string &text)
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
 	this->SendHeaders(data.length(), code, text, empty);
 	this->Write(data);
+	if (keepalive)
+		ResetRequest();
+	else
+		CloseSocket();
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
@@ -343,6 +357,7 @@ void Connection::ResetRequest()
 	headers.Clear();
 	method.clear();
 	uri.clear();
+	upath.clear();
 	http_version = HTTP_UNSPECIFIED;
 	State = HTTP_WAIT_REQUEST;
 	

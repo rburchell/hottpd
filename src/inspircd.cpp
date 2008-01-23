@@ -363,7 +363,6 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 	Config->Read(true);
 
-	CheckDie();
 	int bounditems = BindPorts(true, found_ports, pl);
 
 	printf("\n");

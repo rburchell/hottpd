@@ -293,11 +293,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	bool BindSocket(int sockfd, int port, char* addr, bool dolisten = true);
 
-	/** Check for a 'die' tag in the config file, and abort if found
-	 * @return Depending on the configuration, this function may never return
-	 */
-	void CheckDie();
-
 	/** Determine the right path for, and open, the logfile
 	 * @param argv The argv passed to main() initially, used to calculate program path
 	 * @param argc The argc passed to main() initially, used to calculate program path

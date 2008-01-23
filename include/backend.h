@@ -46,12 +46,12 @@ class FOpenBackend : public Backend
 	{
 	}
 
-	bool Request(std::string &uri)
+	bool Request(std::string &path)
 	{
-		if (uri.empty())
-			return false; // XXX find index file, use instead
+		if (path.empty())
+			return false; // XXX find index file, use instead (XXX should be done prior to the backend!)
 
-		fd = fopen(uri.c_str(), "r");
+		fd = fopen(path.c_str(), "r");
 		if (fd == NULL)
 			return false;
 
