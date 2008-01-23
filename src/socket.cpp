@@ -22,7 +22,10 @@ ListenSocket::ListenSocket(InspIRCd* Instance, int port, char* addr) : ServerIns
 	if (this->GetFd() > -1)
 	{
 		if (!Instance->BindSocket(this->fd,port,addr))
+		{
+			Instance->Log(DEBUG, "Failed to bind listener: %s (%d)", strerror(errno), errno);
 			this->fd = -1;
+		}
 #ifdef IPV6
 		if ((!*addr) || (strchr(addr,':')))
 			this->family = AF_INET6;
