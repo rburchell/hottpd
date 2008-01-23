@@ -1244,7 +1244,7 @@ std::string ServerConfig::GetFullProgDir()
 	if (GetModuleFileName(NULL, buffer, MAX_PATH))
 	{
 		std::string fullpath = buffer;
-		std::string::size_type n = fullpath.rfind("\\inspircd.exe");
+		std::string::size_type n = fullpath.rfind("\\hottpd.exe");
 		return std::string(fullpath, 0, n);
 	}
 #else
@@ -1256,12 +1256,12 @@ std::string ServerConfig::GetFullProgDir()
 		/* Does argv[0] start with /? its a full path, use it */
 		if (remainder[0] == '/')
 		{
-			std::string::size_type n = remainder.rfind("/inspircd");
+			std::string::size_type n = remainder.rfind("/hottpd");
 			return std::string(remainder, 0, n);
 		}
 
 		std::string fullpath = std::string(buffer) + "/" + remainder;
-		std::string::size_type n = fullpath.rfind("/inspircd");
+		std::string::size_type n = fullpath.rfind("/hottpd");
 		return std::string(fullpath, 0, n);
 	}
 #endif

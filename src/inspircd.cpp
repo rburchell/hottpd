@@ -11,7 +11,7 @@
  * ---------------------------------------------------
  */
 
-/* $Install: src/inspircd $(BINPATH) */
+/* $Install: src/hottpd $(BINPATH) */
 
 #include "inspircd.h"
 #include <signal.h>

@@ -8,7 +8,7 @@
 
 CC = @CC@
 MAKE = @MAKEPROG@
-PROGS = inspircd
+PROGS = hottpd
 FLAGS = @FLAGS@
 DEBUG = @DEVELOPER@
 LDLIBS = @LDLIBS@
@@ -33,7 +33,7 @@ debug:
 	@echo "*  will consume a very large amount *"
 	@echo "*   of disk space (350mb+) and may  *"
 	@echo "*  run noticably slower. Only build *"
-	@echo "*   InspIRCd with debug symbols if  *"
+	@echo "*    hottpd with debug symbols if   *"
 	@echo "* you are developing modules or are *"
 	@echo "*      experiencing problems.       *"
 	@echo "*                                   *"
@@ -50,18 +50,16 @@ finishmessage: ircd mods
 	@echo "*************************************"
 	@echo "*        BUILD COMPLETE!            *"
 	@echo "*                                   *"
-	@echo "*   To install InspIRCd, type:      *"
+	@echo "*     To install hottpd, type:      *"
 	@echo "*         make install              *"
 	@echo "*************************************"
 
 ircd:
 	@echo "*************************************"
-	@echo "*       BUILDING INSPIRCD           *"
+	@echo "*         BUILDING HOTTPD           *"
 	@echo "*                                   *"
-	@echo "*   This will take a *long* time.   *"
-	@echo "*     Why not read our wiki at      *"
-	@echo "*   http://www.inspircd.org/wiki    *"
-	@echo "*  while you wait for make to run?  *"
+	@echo "*   This may take a *long* time.    *"
+	@echo "*          Be patient. :)           *"
 	@echo "*************************************"
 	${MAKE} -C src DIRNAME="src" $(MAKEARGS)
 
@@ -87,7 +85,7 @@ module:
 
 clean:
 	@echo Cleaning...
-	@rm -rvf src/*.so src/*.dylib src/*.o src/inspircd src/modules/*.so src/modules/*.o *~ src/*~ src/modules/*~ src/modules/extra/*~ src/modes/*~ src/modes/*.o src/modes/*.a src/commands/*.so src/commands/*.o src/modules/*/*.o src/modules/*/*.so src/socketengines/*.o
+	@rm -rvf src/*.so src/*.dylib src/*.o src/hottpd src/modules/*.so src/modules/*.o *~ src/*~ src/modules/*~ src/modules/extra/*~ src/modes/*~ src/modes/*.o src/modes/*.a src/commands/*.so src/commands/*.o src/modules/*/*.o src/modules/*/*.so src/socketengines/*.o
 	@echo Completed.
 
 modclean:
@@ -97,7 +95,7 @@ modclean:
 	rm -rf src/modules/*/*.so
 	rm -rf src/modules/*/*.o
 	rm -rf lib/*.so
-	rm -f bin/inspircd
+	rm -f bin/hottpd
 
 deinstall:
 @UNINSTALL_LIST@

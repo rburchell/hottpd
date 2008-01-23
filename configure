@@ -285,13 +285,13 @@ chomp($config{GCCVER}       = `g++ -dumpversion | cut -c 1`);   	# Major GCC Ver
 $config{_SOMAXCONN} = SOMAXCONN;					# Max connections in accept queue
 $config{OSNAME}       	    = $^O;			      		# Operating System Name
 $config{IS_DARWIN}	  = "NO";					# Is OSX?
-$config{STARTSCRIPT}	  = "inspircd";			# start script?
+$config{STARTSCRIPT}	  = "hottpd";			# start script?
 $config{DESTINATION}	  = "BASE";				# Is target path.
 $config{EXTRA_DIR}	  = "";						# Is empty.
 if ($config{OSNAME} =~ /darwin/i)
 {
 	$config{IS_DARWIN} = "YES";
-	$config{STARTSCRIPT}	  = "org.inspircd.plist";		# start script for OSX.
+	$config{STARTSCRIPT}	  = "org.hottpd.plist";		# start script for OSX.
 	$config{DESTINATION}	  = "LAUNCHDPATH";				# Is OSX target.
 	$config{EXTRA_DIR}	    = " launchd_dir";				# Is OSX specific path.
 }
@@ -339,7 +339,7 @@ $config{HAS_OPENSSL} =~ /^([-[:digit:].]+)([a-z])?(\-[a-z][0-9])?$/;
 $config{HAS_OPENSSL} = $1;
 
 if ($config{GCCVER} eq "") {
-	print $config{CC} . " was not found! You require g++ (the GNU C++ compiler, part of GCC) to build InspIRCd!\n";
+	print $config{CC} . " was not found! You require g++ (the GNU C++ compiler, part of GCC) to build hottpd!\n";
 	exit;
 }
 
@@ -431,7 +431,7 @@ sub svnupdate
 	my $fail = 0;
 	open(FH,"<.svn/entries") or $fail = 1;
 	if ($fail) {
-		print "This is not an SVN copy of InspIRCd.\n";
+		print "This is not an SVN copy of hottpd.\n";
 		exit;
 	}
 	else
@@ -626,7 +626,7 @@ if ($config{OSNAME} =~ /FreeBSD/i)
 		}
 		else
 		{
-			print "\n\nERROR: You require libgnugetopt (from ports or packages) to build InspIRCd on FreeBSD 4.11.\n";
+			print "\n\nERROR: You require libgnugetopt (from ports or packages) to build hottpd on FreeBSD 4.11.\n";
 		}
  	}
 	else
@@ -654,7 +654,7 @@ if ($interactive)
 	my $rev = getrevision();
 	# Display Introduction Message..
 	print "
-Welcome to the \033[1mInspIRCd\033[0m Configuration program! (\033[1minteractive mode\033[0m)
+Welcome to the \033[1mhottpd\033[0m Configuration program! (\033[1minteractive mode\033[0m)
 \033[1mPackage maintainers: Type ./configure --help for non-interactive help\033[0m
 
 *** If you are unsure of any of these values, leave it blank for    ***
@@ -667,7 +667,7 @@ dir, otherwise you won't have a config file!
 
 Your operating system is: \033[1;32m$config{OSNAME}\033[0m ($wholeos)
 Maximum file descriptors: \033[1;32m$config{MAX_CLIENT_T}\033[0m
-Your InspIRCd revision ID is \033[1;32mr$rev\033[0m";
+Your hottpd revision ID is \033[1;32mr$rev\033[0m";
 	if ($rev eq "r0") {
 		print " (Non-SVN build)";
 	}
@@ -705,7 +705,7 @@ should NOT be used. You should probably specify a newer compiler.\n\n";
 
 	# Directory Settings..
 	my $tmpbase = $config{BASE_DIR};
-	dir_check("do you wish to install the InspIRCd base", "BASE_DIR");
+	dir_check("do you wish to install the hottpd base", "BASE_DIR");
 	if ($tmpbase ne $config{BASE_DIR}) {
 		$config{CONFIG_DIR}	 = resolve_directory($config{BASE_DIR}."/conf");	   # Configuration Dir
 		$config{MODULE_DIR}	 = resolve_directory($config{BASE_DIR}."/modules");	# Modules Directory
@@ -736,14 +736,14 @@ should NOT be used. You should probably specify a newer compiler.\n\n";
 		print "not to enable one. Defaulting to select() engine.\n\n";
 	}
 
-	yesno(IPV6,"Would you like to build InspIRCd with IPv6 support?");
+	yesno(IPV6,"Would you like to build hottpd with IPv6 support?");
 	print "\n";
 
 	if ($config{IPV6} eq "y") {
 		print "You have chosen to build an \033[1;32mIPV6-enabled\033[0m server.\nTo accept IPV4 users, you can still use IPV4 addresses\nin your port bindings..\n\n";
 		$config{SUPPORT_IP6LINKS} = "y";
 	} else {
-		yesno(SUPPORT_IP6LINKS,"You have chosen to build an \033[1;32mIPV4-only\033[0m server.\nWould you like to enable support for linking to IPV6-enabled\nInspIRCd servers?\nIf you are using a recent operating\nsystem and are unsure, answer yes.\nIf you answer 'no' here, your InspIRCd server will be unable\nto parse IPV6 addresses (e.g. for CIDR bans)");
+		yesno(SUPPORT_IP6LINKS,"You have chosen to build an \033[1;32mIPV4-only\033[0m server.\nWould you like to enable support for linking to IPV6-enabled\nhottpd servers?\nIf you are using a recent operating\nsystem and are unsure, answer yes.\nIf you answer 'no' here, your hottpd server will be unable\nto parse IPV6 addresses (e.g. for CIDR bans)");
 		print "\n";
 	}
 
@@ -915,7 +915,7 @@ if (($config{OSNAME} eq "OpenBSD") && ($config{CC} ne "eg++")) {
 
 if ($config{GCCVER} < "3") {
 	print <<FOO2;
-\033[1;32mWARNING!\033[0m You are attempting to compile InspIRCd on GCC 2.x!
+\033[1;32mWARNING!\033[0m You are attempting to compile hottpd on GCC 2.x!
 GCC 2.x series compilers only had partial (read as broken) C++ support, and
 your compile will most likely fail horribly! If you have any problems, do NOT
 report them to the bugtracker or forums without first upgrading your compiler
@@ -1090,7 +1090,7 @@ sub writefiles {
 #define CoreExport /**/
 #define DllExport /**/
 
-#define CONFIG_FILE "$config{CONFIG_DIR}/inspircd.conf"
+#define CONFIG_FILE "$config{CONFIG_DIR}/hottpd.conf"
 #define MOD_PATH "$config{MODULE_DIR}"
 #define VERSION "$version"
 #define REVISION "$revision2"
@@ -1200,7 +1200,7 @@ EOF
 	# Write all .in files.
 	my $tmp = "";
 	my $file = "";
-	my $exe = "inspircd";
+	my $exe = "hottpd";
 
 	# Do this once here, and cache it in the .*.inc files,
 	# rather than attempting to read src/version.sh from
@@ -1212,7 +1212,7 @@ EOF
 	$version = "$version(r$revision)";
 
 	# We can actually parse any file starting with . and ending with .inc,
-	# but right now we only parse .inspircd.inc to form './inspircd'
+	# but right now we only parse .hottpd.inc to form './hottpd'
 
         print "Writing \033[1;32mMakefiles\033[0m\n";
 	write_dynamic_modules_makefile();
@@ -1225,7 +1225,7 @@ EOF
 			$file = $1;
 
 			# Bug #353, omit this on non-darwin
-			next if (($config{OSNAME} !~ /darwin/) && ($file eq "org.inspircd.plist"));
+			next if (($config{OSNAME} !~ /darwin/) && ($file eq "org.hottpd.plist"));
 
 			# All .name.inc files need parsing!
 			$tmp = "";
@@ -1551,13 +1551,13 @@ sub write_dynamic_makefile
 	if ($config{IS_DARWIN} eq "YES")
 	{
 		$libraryext = "dylib";
-		$othercrap = "	\$(CC) -pipe -I../include \$(FLAGS) -export-dynamic -c inspircd.cpp\n	\$(CC) -pipe -dynamic -bind_at_load -L. -o inspircd \$(LDLIBS) inspircd.o "
+		$othercrap = "	\$(CC) -pipe -I../include \$(FLAGS) -export-dynamic -c inspircd.cpp\n	\$(CC) -pipe -dynamic -bind_at_load -L. -o hottpd \$(LDLIBS) hottpd.o "
 	}
 	else
 	{
 		$libraryext = "so";
 		$RPATH = "-Wl,--rpath -Wl,$config{LIBRARY_DIR}" unless defined $opt_disablerpath;
-		$othercrap = "	\$(CC) -pipe -I../include $RPATH \$(FLAGS) $freebsd4libs -rdynamic -L. inspircd.cpp -o inspircd \$(LDLIBS) ";
+		$othercrap = "	\$(CC) -pipe -I../include $RPATH \$(FLAGS) $freebsd4libs -rdynamic -L. inspircd.cpp -o hottpd \$(LDLIBS) ";
 	}
 
 	foreach my $cpp (sort keys %filelist)
@@ -1567,7 +1567,7 @@ sub write_dynamic_makefile
 		$install_list = $install_list . "	-install -m \$(INSTMODE) src/" . $filelist{$cpp} . "." . $libraryext . " \$(LIBPATH)\n";
 		$uninstall_list = $uninstall_list . "	-rm \$(LIBPATH)/" . $filelist{$cpp} . "." . $libraryext . "\n";
 	}
-	$all = $all . "moo inspircd\n";
+	$all = $all . "moo hottpd\n";
 
 	$othercrap = $othercrap . " $all_libsonly\n\n";
 
@@ -1584,7 +1584,7 @@ EOM
 	print FH "$all\n\n";
 
 	$deps = calcdeps("src/inspircd.cpp");
-	print FH "inspircd: inspircd.cpp $deps $all_libsonly\n";
+	print FH "hottpd: inspircd.cpp $deps $all_libsonly\n";
 	print FH "$othercrap\n";
 
 	foreach my $cpp (sort keys %filelist)
