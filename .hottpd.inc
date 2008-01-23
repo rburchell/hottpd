@@ -24,7 +24,7 @@ my @filechecked;
 
 # Lets see what they want to do.. Set the variable (Cause i'm a lazy coder)
 my $arg = $ARGV[0];
-getpidfile($confpath."inspircd.conf");
+getpidfile($confpath."hottpd.conf");
 
 if ($arg eq "start") { start(); exit(); }
 if ($arg eq "debug") { debug(); exit(); }
@@ -316,7 +316,7 @@ sub checkxmllint
 sub checkconf
 {
 	checkxmllint();
-	validateconf($confpath."inspircd.conf");
+	validateconf($confpath."hottpd.conf");
 	print "Config check complete\n";
 }
 
