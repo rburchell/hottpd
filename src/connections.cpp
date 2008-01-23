@@ -293,6 +293,7 @@ void Connection::ServeData()
 void Connection::SendError(int code, const std::string &text)
 {
 	HTTPHeaders empty;
+	empty.SetHeader("Content-Type", "text/html");
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
 	this->SendHeaders(data.length(), code, text, empty);
 	this->Write(data);
@@ -315,7 +316,7 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 	rheaders.CreateHeader("Server", "hottpd");
 	rheaders.SetHeader("Content-Length", ConvToStr(size));
 	
-	if (size)
+	if (size && !rheaders.IsSet("Content-Type"))
 	{
 		size_t p = uri.find_last_of("."); // XXX hack of sorts
 		std::string mime;
@@ -328,11 +329,11 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 
 		ServerInstance->Log(DEBUG, "Sending mimetype %s for %s", mime.c_str(), uri.c_str());
 
-		rheaders.CreateHeader("Content-Type", mime);
+		rheaders.SetHeader("Content-Type", mime);
 	}
-	else
+	else if (!size)
 		rheaders.RemoveHeader("Content-Type");
-		
+	
 	if (strcasecmp(rheaders.GetHeader("Connection").c_str(), "Close") == 0)
 		keepalive = false;
 	else if (keepalive)
