@@ -356,18 +356,17 @@ void ServerConfig::Read(bool bail)
 	errstr.clear();
 
 	/* These tags MUST occur and must ONLY occur once in the config file */
-	static char* Once[] = { "server", "admin", "files", "options", NULL };
+	static char* Once[] = { "server", NULL };
 
 	/* These tags can occur ONCE or not at all */
 	InitialConfig Values[] = {
-		{"options",	"softlimit",	MAXCLIENTS_S,		new ValueContainerUInt (&this->SoftLimit),		DT_INTEGER,  ValidateSoftLimit},
-		{"options",	"somaxconn",	SOMAXCONN_S,		new ValueContainerInt  (&this->MaxConn),		DT_INTEGER,  ValidateMaxConn},
-		{"options",	"loglevel",	"default",		new ValueContainerChar (debug),				DT_CHARPTR,  ValidateLogLevel},
-		{"options",	"netbuffersize","10240",		new ValueContainerInt  (&this->NetBufferSize),		DT_INTEGER,  ValidateNetBufferSize},
-		{"options",	"moduledir",	MOD_PATH,		new ValueContainerChar (this->ModPath),			DT_CHARPTR,  NoValidation},
-		{"options",	"customversion","",			new ValueContainerChar (this->CustomVersion),		DT_CHARPTR,  NoValidation},
-		{"pid",		"file",		"",			new ValueContainerChar (this->PID),			DT_CHARPTR,  NoValidation},
-		{"die",		"value",	"",			new ValueContainerChar (this->DieValue),		DT_CHARPTR,  NoValidation},
+		{"server",	"softlimit",	MAXCLIENTS_S,		new ValueContainerUInt (&this->SoftLimit),		DT_INTEGER,  ValidateSoftLimit},
+		{"server",	"somaxconn",	SOMAXCONN_S,		new ValueContainerInt  (&this->MaxConn),		DT_INTEGER,  ValidateMaxConn},
+		{"server",	"loglevel",	"default",		new ValueContainerChar (debug),				DT_CHARPTR,  ValidateLogLevel},
+		{"server",	"netbuffersize","10240",		new ValueContainerInt  (&this->NetBufferSize),		DT_INTEGER,  ValidateNetBufferSize},
+		{"server",	"moduledir",	MOD_PATH,		new ValueContainerChar (this->ModPath),			DT_CHARPTR,  NoValidation},
+		{"server",	"customversion","",			new ValueContainerChar (this->CustomVersion),		DT_CHARPTR,  NoValidation},
+		{"server",	"pidfile",		"",			new ValueContainerChar (this->PID),			DT_CHARPTR,  NoValidation},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 
