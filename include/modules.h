@@ -669,7 +669,7 @@ class CoreExport ConfigReader : public classbase
 	 * if bool is false AND user is false, the error report will be spooled to all opers
 	 * by means of a NOTICE to all opers.
 	 */
-	void DumpErrors(bool bail,Connection* user);
+	void DumpErrors(bool bail);
 
 	/** Returns the number of items within a tag.
 	 * For example if the tag was &lt;test tag="blah" data="foo"&gt; then this

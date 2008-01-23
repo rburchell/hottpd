@@ -655,15 +655,10 @@ ConfigReader::ConfigReader(InspIRCd* Instance, const std::string &filename) : Se
 	this->data = new ConfigDataHash;
 	this->privatehash = true;
 	this->errorlog = new std::ostringstream(std::stringstream::in | std::stringstream::out);
-	for (int pass = 0; pass < 2; pass++)
-	{
-		/*** XXX: Can return a 'not ready yet!' code! */
-		this->readerror = ServerInstance->Config->LoadConf(*this->data, filename, *this->errorlog, pass);
-	}
-	if (!this->readerror)
+
+	if (!ServerInstance->Config->LoadConf(*this->data, filename, *this->errorlog))
 		this->error = CONF_FILE_NOT_FOUND;
 }
-
 
 std::string ConfigReader::ReadValue(const std::string &tag, const std::string &name, const std::string &default_value, int index, bool allow_linefeeds)
 {
@@ -724,9 +719,9 @@ long ConfigReader::GetError()
 	return olderr;
 }
 
-void ConfigReader::DumpErrors(bool bail, Connection* user)
+void ConfigReader::DumpErrors(bool bail)
 {
-	ServerInstance->Config->ReportConfigError(this->errorlog->str(), bail, user);
+	ServerInstance->Config->ReportConfigError(this->errorlog->str(), bail);
 }
 
 

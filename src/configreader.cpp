@@ -12,14 +12,6 @@
  */
 
 /* $Core: libIRCDconfigreader */
-/* $CopyInstall: conf/inspircd.quotes.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.rules.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.motd.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.helpop-full.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.helpop.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.censor.example $(CONPATH) */
-/* $CopyInstall: conf/inspircd.filter.example $(CONPATH) */
-/* $CopyInstall: docs/inspircd.conf.example $(CONPATH) */
 
 #include "inspircd.h"
 #include <fstream>
@@ -330,7 +322,7 @@ bool DoneModule(ServerConfig*, const char*)
 	return true;
 }
 
-void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail, Connection* user)
+void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail)
 {
 	ServerInstance->Log(DEFAULT, "There were errors in your configuration file: %s", errormessage.c_str());
 	if (bail)
@@ -341,10 +333,10 @@ void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail,
 	}
 	else
 	{
-		std::string errors = errormessage;
-		std::string::size_type start;
-		unsigned int prefixlen;
-		start = 0;
+//		std::string errors = errormessage;
+//		std::string::size_type start;
+//		unsigned int prefixlen;
+//		start = 0;
 		/* ":ServerInstance->Config->ServerName NOTICE user->nick :" */
 //		ServerInstance->WriteOpers("There were errors in the configuration file:");
 //		while (start < errors.length())
@@ -356,7 +348,7 @@ void ServerConfig::ReportConfigError(const std::string &errormessage, bool bail,
 	}
 }
 
-void ServerConfig::Read(bool bail, Connection* user, int pass)
+void ServerConfig::Read(bool bail)
 {
 	int rem = 0, add = 0;           /* Number of modules added, number of modules removed */
 
@@ -402,14 +394,14 @@ void ServerConfig::Read(bool bail, Connection* user, int pass)
 	/* Make a copy here so if it fails then we can carry on running with an unaffected config */
 	newconfig.clear();
 
-	if (this->LoadConf(newconfig, ServerInstance->ConfigFileName, errstr, pass))
+	if (this->LoadConf(newconfig, ServerInstance->ConfigFileName, errstr))
 	{
 		/* If we succeeded, set the ircd config to the new one */
 		this->config_data = newconfig;
 	}
 	else
 	{
-		ReportConfigError(errstr.str(), bail, user);
+		ReportConfigError(errstr.str(), bail);
 		return;
 	}
 
@@ -576,44 +568,21 @@ void ServerConfig::Read(bool bail, Connection* user, int pass)
 
 	catch (CoreException &ce)
 	{
-		ReportConfigError(ce.GetReason(), bail, user);
+		ReportConfigError(ce.GetReason(), bail);
 		return;
 	}
 
 	/** XXX END PASS **/
-	ServerInstance->Log(DEBUG,"End config pass %d", pass);
+	ServerInstance->Log(DEBUG,"End config");
 
-	if (pass == 0)
+	ServerInstance->Modules->LoadAll();
+	ConfigReader* n = new ConfigReader(ServerInstance);
+	FOREACH_MOD(I_OnReadConfig,OnReadConfig(this, n));
+
+	for (int Index = 0; Once[Index]; Index++)
 	{
-		/* FIRST PASS: Set up commands, load modules.
-		 * We cannot gaurantee that all config is correct
-		 * at this point
-		 */
-
-		if (pass == 0)
-		{
-			if (isatty(0) && isatty(1) && isatty(2))
-				printf("Downloading configuration ");
-
-			TotalDownloaded = 0;
-			FileErrors = 0;
-		}
-
-	        /** Note: This is safe, the method checks for user == NULL */
-		ServerInstance->Modules->LoadAll();
-	}
-	else
-	{
-		/* SECOND PASS: Call modules to read configs, finalize
-		 * stuff. Check that we have at least the required number
-		 * of whichever items. This is no longer done first.
-		 */
-		ConfigReader* n = new ConfigReader(ServerInstance);
-		FOREACH_MOD(I_OnReadConfig,OnReadConfig(this, n));
-
-		for (int Index = 0; Once[Index]; Index++)
-			if (!CheckOnce(Once[Index]))
-				return;
+		if (!CheckOnce(Once[Index]))
+			return;
 	}
 
 	// write once here, to try it out and make sure its ok
@@ -629,16 +598,6 @@ void ServerConfig::Read(bool bail, Connection* user, int pass)
 		FailedPortList pl;
 		ServerInstance->BindPorts(false, found_ports, pl);
 
-		if (pl.size() && user)
-		{
-//			user->WriteServ("NOTICE %s :*** Not all your client ports could be bound.", user->nick);
-//			user->WriteServ("NOTICE %s :*** The following port(s) failed to bind:", user->nick);
-//			int j = 1;
-//			for (FailedPortList::iterator i = pl.begin(); i != pl.end(); i++, j++)
-//			{
-//				user->WriteServ("NOTICE %s :*** %d.   IP: %s     Port: %lu", user->nick, j, i->first.empty() ? "<all>" : i->first.c_str(), (unsigned long)i->second);
-//			}
-		}
 	}
 
 	if (!removed_modules.empty())
@@ -736,265 +695,221 @@ void ServerConfig::DoDownloads()
 	}
 }
 
-bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::ostringstream &errorstream, int pass, std::istream *scan_for_includes_only)
+bool ServerConfig::LoadConf(ConfigDataHash &target, const char* filename, std::ostringstream &errorstream)
 {
-	std::string line;
-	std::istream* conf = NULL;
-	char ch;
-	long linenumber;
-	bool in_tag;
-	bool in_quote;
-	bool in_comment;
-	int character_count = 0;
+	std::string line, wordbuffer, section, itemname;
+	std::ifstream conf(filename);
+	int linenumber = 0;
+	bool in_word = false;
+	bool in_quote = false;
+	bool in_ml_comment = false;
 
-	linenumber = 1;
-	in_tag = false;
-	in_quote = false;
-	in_comment = false;
-
-	if (scan_for_includes_only)
+	if (conf.fail())
 	{
-		ServerInstance->Log(DEBUG,"scan_for_includes_only set");
-		conf = scan_for_includes_only;
+		errorstream << "File " << filename << " could not be opened." << std::endl;
+		return false;
 	}
 
-	if (std::string(filename) == CONFIG_FILE)
-	{
-		if (!scan_for_includes_only)
-		{
-			conf = new std::ifstream(filename);
-			if (conf->fail())
-			{
-				errorstream << "File " << filename << " could not be opened." << std::endl;
-				return false;
-			}
-		}
-	}
-	else
-	{
-		std::map<std::string, std::istream*>::iterator x = IncludedFiles.find(filename);
-		if (x == IncludedFiles.end())
-		{
-			if (pass == 0)
-			{
-				ServerInstance->Log(DEBUG,"Push include file %s onto map", filename);
-				/* First pass, we insert the file into a map, and just return true */
-				IncludedFiles.insert(std::make_pair(filename,new std::stringstream));
-				return true;
-			}
-			else
-			{
-				/* Second pass, look for the file in the map */
-				ServerInstance->Log(DEBUG,"We are in the second pass, and %s is not in the map!", filename);
-				errorstream << "File " << filename << " could not be opened." << std::endl;
-				return false;
-			}
-		}
-		else
-		{
-			if (!scan_for_includes_only)
-			{
-				if (x->second)
-					conf = IncludedFiles.find(filename)->second;
-				else
-				{
-					errorstream << "File " << filename << " could not be opened." << std::endl;
-					return false;
-				}
-			}
-		}
-	}
-
-	ServerInstance->Log(DEBUG,"Start to read conf %s %08lx", filename, conf);
+	ServerInstance->Log(DEBUG, "Start to read conf %s", filename);
 
 	/* Start reading characters... */
-	while (conf->get(ch))
+	while (getline(conf, line))
 	{
-
-		/*
-		 * Fix for moronic windows issue spotted by Adremelech.
-		 * Some windows editors save text files as utf-16, which is
-		 * a total pain in the ass to parse. Users should save in the
-		 * right config format! If we ever see a file where the first
-		 * byte is 0xFF or 0xFE, or the second is 0xFF or 0xFE, then
-		 * this is most likely a utf-16 file. Bail out and insult user.
-		 */
-		if ((character_count++ < 2) && (ch == '\xFF' || ch == '\xFE'))
+		linenumber++;
+		
+		for (unsigned int c = 0; c < line.length(); c++)
 		{
-			errorstream << "File " << filename << " cannot be read, as it is encoded in braindead UTF-16. Save your file as plain ASCII!" << std::endl;
-			if (!scan_for_includes_only)
-				delete conf;
-			return false;
-		}
-
-		/*
-		 * Here we try and get individual tags on separate lines,
-		 * this would be so easy if we just made people format
-		 * their config files like that, but they don't so...
-		 * We check for a '<' and then know the line is over when
-		 * we get a '>' not inside quotes. If we find two '<' and
-		 * no '>' then die with an error.
-		 */
-
-		if ((ch == '#') && !in_quote)
-			in_comment = true;
-
-		switch (ch)
-		{
-			case '\n':
-				if (in_quote)
-					line += '\n';
-				linenumber++;
-			case '\r':
-				if (!in_quote)
-					in_comment = false;
-			case '\0':
-				continue;
-			case '\t':
-				ch = ' ';
-		}
-
-		if(in_comment)
-			continue;
-
-		/* XXX: Added by Brain, May 1st 2006 - Escaping of characters.
-		 * Note that this WILL NOT usually allow insertion of newlines,
-		 * because a newline is two characters long. Use it primarily to
-		 * insert the " symbol.
-		 *
-		 * Note that this also involves a further check when parsing the line,
-		 * which can be found below.
-		 */
-		if ((ch == '\\') && (in_quote) && (in_tag))
-		{
-			line += ch;
-			char real_character;
-			if (conf->get(real_character))
+			char ch = line[c];
+			
+			if (in_quote)
 			{
-				if (real_character == 'n')
-					real_character = '\n';
-				line += real_character;
+				if (ch == '"')
+				{
+					in_quote = in_word = false;
+					continue;
+				}
+				
+				wordbuffer += ch;
 				continue;
+			}
+			
+			if (in_ml_comment)
+			{
+				if ((ch == '*') && ((c + 1) < line.length()) && (line[c + 1] == '/'))
+				{
+					in_ml_comment = false;
+					c++;
+				}
+				
+				continue;
+			}
+			
+			if ((ch == '#') || ((ch == '/') && ((c + 1) < line.length()) && (line[c + 1] == '/')))
+			{
+				// Line comment, ignore the rest of the line (much like this one!)
+				break;
+			}
+			else if ((ch == '/') && ((c + 1) < line.length()) && (line[c + 1] == '*'))
+			{
+				// Multiline (or less than one line) comment
+				in_ml_comment = true;
+				c++;
+				continue;
+			}
+			else if (ch == '"')
+			{
+				// Quotes are valid only in the value position
+				if (!section.length() || !itemname.length())
+				{
+					errorstream << "Unexpected quoted string: " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if (in_word || (wordbuffer.length() != 0))
+				{
+					errorstream << "Unexpected quoted string (prior unhandled words): " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				in_quote = in_word = true;
+				continue;
+			}
+			else if (ch == '=')
+			{
+				if (!section.length())
+				{
+					errorstream << "Config item outside of section (or stray '='): " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if (itemname.length() != 0)
+				{
+					errorstream << "Stray '=' sign or item without value: " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if (in_word)
+					in_word = false;
+				
+				itemname = wordbuffer;
+				wordbuffer.clear();	
+			}
+			else if (ch == '{')
+			{
+				if (section.length() != 0)
+				{
+					errorstream << "Section inside another section: " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if (!wordbuffer.length())
+				{
+					errorstream << "Section without a name or unexpected '{': " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if (in_word)
+					in_word = false;
+				
+				section = wordbuffer;
+				wordbuffer.clear();
+			}
+			else if (ch == '}')
+			{
+				if (!section.length())
+				{
+					errorstream << "Stray '}': " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				if ((wordbuffer.length() != 0) || (itemname.length() != 0))
+				{
+					errorstream << "Unexpected end of section: " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				section.clear();
+			}
+			else if ((ch == ';') || (ch == '\r'))
+			{
+				// Ignore
+				continue;
+			}
+			else if ((ch == ' ') || (ch == '\t'))
+			{
+				// Terminate word
+				if (in_word)
+					in_word = false;
 			}
 			else
 			{
-				errorstream << "End of file after a \\, what did you want to escape?: " << filename << ":" << linenumber << std::endl;
-				if (!scan_for_includes_only)
-					delete conf;
+				if (!in_word && (wordbuffer.length() != 0))
+				{
+					errorstream << "Unexpected word: " << filename << ":" << linenumber << std::endl;
+					return false;
+				}
+				
+				wordbuffer += ch;
+				in_word = true;
+			}
+		}
+		
+		if (in_quote)
+		{
+			// Quotes can span multiple lines; all we need to do is go to the next line without clearing things
+			wordbuffer += "\n";
+			continue;
+		}
+		
+		in_word = false;
+		
+		if (itemname.length() != 0)
+		{
+			if (!wordbuffer.length())
+			{
+				errorstream << "Item without value: " << filename << ":" << linenumber << std::endl;
 				return false;
 			}
-		}
-
-		if (ch != '\r')
-			line += ch;
-
-		if (ch == '<')
-		{
-			if (in_tag)
-			{
-				if (!in_quote)
-				{
-					errorstream << "Got another opening < when the first one wasn't closed: " << filename << ":" << linenumber << std::endl;
-					if (!scan_for_includes_only)
-						delete conf;
-					return false;
-				}
-			}
-			else
-			{
-				if (in_quote)
-				{
-					errorstream << "We're in a quote but outside a tag, interesting. " << filename << ":" << linenumber << std::endl;
-					if (!scan_for_includes_only)
-						delete conf;
-					return false;
-				}
-				else
-				{
-					// errorstream << "Opening new config tag on line " << linenumber << std::endl;
-					in_tag = true;
-				}
-			}
-		}
-		else if (ch == '"')
-		{
-			if (in_tag)
-			{
-				if (in_quote)
-				{
-					// errorstream << "Closing quote in config tag on line " << linenumber << std::endl;
-					in_quote = false;
-				}
-				else
-				{
-					// errorstream << "Opening quote in config tag on line " << linenumber << std::endl;
-					in_quote = true;
-				}
-			}
-			else
-			{
-				if (in_quote)
-				{
-					errorstream << "Found a (closing) \" outside a tag: " << filename << ":" << linenumber << std::endl;
-				}
-				else
-				{
-					errorstream << "Found a (opening) \" outside a tag: " << filename << ":" << linenumber << std::endl;
-				}
-			}
-		}
-		else if (ch == '>')
-		{
-			if (!in_quote)
-			{
-				if (in_tag)
-				{
-					// errorstream << "Closing config tag on line " << linenumber << std::endl;
-					in_tag = false;
-
-					/*
-					 * If this finds an <include> then ParseLine can simply call
-					 * LoadConf() and load the included config into the same ConfigDataHash
-					 */
-
-					if (!this->ParseLine(target, line, linenumber, errorstream, pass, scan_for_includes_only))
-					{
-						if (!scan_for_includes_only)
-							delete conf;
-						return false;
-					}
-
-					line.clear();
-				}
-				else
-				{
-					errorstream << "Got a closing > when we weren't inside a tag: " << filename << ":" << linenumber << std::endl;
-					if (!scan_for_includes_only)
-						delete conf;
-					return false;
-				}
-			}
+			
+			ServerInstance->Log(DEBUG, "ln %d EOL: s='%s' '%s' set to '%s'", linenumber, section.c_str(), itemname.c_str(), wordbuffer.c_str());
+			wordbuffer.clear();
+			itemname.clear();
 		}
 	}
-
-	/* Fix for bug #392 - if we reach the end of a file and we are still in a quote or comment, most likely the user fucked up */
-	if (in_comment || in_quote)
+	
+	if (in_ml_comment)
 	{
-		errorstream << "Reached end of file whilst still inside a quoted section or tag. This is most likely an error or there \
-			is a newline missing from the end of the file: " << filename << ":" << linenumber << std::endl;
+		errorstream << "Unterminated multiline comment at end of file: " << filename << std::endl;
+		return false;
+	}
+	
+	if (in_quote)
+	{
+		errorstream << "Unterminated quote at end of file: " << filename << std::endl;
+		return false;
+	}
+	
+	if ((itemname.length() != 0) || (wordbuffer.length() != 0))
+	{
+		errorstream << "Unexpected garbage at end of file: " << filename << std::endl;
+		return false;
+	}
+	
+	if (section.length() != 0)
+	{
+		errorstream << "Unterminated section at end of file: " << filename << std::endl;
+		return false;
 	}
 
-	if (!scan_for_includes_only)
-		delete conf;
 	return true;
 }
 
-bool ServerConfig::LoadConf(ConfigDataHash &target, const std::string &filename, std::ostringstream &errorstream, int pass, std::istream* scan_for_includs_only)
+bool ServerConfig::LoadConf(ConfigDataHash &target, const std::string &filename, std::ostringstream &errorstream)
 {
-	return this->LoadConf(target, filename.c_str(), errorstream, pass, scan_for_includs_only);
+	return this->LoadConf(target, filename.c_str(), errorstream);
 }
 
-bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &linenumber, std::ostringstream &errorstream, int pass, std::istream* scan_for_includes_only)
+bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &linenumber, std::ostringstream &errorstream)
 {
 	std::string tagname;
 	std::string current_key;
@@ -1084,8 +999,7 @@ bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &li
 					else
 					{
 						/* Leaving quotes, we have the value */
-						if (!scan_for_includes_only)
-							results.push_back(KeyVal(current_key, current_value));
+						results.push_back(KeyVal(current_key, current_value));
 
 						// std::cout << "<" << tagname << ":" << current_key << "> " << current_value << std::endl;
 
@@ -1094,7 +1008,7 @@ bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &li
 
 						if ((tagname == "include") && (current_key == "file"))
 						{	
-							if (!this->DoInclude(target, current_value, errorstream, pass, scan_for_includes_only))
+							if (!this->DoInclude(target, current_value, errorstream))
 								return false;
 						}
 
@@ -1114,13 +1028,12 @@ bool ServerConfig::ParseLine(ConfigDataHash &target, std::string &line, long &li
 	}
 
 	/* Finished parsing the tag, add it to the config hash */
-	if (!scan_for_includes_only)
-		target.insert(std::pair<std::string, KeyValList > (tagname, results));
+	target.insert(std::pair<std::string, KeyValList > (tagname, results));
 
 	return true;
 }
 
-bool ServerConfig::DoInclude(ConfigDataHash &target, const std::string &file, std::ostringstream &errorstream, int pass, std::istream* scan_for_includes_only)
+bool ServerConfig::DoInclude(ConfigDataHash &target, const std::string &file, std::ostringstream &errorstream)
 {
 	std::string confpath;
 	std::string newfile;
@@ -1146,7 +1059,7 @@ bool ServerConfig::DoInclude(ConfigDataHash &target, const std::string &file, st
 		}
 	}
 
-	return LoadConf(target, newfile, errorstream, pass, scan_for_includes_only);
+	return LoadConf(target, newfile, errorstream);
 }
 
 bool ServerConfig::ConfValue(ConfigDataHash &target, const char* tag, const char* var, int index, char* result, int length, bool allow_linefeeds)

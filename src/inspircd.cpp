@@ -361,15 +361,7 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 	SE->RecoverFromFork();
 
-	/* Read config, pass 0. At the end if this pass,
-	 * the Config->IncludeFiles is populated, we call
-	 * Config->StartDownloads to initialize the downlaods of all
-	 * these files.
-	 */
-	Config->Read(true, NULL, 0);
-	Config->DoDownloads();
-	/* We have all the files we can get, initiate pass 1 */
-	Config->Read(true, NULL, 1);
+	Config->Read(true);
 
 	CheckDie();
 	int bounditems = BindPorts(true, found_ports, pl);
