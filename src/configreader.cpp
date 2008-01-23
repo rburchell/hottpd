@@ -12,6 +12,7 @@
  */
 
 /* $Core: libIRCDconfigreader */
+/* $CopyInstall: docs/hottpd.conf.example $(CONPATH) */
 
 #include "inspircd.h"
 #include <fstream>

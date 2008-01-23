@@ -1,0 +1,18 @@
+/* Example config for hottpd */
+server
+{
+	#softlimit = 1024
+	#somaxconn = 128
+	#loglevel = "default"
+	#netbuffersize = 10240
+	#moduledir = "/path/to/modules"
+	#customversion = "Apache :P"
+	#pidfile = "/path/to/pid"
+}
+
+bind
+{
+	address = 127.0.0.1
+	port = 80
+	type = "clients"
+}
