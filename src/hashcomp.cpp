@@ -24,230 +24,15 @@
 using stdext::hash_map;
 #endif
 
-/******************************************************
- *
- * The hash functions of InspIRCd are the centrepoint
- * of the entire system. If these functions are
- * inefficient or wasteful, the whole program suffers
- * as a result. A lot of C programmers in the ircd
- * scene spend a lot of time debating (arguing) about
- * the best way to write hash functions to hash irc
- * nicknames, channels etc.
- * We are lucky as C++ developers as hash_map does
- * a lot of this for us. It does intellegent memory
- * requests, bucketing, search functions, insertion
- * and deletion etc. All we have to do is write some
- * overloaded comparison and hash value operators which
- * cause it to act in an irc-like way. The features we
- * add to the standard hash_map are:
- *
- * Case insensitivity: The hash_map will be case
- * insensitive.
- *
- * Scandanavian Comparisons: The characters [, ], \ will
- * be considered the lowercase of {, } and |.
- *
- ******************************************************/
+using namespace utils::sockets;
 
-using namespace irc::sockets;
-
-/* convert a string to lowercase. Note following special circumstances
- * taken from RFC 1459. Many "official" server branches still hold to this
- * rule so i will too;
- *
- *  Because of IRC's scandanavian origin, the characters {}| are
- *  considered to be the lower case equivalents of the characters []\,
- *  respectively. This is a critical issue when determining the
- *  equivalence of two nicknames.
- */
-void nspace::strlower(char *n)
-{
-	if (n)
-	{
-		for (char* t = n; *t; t++)
-			*t = lowermap[(unsigned char)*t];
-	}
-}
-
-#ifndef WIN32
-size_t nspace::hash<string>::operator()(const string &s) const
-#else
-size_t nspace::hash_compare<string, std::less<string> >::operator()(const string &s) const
-#endif
-{
-	/* XXX: NO DATA COPIES! :)
-	 * The hash function here is practically
-	 * a copy of the one in STL's hash_fun.h,
-	 * only with *x replaced with lowermap[*x].
-	 * This avoids a copy to use hash<const char*>
-	 */
-	register size_t t = 0;
-	for (std::string::const_iterator x = s.begin(); x != s.end(); ++x) /* ++x not x++, as its faster */
-		t = 5 * t + lowermap[(unsigned char)*x];
-	return t;
-}
-
-#ifndef WIN32
-size_t nspace::hash<irc::string>::operator()(const irc::string &s) const
-#else
-size_t nspace::hash_compare<irc::string, std::less<irc::string> >::operator()(const irc::string &s) const
-#endif
-{
-	register size_t t = 0;
-	for (irc::string::const_iterator x = s.begin(); x != s.end(); ++x) /* ++x not x++, as its faster */
-		t = 5 * t + lowermap[(unsigned char)*x];
-	return t;
-}
-
-bool irc::StrHashComp::operator()(const std::string& s1, const std::string& s2) const
-{
-	unsigned char* n1 = (unsigned char*)s1.c_str();
-	unsigned char* n2 = (unsigned char*)s2.c_str();
-	for (; *n1 && *n2; n1++, n2++)
-		if (lowermap[*n1] != lowermap[*n2])
-			return false;
-	return (lowermap[*n1] == lowermap[*n2]);
-}
-
-/******************************************************
- *
- * This is the implementation of our special irc::string
- * class which is a case-insensitive equivalent to
- * std::string which is not only case-insensitive but
- * can also do scandanavian comparisons, e.g. { = [, etc.
- *
- * This class depends on the const array 'lowermap'.
- *
- ******************************************************/
-
-bool irc::irc_char_traits::eq(char c1st, char c2nd)
-{
-	return lowermap[(unsigned char)c1st] == lowermap[(unsigned char)c2nd];
-}
-
-bool irc::irc_char_traits::ne(char c1st, char c2nd)
-{
-	return lowermap[(unsigned char)c1st] != lowermap[(unsigned char)c2nd];
-}
-
-bool irc::irc_char_traits::lt(char c1st, char c2nd)
-{
-	return lowermap[(unsigned char)c1st] < lowermap[(unsigned char)c2nd];
-}
-
-int irc::irc_char_traits::compare(const char* str1, const char* str2, size_t n)
-{
-	for(unsigned int i = 0; i < n; i++)
-	{
-		if(lowermap[(unsigned char)*str1] > lowermap[(unsigned char)*str2])
-			return 1;
-
-		if(lowermap[(unsigned char)*str1] < lowermap[(unsigned char)*str2])
-			return -1;
-
-		if(*str1 == 0 || *str2 == 0)
-		   	return 0;
-
-		str1++;
-		str2++;
-	}
-	return 0;
-}
-
-const char* irc::irc_char_traits::find(const char* s1, int  n, char c)
-{
-	while(n-- > 0 && lowermap[(unsigned char)*s1] != lowermap[(unsigned char)c])
-		s1++;
-	return s1;
-}
-
-irc::tokenstream::tokenstream(const std::string &source) : tokens(source), last_pushed(false)
-{
-	/* Record starting position and current position */
-	last_starting_position = tokens.begin();
-	n = tokens.begin();
-}
-
-irc::tokenstream::~tokenstream()
-{
-}
-
-bool irc::tokenstream::GetToken(std::string &token)
-{
-	std::string::iterator lsp = last_starting_position;
-
-	while (n != tokens.end())
-	{
-		/** Skip multi space, converting "  " into " "
-		 */
-		while ((n+1 != tokens.end()) && (*n == ' ') && (*(n+1) == ' '))
-			n++;
-
-		if ((last_pushed) && (*n == ':'))
-		{
-			/* If we find a token thats not the first and starts with :,
-			 * this is the last token on the line
-			 */
-			std::string::iterator curr = ++n;
-			n = tokens.end();
-			token = std::string(curr, tokens.end());
-			return true;
-		}
-
-		last_pushed = false;
-
-		if ((*n == ' ') || (n+1 == tokens.end()))
-		{
-			/* If we find a space, or end of string, this is the end of a token.
-			 */
-			last_starting_position = n+1;
-			last_pushed = true;
-
-			std::string strip(lsp, n+1 == tokens.end() ? n+1  : n++);
-			while ((strip.length()) && (strip.find_last_of(' ') == strip.length() - 1))
-				strip.erase(strip.end() - 1);
-
-			token = strip;
-			return !token.empty();
-		}
-
-		n++;
-	}
-	token.clear();
-	return false;
-}
-
-bool irc::tokenstream::GetToken(irc::string &token)
-{
-	std::string stdstring;
-	bool returnval = GetToken(stdstring);
-	token = assign(stdstring);
-	return returnval;
-}
-
-bool irc::tokenstream::GetToken(int &token)
-{
-	std::string tok;
-	bool returnval = GetToken(tok);
-	token = ConvToInt(tok);
-	return returnval;
-}
-
-bool irc::tokenstream::GetToken(long &token)
-{
-	std::string tok;
-	bool returnval = GetToken(tok);
-	token = ConvToInt(tok);
-	return returnval;
-}
-
-irc::sepstream::sepstream(const std::string &source, char seperator) : tokens(source), sep(seperator)
+utils::sepstream::sepstream(const std::string &source, char seperator) : tokens(source), sep(seperator)
 {
 	last_starting_position = tokens.begin();
 	n = tokens.begin();
 }
 
-bool irc::sepstream::GetToken(std::string &token)
+bool utils::sepstream::GetToken(std::string &token)
 {
 	std::string::iterator lsp = last_starting_position;
 
@@ -274,21 +59,21 @@ bool irc::sepstream::GetToken(std::string &token)
 	return false;
 }
 
-const std::string irc::sepstream::GetRemaining()
+const std::string utils::sepstream::GetRemaining()
 {
 	return std::string(n, tokens.end());
 }
 
-bool irc::sepstream::StreamEnd()
+bool utils::sepstream::StreamEnd()
 {
 	return ((n + 1) == tokens.end());
 }
 
-irc::sepstream::~sepstream()
+utils::sepstream::~sepstream()
 {
 }
 
-std::string irc::hex(const unsigned char *raw, size_t rawsz)
+std::string utils::hex(const unsigned char *raw, size_t rawsz)
 {
 	if (!rawsz)
 		return "";
@@ -309,55 +94,44 @@ std::string irc::hex(const unsigned char *raw, size_t rawsz)
 	return hexbuf;
 }
 
-CoreExport const char* irc::Spacify(const char* n)
-{
-	static char x[MAXBUF];
-	strlcpy(x,n,MAXBUF);
-	for (char* y = x; *y; y++)
-		if (*y == '_')
-			*y = ' ';
-	return x;
-}
-
-
-irc::stringjoiner::stringjoiner(const std::string &seperator, const std::vector<std::string> &sequence, int begin, int end)
+utils::stringjoiner::stringjoiner(const std::string &seperator, const std::vector<std::string> &sequence, int begin, int end)
 {
 	for (int v = begin; v < end; v++)
 		joined.append(sequence[v]).append(seperator);
 	joined.append(sequence[end]);
 }
 
-irc::stringjoiner::stringjoiner(const std::string &seperator, const std::deque<std::string> &sequence, int begin, int end)
+utils::stringjoiner::stringjoiner(const std::string &seperator, const std::deque<std::string> &sequence, int begin, int end)
 {
 	for (int v = begin; v < end; v++)
 		joined.append(sequence[v]).append(seperator);
 	joined.append(sequence[end]);
 }
 
-irc::stringjoiner::stringjoiner(const std::string &seperator, const char** sequence, int begin, int end)
+utils::stringjoiner::stringjoiner(const std::string &seperator, const char** sequence, int begin, int end)
 {
 	for (int v = begin; v < end; v++)
 		joined.append(sequence[v]).append(seperator);
 	joined.append(sequence[end]);
 }
 
-std::string& irc::stringjoiner::GetJoined()
+std::string& utils::stringjoiner::GetJoined()
 {
 	return joined;
 }
 
-irc::portparser::portparser(const std::string &source, bool allow_overlapped) : in_range(0), range_begin(0), range_end(0), overlapped(allow_overlapped)
+utils::portparser::portparser(const std::string &source, bool allow_overlapped) : in_range(0), range_begin(0), range_end(0), overlapped(allow_overlapped)
 {
-	sep = new irc::commasepstream(source);
+	sep = new utils::commasepstream(source);
 	overlap_set.clear();
 }
 
-irc::portparser::~portparser()
+utils::portparser::~portparser()
 {
 	delete sep;
 }
 
-bool irc::portparser::Overlaps(long val)
+bool utils::portparser::Overlaps(long val)
 {
 	if (!overlapped)
 		return false;
@@ -371,7 +145,7 @@ bool irc::portparser::Overlaps(long val)
 		return true;
 }
 
-long irc::portparser::GetToken()
+long utils::portparser::GetToken()
 {
 	if (in_range > 0)
 	{
@@ -432,7 +206,7 @@ long irc::portparser::GetToken()
 	}
 }
 
-irc::dynamicbitmask::dynamicbitmask() : bits_size(4)
+utils::dynamicbitmask::dynamicbitmask() : bits_size(4)
 {
 	/* We start with 4 bytes allocated which is room
 	 * for 4 items. Something makes me doubt its worth
@@ -442,13 +216,13 @@ irc::dynamicbitmask::dynamicbitmask() : bits_size(4)
 	memset(bits, 0, bits_size);
 }
 
-irc::dynamicbitmask::~dynamicbitmask()
+utils::dynamicbitmask::~dynamicbitmask()
 {
 	/* Tidy up the entire used memory on delete */
 	delete[] bits;
 }
 
-irc::bitfield irc::dynamicbitmask::Allocate()
+utils::bitfield utils::dynamicbitmask::Allocate()
 {
 	/* Yeah, this isnt too efficient, however a module or the core
 	 * should only be allocating bitfields on load, the Toggle and
@@ -505,7 +279,7 @@ irc::bitfield irc::dynamicbitmask::Allocate()
 	return std::make_pair(old_bits_size, 1);
 }
 
-bool irc::dynamicbitmask::Deallocate(irc::bitfield &pos)
+bool utils::dynamicbitmask::Deallocate(utils::bitfield &pos)
 {
 	/* We dont bother to shrink the bitfield
 	 * on deallocation, the most we could do
@@ -526,7 +300,7 @@ bool irc::dynamicbitmask::Deallocate(irc::bitfield &pos)
 	return false;
 }
 
-void irc::dynamicbitmask::Toggle(irc::bitfield &pos, bool state)
+void utils::dynamicbitmask::Toggle(utils::bitfield &pos, bool state)
 {
 	/* Range check the value */
 	if (pos.first < bits_size)
@@ -540,7 +314,7 @@ void irc::dynamicbitmask::Toggle(irc::bitfield &pos, bool state)
 	}
 }
 
-bool irc::dynamicbitmask::Get(irc::bitfield &pos)
+bool utils::dynamicbitmask::Get(utils::bitfield &pos)
 {
 	/* Range check the value */
 	if (pos.first < bits_size)
@@ -550,10 +324,10 @@ bool irc::dynamicbitmask::Get(irc::bitfield &pos)
 		 * distinguish between failure and a cleared bit!
 		 * Our only sensible choice is to throw (ew).
 		 */
-		throw ModuleException("irc::dynamicbitmask::Get(): Invalid bitfield, out of range");
+		throw ModuleException("utils::dynamicbitmask::Get(): Invalid bitfield, out of range");
 }
 
-unsigned char irc::dynamicbitmask::GetSize()
+unsigned char utils::dynamicbitmask::GetSize()
 {
 	return bits_size;
 }

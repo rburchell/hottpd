@@ -35,9 +35,9 @@
 #include "socket.h"
 #include "exitcodes.h"
 
-using irc::sockets::insp_ntoa;
-using irc::sockets::insp_inaddr;
-using irc::sockets::insp_sockaddr;
+using utils::sockets::insp_ntoa;
+using utils::sockets::insp_inaddr;
+using utils::sockets::insp_sockaddr;
 
 InspIRCd* SI = NULL;
 int* mysig = NULL;

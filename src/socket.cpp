@@ -18,7 +18,7 @@
 
 ListenSocket::ListenSocket(InspIRCd* Instance, int port, char* addr) : ServerInstance(Instance), desc("plaintext"), bind_addr(addr), bind_port(port)
 {
-	this->SetFd(irc::sockets::OpenTCPSocket(addr));
+	this->SetFd(utils::sockets::OpenTCPSocket(addr));
 	if (this->GetFd() > -1)
 	{
 		if (!Instance->BindSocket(this->fd,port,addr))
@@ -235,7 +235,7 @@ bool InspIRCd::BindSocket(int sockfd, int port, char* addr, bool dolisten)
 }
 
 // Open a TCP Socket
-int irc::sockets::OpenTCPSocket(char* addr, int socktype)
+int utils::sockets::OpenTCPSocket(char* addr, int socktype)
 {
 	int sockfd;
 	int on = 1;
@@ -283,7 +283,7 @@ int InspIRCd::BindPorts(bool, int &ports_found, FailedPortList &failed_ports)
 		if (strncmp(Addr, "::ffff:", 7) == 0)
 			this->Log(DEFAULT, "Using 4in6 (::ffff:) isn't recommended. You should bind IPv4 addresses directly instead.");
 		
-		irc::portparser portrange(configToken, false);
+		utils::portparser portrange(configToken, false);
 		int portno = -1;
 		while ((portno = portrange.GetToken()))
 		{
@@ -345,14 +345,14 @@ int InspIRCd::BindPorts(bool, int &ports_found, FailedPortList &failed_ports)
 	return bound;
 }
 
-const char* irc::sockets::insp_ntoa(insp_inaddr n)
+const char* utils::sockets::insp_ntoa(insp_inaddr n)
 {
 	static char buf[1024];
 	inet_ntop(AF_FAMILY, &n, buf, sizeof(buf));
 	return buf;
 }
 
-int irc::sockets::insp_aton(const char* a, insp_inaddr* n)
+int utils::sockets::insp_aton(const char* a, insp_inaddr* n)
 {
 	return inet_pton(AF_FAMILY, a, n);
 }

@@ -17,7 +17,7 @@
 #include "hashcomp.h"
 #include "inspstring.h"
 
-using irc::sockets::MatchCIDR;
+using utils::sockets::MatchCIDR;
 
 // Wed 27 Apr 2005 - Brain
 // I've taken our our old wildcard routine -
@@ -86,7 +86,7 @@ CoreExport bool match(const char *str, const char *mask)
 
 	while ((*string) && (*wild != '*'))
 	{
-		if ((lowermap[*wild] != lowermap[*string]) && (*wild != '?'))
+		if ((tolower(*wild) != tolower(*string)) && (*wild != '?'))
 		{
 			return 0;
 		}
@@ -106,7 +106,7 @@ CoreExport bool match(const char *str, const char *mask)
 			cp = string+1;
 		}
 		else
-		if ((lowermap[*wild] == lowermap[*string]) || (*wild == '?'))
+		if ((tolower(*wild) == tolower(*string)) || (*wild == '?'))
 		{
 			wild++;
 			string++;

@@ -230,7 +230,7 @@ void Connection::HandleURI()
 	if (uri[0] != '/')
 		return;
 	
-	irc::sepstream sep(uri, '/');
+	utils::sepstream sep(uri, '/');
 	std::string ptoken;
 	
 	std::string sanepath = "/";

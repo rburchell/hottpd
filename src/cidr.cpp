@@ -31,7 +31,7 @@ const unsigned char inverted_bits[8] = {	0x00, /* 00000000 - 0 bits - never actu
 };
 
 /* Match raw bytes using CIDR bit matching, used by higher level MatchCIDR() */
-bool irc::sockets::MatchCIDRBits(unsigned char* address, unsigned char* mask, unsigned int mask_bits)
+bool utils::sockets::MatchCIDRBits(unsigned char* address, unsigned char* mask, unsigned int mask_bits)
 {
 	unsigned int divisor = mask_bits / 8; /* Number of whole bytes in the mask */
 	unsigned int modulus = mask_bits % 8; /* Remaining bits in the mask after whole bytes are dealt with */
@@ -51,7 +51,7 @@ bool irc::sockets::MatchCIDRBits(unsigned char* address, unsigned char* mask, un
 }
 
 /* Match CIDR, but dont attempt to match() against leading *!*@ sections */
-bool irc::sockets::MatchCIDR(const char* address, const char* cidr_mask)
+bool utils::sockets::MatchCIDR(const char* address, const char* cidr_mask)
 {
 	return MatchCIDR(address, cidr_mask, false);
 }
@@ -63,7 +63,7 @@ bool irc::sockets::MatchCIDR(const char* address, const char* cidr_mask)
  * This will also attempt to match any leading usernames or nicknames on the mask, using
  * match(), when match_with_username is true.
  */
-bool irc::sockets::MatchCIDR(const char* address, const char* cidr_mask, bool match_with_username)
+bool utils::sockets::MatchCIDR(const char* address, const char* cidr_mask, bool match_with_username)
 {
 	unsigned char addr_raw[16];
 	unsigned char mask_raw[16];

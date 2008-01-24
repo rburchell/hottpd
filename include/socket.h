@@ -37,8 +37,7 @@
 #include "inspircd_config.h"
 #include "socketengine.h"
 
-/* Contains irc-specific definitions */
-namespace irc
+namespace utils
 {
 	/** This namespace contains various protocol-independent helper classes.
 	 * It also contains some types which are often used by the core and modules
