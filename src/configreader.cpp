@@ -380,7 +380,7 @@ void ServerConfig::Read(bool bail)
 		{"server",  "follow-symlinks", "yes", new ValueContainerBool(&this->FollowSymLinks), DT_BOOLEAN, NoValidation},
 		{"performance", "stat-cache-time", "2", new ValueContainerInt(&this->StatCacheDuration), DT_INTEGER, NoValidation},
 		{"performance", "noatime", "yes", new ValueContainerBool(&this->NoAtime), DT_BOOLEAN, NoValidation},
-		{"performance", "max-conn-queue", SOMAXCONN_S, new ValidContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},
+		{"performance", "max-conn-queue", SOMAXCONN_S, new ValueContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 

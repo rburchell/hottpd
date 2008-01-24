@@ -36,6 +36,9 @@ class CoreExport FileSystem
 	 * entries! Right now, any file that is requested once will use up memory forever.
 	 */
 	std::map<std::string,StatCacheItem*> StatCache;
+	
+	/* Static buffer used for stat results when caching is disabled */
+	struct stat static_stat;
  public:
 	FileSystem(InspIRCd *Instance);
 	

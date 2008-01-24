@@ -271,6 +271,27 @@ void Connection::ServeData()
 
 	if (method == "GET")
 	{
+		// Check if the file exists
+		struct stat *fst;
+		if (ServerInstance->FileSys->Stat(upath.c_str(), fst) < 0)
+		{
+			if (errno == EACCES)
+				this->SendError(403, "Forbidden");
+			else if ((errno == ENOENT) || (errno == ELOOP) || (errno == ENAMETOOLONG) || (errno == ENOTDIR))
+				this->SendError(404, "File Not Found");
+			else
+				this->SendError(500, "Internal Server Error");
+			return;
+		}
+		
+		// XXX will stat() follow the symlink if the file is one? If not, we need to do this check on the real file
+		if (!S_ISREG(fst->st_mode))
+		{
+			// This isn't a normal file
+			this->SendError(403, "Forbidden");
+			return;
+		}
+		
 		if (!ServerInstance->FOpen->Request(upath))
 		{
 			// error 404, or whatever.

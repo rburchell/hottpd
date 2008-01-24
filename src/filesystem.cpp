@@ -24,7 +24,8 @@ int FileSystem::Stat(const char *path, struct stat *&buf, bool fromcache)
 	if (ServerInstance->Config->StatCacheDuration < 1)
 	{
 		// Cache disabled; simply wrap the call
-		return -1;
+		buf = &this->static_stat;
+		return stat(path, &this->static_stat);
 	}
 	
 	std::map<std::string,StatCacheItem*>::iterator it = StatCache.find(path);
@@ -37,7 +38,7 @@ int FileSystem::Stat(const char *path, struct stat *&buf, bool fromcache)
 		if (v->result < 0)
 			expire = v->created + 1;
 		
-		if (fromcache && (expire < ServerInstance->Time()))
+		if (fromcache && (expire > ServerInstance->Time()))
 		{
 			ServerInstance->Log(DEBUG, "Providing stat result from cache for %s", path);
 			
