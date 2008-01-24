@@ -220,7 +220,6 @@ void Connection::CheckRequest(int newpos)
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
 		keepalive = false;
 	
-	HandleURI();
 	
 	ServeData();
  }
@@ -271,6 +270,8 @@ void Connection::ServeData()
 
 	if (method == "GET")
 	{
+		HandleURI();
+		
 		// Check if the file exists
 		struct stat *fst;
 		if (ServerInstance->FileSys->Stat(upath.c_str(), fst) < 0)
