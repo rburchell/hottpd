@@ -86,7 +86,8 @@ void FileLogger::Close()
 			fprintf(log,"%s",buffer.c_str());
 
 #ifndef WINDOWS
-		ServerInstance->SE->DelFd(this);
+		if (ServerInstance->SE->HasFd(this->GetFd()))
+			ServerInstance->SE->DelFd(this);
 #endif
 
 		fflush(log);
