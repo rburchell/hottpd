@@ -87,10 +87,7 @@ my %extrasources = ();
 GetOptions (
 	'enable-gnutls' => \$opt_use_gnutls,
 	'rebuild' => \$opt_rebuild,
-	'enable-openssl' => \$opt_use_openssl,
 	'disable-interactive' => \$opt_nointeractive,
-	'with-nick-length=i' => \$opt_nick_length,
-	'with-channel-length=i' => \$opt_chan_length,
 	'with-max-clients=i' => \$opt_maxclients,
 	'enable-ports' => \$opt_ports,
 	'enable-epoll' => \$opt_epoll,
@@ -103,14 +100,6 @@ GetOptions (
 	'enable-remote-ipv6' => \$opt_ipv6links,
 	'disable-remote-ipv6' => \$opt_noipv6links,
 	'with-cc=s' => \$opt_cc,
-	'with-ident-length=i' => \$opt_ident,
-	'with-quit-length=i' => \$opt_quit,
-	'with-topic-length=i' => \$opt_topic,
-	'with-maxbuf=i' => \$opt_maxbuf,
-	'with-kick-length=i' => \$opt_kick,
-	'with-gecos-length=i' => \$opt_gecos,
-	'with-away-length=i' => \$opt_away,
-	'with-max-modes=i' => \$opt_modes,
 	'prefix=s' => \$opt_base_dir,
 	'config-dir=s' => \$opt_config_dir,
 	'module-dir=s' => \$opt_module_dir,
@@ -132,14 +121,7 @@ my $non_interactive = (
 	(defined $opt_base_dir) ||
 	(defined $opt_binary_dir) ||
 	(defined $opt_nointeractive) ||
-	(defined $opt_away) ||
-	(defined $opt_gecos) ||
-	(defined $opt_kick) ||
 	(defined $opt_maxclients) ||
-	(defined $opt_modes) ||
-	(defined $opt_topic) ||
-	(defined $opt_quit) ||
-	(defined $opt_ident) ||
 	(defined $opt_cc) ||
 	(defined $opt_ipv6) ||
 	(defined $opt_ipv6links) ||
@@ -147,15 +129,9 @@ my $non_interactive = (
 	(defined $opt_kqueue) ||
 	(defined $opt_epoll) ||
 	(defined $opt_ports) ||
-	(defined $opt_maxchans) ||
-	(defined $opt_opermaxchans) ||
-	(defined $opt_chan_length) ||
-	(defined $opt_nick_length) ||
-	(defined $opt_use_openssl) ||
 	(defined $opt_nokqueue) ||
 	(defined $opt_noepoll) ||
 	(defined $opt_noports) ||
-	(defined $opt_maxbuf) ||
 	(defined $opt_use_gnutls)
 );
 my $interactive = !$non_interactive;
@@ -196,18 +172,11 @@ if (defined $opt_library_dir)
 	$config{LIBRARY_DIR} = $opt_library_dir;
 }
 chomp($config{HAS_GNUTLS}   = `libgnutls-config --version 2>/dev/null | cut -c 1,2,3`); # GNUTLS Version.
-chomp($config{HAS_OPENSSL}  = `pkg-config --modversion openssl 2>/dev/null`);		# Openssl version
 chomp($gnutls_ver = $config{HAS_GNUTLS});
-chomp($openssl_ver = $config{HAS_OPENSSL});
 $config{USE_GNUTLS}	    = "n";
 if (defined $opt_use_gnutls)
 {
 	$config{USE_GNUTLS} = "y";					# Use gnutls.
-}
-$config{USE_OPENSSL}	= "n";						# Use openssl.
-if (defined $opt_use_openssl)
-{
-	$config{USE_OPENSSL} = "y";
 }
 
 # no, let's not change these.
@@ -221,21 +190,6 @@ else
 	$config{OPTIMISATI}	 = "-O2";				# DEBUGGING OFF!
 }
 
-$config{NICK_LENGT}	 = "31";			     		# Default Nick Length
-if (defined $opt_nick_length)
-{
-	$config{NICK_LENGT} = $opt_nick_length;
-}
-$config{CHAN_LENGT}	 = "64";			     		# Default Channel Name Length
-if (defined $opt_chan_length)
-{
-	$config{CHAN_LENGT} = $opt_chan_length;
-}
-$config{MAXI_MODES}	 = "20";			     		# Default Max. Number of Modes set at once.
-if (defined $opt_modes)
-{
-	$config{MAXI_MODES} = $opt_modes;
-}
 $config{HAS_STRLCPY}	= "false";			  		# strlcpy Check.
 $config{HAS_STDINT}	 = "false";					# stdint.h check
 $config{USE_KQUEUE}	 = "y";						# kqueue enabled
@@ -303,40 +257,7 @@ if (defined $opt_cc)
 $exec = $config{CC} . " -dumpversion | cut -c 1";
 chomp($config{GCCVER}		= `$exec`);				# Major GCC Version
 $config{MAKEORDER}		= "ircd mods";				# build order
-$config{MAX_IDENT}		= "12";					# max ident size
-$config{MAX_QUIT}		= "255";				# max quit message size
-$config{MAX_TOPIC}		= "307";				# max topic size
-$config{MAX_KICK}		= "255";				# max kick message size
-$config{MAX_GECOS}		= "128";				# max GECOS size
-$config{MAX_AWAY}		= "200";				# max AWAY size
 $config{MAXBUF}			= "512";				# Max buffer size
-if (defined $opt_ident)
-{
-	$config{MAX_IDENT} = $opt_ident;
-}
-if (defined $opt_quit)
-{
-	$config{MAX_QUIT} = $opt_quit;
-}
-if (defined $opt_topic)
-{
-	$config{MAX_TOPIC} = $opt_topic;
-}
-if (defined $opt_kick)
-{
-	$config{MAX_KICK} = $opt_kick;
-}
-if (defined $opt_gecos)
-{
-	$config{MAX_GECOS} = $opt_gecos;
-}
-if (defined $opt_away)
-{
-	$config{MAX_AWAY} = $opt_away;
-}
-
-$config{HAS_OPENSSL} =~ /^([-[:digit:].]+)([a-z])?(\-[a-z][0-9])?$/;
-$config{HAS_OPENSSL} = $1;
 
 if ($config{GCCVER} eq "") {
 	print $config{CC} . " was not found! You require g++ (the GNU C++ compiler, part of GCC) to build hottpd!\n";
@@ -602,15 +523,6 @@ if (($config{HAS_GNUTLS}) || ($config{HAS_GNUTLS} eq "y")) {
 	$config{HAS_GNUTLS} = "n";
 }
 
-printf "Checking for openssl... ";
-if (($config{HAS_OPENSSL}) || ($config{HAS_OPENSSL} eq "y")) {
-	print "yes\n";
-	$config{HAS_OPENSSL} = "y";
-} else {
-	print "no\n";
-	$config{HAS_OPENSSL} = "n";
-}
-
 printf "Checking if you are running an ancient, unsupported OS... ";
 if ($config{OSNAME} =~ /FreeBSD/i)
 {
@@ -747,52 +659,24 @@ should NOT be used. You should probably specify a newer compiler.\n\n";
 		print "\n";
 	}
 
-	if (($config{HAS_GNUTLS} eq "y") && ($config{HAS_OPENSSL} eq "y")) {
-		print "I have detected both \033[1;32mGnuTLS\033[0m and \033[1;32mOpenSSL\033[0m on your system.\n";
-		print "I will default to GnuTLS. If you wish to use OpenSSL\n";
-		print "instead, you should enable the OpenSSL module yourself\n";
-		print "by copying it from src/modules/extra to src/modules.\n\n";
-		print "Detected GnuTLS version: \033[1;32m" . $gnutls_ver . "\033[0m\n";
-		print "Detected OpenSSL version: \033[1;32m" . $openssl_ver . "\033[0m\n\n";
-	}
-
 	if ($config{HAS_GNUTLS} eq "y") {
 		yesno(USE_GNUTLS, "Would you like to enable SSL Support?");
 		if ($config{USE_GNUTLS} eq "y") {
 			print "\nUsing GnuTLS SSL module.\n";
 		}
-	} elsif	($config{HAS_OPENSSL} eq "y") {
-			yesno(USE_OPENSSL, "Would you like to enable SSL Support?");
-	if ($config{USE_OPENSSL} eq "y") {
-			print "\nUsing OpenSSL SSL module.\nYou will get better performance if you move to GnuTLS in the future.\n";
-		}
 	}
 	else {
-		print "\nCould not detect OpenSSL or GnuTLS. Make sure pkg-config is installed if\nyou intend to use OpenSSL, or that GnuTLS is in your path if you intend\nto use GnuTLS.\n\n";
+		print "\nCould not detect GnuTLS. Make sure that GnuTLS is in your path if you intend to use GnuTLS.\n\n";
 	}
 
 	print "\nThe following questions will ask you for various figures relating\n";
-	print "To your IRCd install. Please note that these should usually be left\n";
-	print "as defaults unless you have a real reason to change them. If they\n";
-	print "changed, then the values must be identical on all servers on your\n";
-	print "network, or malfunctions and/or crashes may occur, with the exception\n";
-	print "of the 'maximum number of clients' setting which may be different on\n";
-	print "different servers on the network.\n\n";
+	print "To your HTTPD install. Please note that these should usually be left\n";
+	print "as defaults unless you have a real reason to change them.\n\n";
 
 	# File Descriptor Settings..
-	promptnumeric("number of clients at any one time", "MAX_CLIENT_T");
+	promptnumeric("number of open files at any one time", "MAX_CLIENT_T");
 	$config{MAX_CLIENT} = $config{MAX_CLIENT_T};
 	$config{MAX_DESCRIPTORS} = $config{MAX_CLIENT_T};
-
-	promptnumeric("length of nicknames", "NICK_LENGT");
-	promptnumeric("length of channel names", "CHAN_LENGT");
-	promptnumeric("number of mode changes in one line", "MAXI_MODES");
-	promptnumeric("length of an ident (username)", "MAX_IDENT");
-	promptnumeric("length of a quit message", "MAX_QUIT");
-	promptnumeric("length of a channel topic", "MAX_TOPIC");
-	promptnumeric("length of a kick message", "MAX_KICK");
-	promptnumeric("length of a GECOS (real name)", "MAX_GECOS");
-	promptnumeric("length of an away message", "MAX_AWAY");
 }
 
 dumphash();
@@ -800,11 +684,6 @@ dumphash();
 if (($config{USE_GNUTLS} eq "y") && ($config{HAS_GNUTLS} ne "y"))
 {
 	print "Sorry, but i couldn't detect gnutls. Make sure gnutls-config is in your path.\n";
-	exit(0);
-}
-if (($config{USE_OPENSSL} eq "y") && ($config{HAS_OPENSSL} ne "y"))
-{
-	print "Sorry, but i couldn't detect openssl. Make sure openssl is in your path.\n";
 	exit(0);
 }
 
@@ -853,47 +732,6 @@ if ($config{USE_GNUTLS} eq "y") {
 	{
 		print "Skipping SSL certificate generation\nin non-interactive mode.\n\n";
 	}
-} elsif ($config{USE_OPENSSL} eq "y") {
-	$failed = 0;
-	open(TMP, "<src/modules/m_ssl_openssl.cpp") or $failed = 1;
-	close(TMP);
-	if ($failed) {
-		print "Symlinking src/modules/m_ssl_openssl.cpp from extra/\n";
-		chdir("src/modules");
-		system("ln -s extra/m_ssl_openssl.cpp");
-		chdir("../..");
-	}
-	getmodules();
-	$failed = 0;
-	if ($interactive)
-	{
-		open(TMP, "<$config{CONFIG_DIR}/key.pem") or $failed = 1;
-		close(TMP);
-		open(TMP, "<$config{CONFIG_DIR}/cert.pem") or $failed = 1;
-		close(TMP);
-		if ($failed) {
-			print "SSL Certificates Not found, Generating.. \n\n
-*************************************************************
-* Generating the certificates may take some time, go grab a *
-* coffee, or something.	                                    *
-*************************************************************\n\n";
-			make_openssl_cert();
-			print "\nCertificate generation complete, copying to config directory... ";
-			system("mv key.pem $config{CONFIG_DIR}/key.pem");
-			system("mv cert.pem $config{CONFIG_DIR}/cert.pem");
-			system("mv dhparams.pem $config{CONFIG_DIR}/dhparams.pem");
-			print "Done.\n\n";
-		} else {
-			print "SSL Certificates found, skipping.\n\n"
-		}
-	}
-	else
-	{
-		print "Skipping SSL certificate generation\nin non-interactive mode.\n\n";
-	}
-}
-if (($config{USE_GNUTLS} eq "n") && ($config{USE_OPENSSL} eq "n")) {
-	print "Skipping SSL Certificate generation, SSL support is not available.\n\n";
 }
 
 getosflags();
@@ -902,12 +740,6 @@ makecache();
 
 print "\n\n";
 print "To build your server with these settings, please type '\033[1;32m$config{MAKEPROG}\033[0m' now.\n";
-if (($config{USE_GNUTLS} eq "y") || ($config{USE_OPENSSL} eq "y")) {
-	print "Please remember that to enable \033[1;32mSSL support\033[0m you must\n";
-	print "load the required modules in your config. This configure process\n";
-	print "has just prepared these modules to be compiled for you, and has not\n";
-	print "configured them to be compiled into the core of the ircd.\n";
-}
 print "*** \033[1;32mRemember to edit your configuration files!!!\033[0m ***\n\n\n";
 if (($config{OSNAME} eq "OpenBSD") && ($config{CC} ne "eg++")) {
 	print "\033[1;32mWARNING!\033[0m You are running OpenBSD but you are using the base gcc package\nrather than eg++. This compile will most likely fail, but i'm letting you\ngo ahead with it anyway, just in case i'm wrong :-)\n";
@@ -1098,15 +930,6 @@ sub writefiles {
 #define MAXCLIENTS_S "$config{MAX_CLIENT}"
 #define SOMAXCONN_S "$config{_SOMAXCONN}"
 #define MAX_DESCRIPTORS $config{MAX_DESCRIPTORS}
-#define NICKMAX $NL
-#define CHANMAX $CL
-#define MAXMODES $config{MAXI_MODES}
-#define IDENTMAX $config{MAX_IDENT}
-#define MAXQUIT $config{MAX_QUIT}
-#define MAXTOPIC $config{MAX_TOPIC}
-#define MAXKICK $config{MAX_KICK}
-#define MAXGECOS $config{MAX_GECOS}
-#define MAXAWAY $config{MAX_AWAY}
 #define OPTIMISATION $config{OPTIMITEMP}
 #define LIBRARYDIR "$config{LIBRARY_DIR}"
 #define SYSTEM "$incos"

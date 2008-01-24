@@ -344,7 +344,7 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 		std::string mime;
 
 		if (p != std::string::npos)
-			mime = ServerInstance->MimeTypes->GetType(uri.substr(p + 1, uri.size()));
+			mime = ServerInstance->MimeTypes->GetType(uri.substr(p + 1));
 
 		if (mime.empty())
 			mime = "application/x-octet-stream";

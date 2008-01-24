@@ -183,21 +183,11 @@ sub dumphash()
 	print "\033[0mModule path:\033[1;32m\t\t\t$main::config{MODULE_DIR}\033[0m\n";
 	print "\033[0mLibrary path:\033[1;32m\t\t\t$main::config{LIBRARY_DIR}\033[0m\n";
 	print "\033[0mMax connections:\033[1;32m\t\t$main::config{MAX_CLIENT}\033[0m\n";
-	print "\033[0mMax nickname length:\033[1;32m\t\t$main::config{NICK_LENGT}\033[0m\n";
-	print "\033[0mMax channel length:\033[1;32m\t\t$main::config{CHAN_LENGT}\033[0m\n";
-	print "\033[0mMax mode length:\033[1;32m\t\t$main::config{MAXI_MODES}\033[0m\n";
-	print "\033[0mMax ident length:\033[1;32m\t\t$main::config{MAX_IDENT}\033[0m\n";
-	print "\033[0mMax quit length:\033[1;32m\t\t$main::config{MAX_QUIT}\033[0m\n";
-	print "\033[0mMax topic length:\033[1;32m\t\t$main::config{MAX_TOPIC}\033[0m\n";
-	print "\033[0mMax kick length:\033[1;32m\t\t$main::config{MAX_KICK}\033[0m\n";
-	print "\033[0mMax name length:\033[1;32m\t\t$main::config{MAX_GECOS}\033[0m\n";
-	print "\033[0mMax away length:\033[1;32m\t\t$main::config{MAX_AWAY}\033[0m\n";
-	print "\033[0mGCC Version Found:\033[1;32m\t\t$main::config{GCCVER}.x\033[0m\n";
 	print "\033[0mCompiler program:\033[1;32m\t\t$main::config{CC}\033[0m\n";
+	print "\033[0mGCC Version Found:\033[1;32m\t\t$main::config{GCCVER}.x\033[0m\n";
 	print "\033[0mIPv6 Support:\033[1;32m\t\t\t$main::config{IPV6}\033[0m\n";
-	print "\033[0mIPv6 to IPv4 Links:\033[1;32m\t\t$main::config{SUPPORT_IP6LINKS}\033[0m\n";
+	print "\033[0mIPv6 Parsing:\033[1;32m\t\t\t$main::config{SUPPORT_IP6LINKS}\033[0m\n";
 	print "\033[0mGnuTLS Support:\033[1;32m\t\t\t$main::config{USE_GNUTLS}\033[0m\n";
-	print "\033[0mOpenSSL Support:\033[1;32m\t\t$main::config{USE_OPENSSL}\033[0m\n\n";
 }
 
 sub is_dir
@@ -222,7 +212,7 @@ sub showhelp
 	print "Usage: configure [options]
 
 *** NOTE: NON-INTERACTIVE CONFIGURE IS *NOT* SUPPORTED BY THE ***
-*** INSPIRCD DEVELOPMENT TEAM. DO NOT ASK FOR HELP REGARDING  ***
+*** HOTTPD DEVELOPMENT TEAM. DO NOT ASK FOR HELP REGARDING    ***
 ***     NON-INTERACTIVE CONFIGURE ON THE FORUMS OR ON IRC!    ***
 
 Options: [defaults in brackets after descriptions]
@@ -247,9 +237,6 @@ InspIRCd 1.0.x, are also allowed.
                                  is also specified}
   --clean                      Remove .config.cache file and go interactive
   --enable-gnutls              Enable GnuTLS module [no]
-  --enable-openssl             Enable OpenSSL module [no]
-  --with-nick-length=[n]       Specify max. nick length [32]
-  --with-channel-length=[n]    Specify max. channel length [64]
   --with-max-clients=[n]       Specify maximum number of users
                                which may connect locally
   --enable-optimization=[n]    Optimize using -O[n] gcc flag
@@ -265,17 +252,6 @@ InspIRCd 1.0.x, are also allowed.
   --disable-remote-ipv6        Do not allow remote ipv6 servers [not set]
   --with-cc=[filename]         Use an alternative g++ binary to
                                build InspIRCd [g++]
-  --with-ident-length=[n]      Specify max length of ident [12]
-  --with-quit-length=[n]       Specify max length of quit [200]
-  --with-topic-length=[n]      Specify max length of topic [350]
-  --with-kick-length=[n]       Specify max length of kick [200]
-  --with-gecos-length=[n]      Specify max length of gecos [150]
-  --with-away-length=[n]       Specify max length of away [150]
-  --with-max-modes=[n]         Specify max modes per line which
-                               have parameters [20]
-  --with-maxbuf=[n]            Change the per message buffer size [512]
-                               DO NOT ALTER THIS OPTION WITHOUT GOOD REASON
-                               AS IT *WILL* BREAK CLIENTS!!!
   --prefix=[directory]         Base directory to install into (if defined,
                                can automatically define config, module, bin
 			       and library dirs as subdirectories of prefix)
