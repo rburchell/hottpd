@@ -22,18 +22,9 @@
 /** Used to define a set of behavior bits for a module
  */
 enum ModuleFlags {
-	VF_STATIC = 1,		// module is static, cannot be /unloadmodule'd
+	VF_STATIC = 1,		// module is static, cannot be unloaded
 	VF_VENDOR = 2,		// module is a vendor module (came in the original tarball, not 3rd party)
-	VF_SERVICEPROVIDER = 4,	// module provides a service to other modules (can be a dependency)
-	VF_COMMON = 8		// module needs to be common on all servers in a network to link
-};
-
-/** Used to represent an event type, for user, channel or server
- */
-enum TargetTypeFlags {
-	TYPE_USER = 1,
-	TYPE_SERVER,
-	TYPE_OTHER
+	VF_SERVICEPROVIDER = 4	// module provides a service to other modules (can be a dependency)
 };
 
 /** If you change the module API, change this value.
@@ -187,23 +178,6 @@ do { \
  */
 #define FD_MAGIC_NUMBER -42
 
-/* Useful macros */
-#ifdef WINDOWS
-/** Is a local user */
-#define IS_LOCAL(x) ((x->GetFd() > -1))
-#else
-/** Is a local user */
-#define IS_LOCAL(x) ((x->GetFd() > -1) && (x->GetFd() <= MAX_DESCRIPTORS))
-#endif
-/** Is a remote user */
-#define IS_REMOTE(x) (x->GetFd() < 0)
-/** Is a module created user */
-#define IS_MODULE_CREATED(x) (x->GetFd() == FD_MAGIC_NUMBER)
-/** Is an oper */
-#define IS_OPER(x) (*x->oper)
-/** Is away */
-#define IS_AWAY(x) (*x->awaymsg)
-
 /** Holds a module's Version information.
  *  The four members (set by the constructor only) indicate details as to the version number
  *  of a module. A class of type Version is returned by the GetVersion method of the Module class.
@@ -353,7 +327,6 @@ enum Implementation
 	I_OnEvent, I_OnRequest,
 	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, I_OnRawSocketRead,
 	I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
-	I_OnReadConfig,
 	I_END
 };
 
@@ -387,10 +360,6 @@ class CoreExport Module : public Extensible
 	virtual void Prioritize()
 	{
 	}
-
-	virtual void OnReadConfig(ServerConfig* config, ConfigReader* coreconf);
-
-	virtual int OnDownloadFile(const std::string &filename, std::istream* &filedata);
 
 	/** Returns the version number of a Module.
 	 * The method should return a Version object with its version information assigned via

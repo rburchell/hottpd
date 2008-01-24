@@ -589,8 +589,6 @@ void ServerConfig::Read(bool bail)
 	ServerInstance->Log(DEBUG,"End config");
 
 	ServerInstance->Modules->LoadAll();
-	ConfigReader* n = new ConfigReader(ServerInstance);
-	FOREACH_MOD(I_OnReadConfig,OnReadConfig(this, n));
 
 	for (int Index = 0; Once[Index]; Index++)
 	{
