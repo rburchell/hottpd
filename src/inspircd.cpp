@@ -474,7 +474,6 @@ int InspIRCd::Run()
 			if ((TIME % 5) == 0)
 			{
 				FOREACH_MOD_I(this,I_OnBackgroundTimer,OnBackgroundTimer(TIME));
-				Timers->TickMissedTimers(TIME);
 			}
 #ifdef WIN32
 			WindowsIPC->Check();
