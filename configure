@@ -21,7 +21,6 @@ use Getopt::Long;
 use make::utilities;
 use make::configure;
 use make::gnutlscert;
-use make::opensslcert;
 
 ###############################################################################################
 #
