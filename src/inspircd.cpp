@@ -419,7 +419,7 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 		FreeConsole();
 	}
 #endif
-
+	
 	printf("\nInspIRCd is now running!\n");
 	Log(DEFAULT,"Startup complete.");
 

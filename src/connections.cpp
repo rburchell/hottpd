@@ -27,6 +27,7 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	keepalive = true;
 	rfilesize = rfilesent = 0;
 	ResponseBackend = NULL;
+	RespondType = HTTP_RESPOND_FLUSH;
 }
 
 Connection::~Connection()
@@ -295,6 +296,7 @@ void Connection::ServeData()
 		
 		rfilesize = fst->st_size;
 		rfilesent = 0;
+		RespondType = HTTP_RESPOND_BACKEND;
 		ResponseBackend = WriteBackend::GetInstance(ServerInstance);
 
 		HTTPHeaders empty;
@@ -313,6 +315,7 @@ void Connection::SendError(int code, const std::string &text)
 	HTTPHeaders empty;
 	empty.SetHeader("Content-Type", "text/html");
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
+	RespondType = HTTP_RESPOND_FLUSH;
 	this->SendHeaders(data.length(), code, text, empty);
 	this->Write(data);
 }
@@ -377,6 +380,9 @@ void Connection::ResetRequest()
 	upath.clear();
 	http_version = HTTP_UNSPECIFIED;
 	State = HTTP_WAIT_REQUEST;
+	ResponseBackend = NULL;
+	RespondType = HTTP_RESPOND_FLUSH;
+	rfilesize = rfilesent = 0;
 	
 	if (requestbuf.length())
 		this->CheckRequest(0);
@@ -488,9 +494,15 @@ void Connection::FlushWriteBuf()
 	{
 		FOREACH_MOD(I_OnBufferFlushed,OnBufferFlushed(this));
 		
-		if (State == HTTP_SEND_HEADERS)
+		if ((RespondType == HTTP_RESPOND_FLUSH) && (State == HTTP_SEND_DATA))
 		{
-			// Finished sending headers; begin data
+			if (keepalive)
+				this->CheckRequest(0);
+			else
+				ServerInstance->Connections->Delete(this);
+		}
+		else if ((State == HTTP_SEND_HEADERS) && (RespondType == HTTP_RESPOND_BACKEND))
+		{
 			State = HTTP_SEND_DATA;
 			SendStaticData();
 		}
@@ -647,7 +659,7 @@ void Connection::HandleEvent(EventType et, int errornum)
 				this->ReadData();
 		break;
 		case EVENT_WRITE:
-			if (State == HTTP_SEND_DATA)
+			if ((State == HTTP_SEND_DATA) && (RespondType == HTTP_RESPOND_FLUSH))
 				this->SendStaticData();
 			else
 				this->FlushWriteBuf();

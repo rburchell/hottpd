@@ -29,6 +29,13 @@ enum HttpState
 	HTTP_FINISHED
 };
 
+enum HttpResponder
+{
+	HTTP_RESPOND_FLUSH = 0, /* Response is complete when the write bufer is empty */
+	HTTP_RESPOND_BACKEND, /* Responding with a file backend */
+	HTTP_RESPOND_MODULE /* Response is operating externally; end will be manually signalled */
+};
+
 class Backend;
 
 /** A modifyable list of HTTP header fields
@@ -154,6 +161,7 @@ class CoreExport Connection : public EventHandler
 	} http_version;
 	bool keepalive;
 	
+	HttpResponder RespondType;
 	Backend *ResponseBackend;
 	off_t rfilesize, rfilesent;
 
