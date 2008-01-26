@@ -25,6 +25,8 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	http_version = HTTP_UNSPECIFIED;
 	// XXX - Make keepalive by default an option?
 	keepalive = true;
+	rfilesize = rfilesent = 0;
+	ResponseBackend = NULL;
 }
 
 Connection::~Connection()
@@ -120,33 +122,30 @@ bool Connection::AddBuffer(const std::string &a)
 		return true;
 	}
 	
-	int nspos = 0;
-	
-	switch (State)
+	if (State == HTTP_RECV_REQBODY)
 	{
-		case HTTP_WAIT_REQUEST:
-			// The position in the requestbuf that will start *new* data
-			nspos = requestbuf.length();
-			
-			requestbuf.append(a);
+		// We don't do request bodies yet :P
+		return false;
+	}
+	else
+	{
+		/* We can get data for a future request at any time, and that
+		 * is what we're doing here. We only trigger the check for a
+		 * new request if we're waiting for one. */
+		
+		int nspos = requestbuf.length();
+		
+		requestbuf.append(a);
 
-			if (requestbuf.length() > 2000)
-			{
-				// XXX arbitrary limit; needs discussion of a proper default
-				ServerInstance->Log(DEBUG, "Too much data, setting to SEND");
-				State = HTTP_SEND_DATA;
-				break;
-			}
-			
-			this->CheckRequest(nspos);
-			break;
-		case HTTP_RECV_POSTDATA:
-			return false; // XXX fixme we can't handle POST yet :P
-			break;
-		case HTTP_SEND_DATA:
-		case HTTP_FINISHED:
-			/* Drop it into the bit bucket. Don't care or shouldn't happen. */
-			break;
+		if (requestbuf.length() > 5120)
+		{
+			// XXX arbitrary limit; needs discussion of a proper default
+			ServerInstance->Log(DEBUG, "Too much data in buffer; dropping");
+			return false;
+		}
+		
+		if (State == HTTP_WAIT_REQUEST)
+			this->CheckRequest(nspos);		
 	}
 
 	return true;
@@ -266,7 +265,6 @@ void Connection::HandleURI()
 void Connection::ServeData()
 {
 	ServerInstance->Log(DEBUG, "ServeData: %s: %s", method.c_str(), uri.c_str());
-	State = HTTP_SEND_DATA;
 
 	if (method == "GET")
 	{
@@ -285,7 +283,7 @@ void Connection::ServeData()
 			return;
 		}
 		
-		// XXX will stat() follow the symlink if the file is one? If not, we need to do this check on the real file
+		// Stat will follow symlinks, so this check will be safe even when symlinks are enabled. If they are off, the open() will fail.
 		if (!S_ISREG(fst->st_mode))
 		{
 			// This isn't a normal file
@@ -293,18 +291,16 @@ void Connection::ServeData()
 			return;
 		}
 		
-		if (!ServerInstance->FOpen->Request(upath))
-		{
-			// error 404, or whatever.
-			this->SendError(404, "File Not Found");
-		}
-		else
-		{
-			std::string response = ServerInstance->FOpen->Fetch();
-			HTTPHeaders empty;
-			this->SendHeaders(response.length(), 200, "OK", empty);
-			this->Write(response);
-		}
+		// Don't set request state here; SendHeaders() will do that.
+		
+		rfilesize = fst->st_size;
+		rfilesent = 0;
+		ResponseBackend = WriteBackend::GetInstance(ServerInstance);
+
+		HTTPHeaders empty;
+		this->SendHeaders(fst->st_size, 200, "OK", empty);
+		
+		// When the headers have finished being sent, sending of data will be automatically triggered.
 	}
 	else
 	{
@@ -319,14 +315,12 @@ void Connection::SendError(int code, const std::string &text)
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
 	this->SendHeaders(data.length(), code, text, empty);
 	this->Write(data);
-	if (keepalive)
-		ResetRequest();
-	else
-		ServerInstance->Connections->Delete(this);
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
 {
+	State = HTTP_SEND_HEADERS;
+	
 	this->Write("HTTP/1.1 "+ConvToStr(response)+" "+rtext+"\r\n");
 
 	time_t local = this->ServerInstance->Time();
@@ -388,7 +382,51 @@ void Connection::ResetRequest()
 		this->CheckRequest(0);
 }
 
-
+void Connection::SendStaticData()
+{
+	/* Right now this is doing an open() every time it runs; i'm not sure if this
+	 * is optimal for efficiency or not. Contrary to what you'd think, open is 
+	 * actually a very fast syscall, and it might be a more efficient use of resources
+	 * than keeping a fd around for every connection serving a file -Special */
+	
+	ServerInstance->Log(DEBUG, "Sending response with backend");
+	
+	int oflags = O_RDONLY;
+	if (ServerInstance->Config->NoAtime)
+		oflags |= O_NOATIME;
+	if (!ServerInstance->Config->FollowSymLinks)
+		oflags |= O_NOFOLLOW;
+	
+	int filefd = open(upath.c_str(), oflags);
+	if (filefd < 0)
+	{
+		ServerInstance->Log(DEBUG, "open() failed while serving a response. Closing connection to maintain sanity. Error: %s", strerror(errno));
+		ServerInstance->Connections->Delete(this);
+		return;
+	}
+	
+	int re = ResponseBackend->ServeFile(GetFd(), filefd, rfilesent, rfilesize);
+	if (re < 0)
+	{
+		ServerInstance->Log(DEBUG, "Response backend returned error; closing connection");
+		ServerInstance->Connections->Delete(this);
+	}	
+	else if (rfilesent == rfilesize)
+	{
+		ServerInstance->Log(DEBUG, "Response backend finished serving request");
+		if (keepalive)
+			this->ResetRequest();
+		else
+			ServerInstance->Connections->Delete(this);
+	}
+	else
+	{
+		// More data to send; poll for write
+		ServerInstance->SE->WantWrite(this);
+	}
+	
+	close(filefd);
+}
 
 
 
@@ -443,23 +481,18 @@ void Connection::FlushWriteBuf()
 				this->sendq = this->sendq.substr(n_sent);
 			if (n_sent != old_sendq_length)
 				this->ServerInstance->SE->WantWrite(this);
-
 		}
 	}
 
 	if (this->sendq.empty())
 	{
 		FOREACH_MOD(I_OnBufferFlushed,OnBufferFlushed(this));
-		if (State == HTTP_SEND_DATA)
+		
+		if (State == HTTP_SEND_HEADERS)
 		{
-			if (keepalive)
-			{
-				this->ResetRequest();
-			}
-			else
-			{
-				ServerInstance->Connections->Delete(this);
-			}
+			// Finished sending headers; begin data
+			State = HTTP_SEND_DATA;
+			SendStaticData();
 		}
 	}
 }
@@ -614,7 +647,10 @@ void Connection::HandleEvent(EventType et, int errornum)
 				this->ReadData();
 		break;
 		case EVENT_WRITE:
-			this->FlushWriteBuf();
+			if (State == HTTP_SEND_DATA)
+				this->SendStaticData();
+			else
+				this->FlushWriteBuf();
 		break;
 		case EVENT_ERROR:
 			ServerInstance->Connections->Delete(this);

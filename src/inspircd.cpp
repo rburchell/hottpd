@@ -238,7 +238,6 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 	this->Config = new ServerConfig(this);
 	this->Modules = new ModuleManager(this);
 	this->Timers = new TimerManager(this);
-	this->FOpen = new FOpenBackend(this);
 	this->MimeTypes = new MimeManager(this);
 	this->Connections = new ConnectionManager(this);
 	this->FileSys = new FileSystem(this);

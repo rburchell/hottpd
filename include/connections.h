@@ -16,18 +16,20 @@
 #include "socket.h"
 #include "inspstring.h"
 #include "hashcomp.h"
-
+#include "backend.h"
 
 /** HTTP socket states
  */
 enum HttpState
 {
 	HTTP_WAIT_REQUEST = 0, /* Waiting for a full request */
-	HTTP_RECV_POSTDATA = 1, /* Waiting to finish recieving POST data */
-	HTTP_SEND_DATA = 2, /* Sending response */
-	HTTP_FINISHED = 3
+	HTTP_RECV_REQBODY, /* Waiting to finish recieving POST data */
+	HTTP_SEND_HEADERS, /* Sending response headers */
+	HTTP_SEND_DATA, /* Sending response body */
+	HTTP_FINISHED
 };
 
+class Backend;
 
 /** A modifyable list of HTTP header fields
  */
@@ -151,6 +153,9 @@ class CoreExport Connection : public EventHandler
 		HTTP_1_1
 	} http_version;
 	bool keepalive;
+	
+	Backend *ResponseBackend;
+	off_t rfilesize, rfilesent;
 
 	/** If this is set to true, then all read/error operations for the connection
 	 * are dropped into the bit-bucket.
@@ -207,6 +212,8 @@ class CoreExport Connection : public EventHandler
 
 	void ResetRequest();
 
+	void SendStaticData();
+	
 	/** Sets the write error for a connection. This is done because the actual disconnect
 	 * of a client may occur at an inopportune time such as half way through /LIST output.
 	 * The WriteErrors of clients are checked at a more ideal time (in the mainloop) and

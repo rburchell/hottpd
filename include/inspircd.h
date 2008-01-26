@@ -39,13 +39,12 @@
 #include "cull_list.h"
 #include "filelogger.h"
 #include "timer.h"
+#include "backend.h"
 #include "modules.h"
 #include "configreader.h"
 #include "mimetypes.h"
 #include "connectionmanager.h"
 #include "filesystem.h"
-
-class FOpenBackend; // XXX shitty required forward dec, remove when fopen moves out of backend.h
 
 /**
  * Used to define the maximum number of parameters a command may have.
@@ -226,8 +225,6 @@ class CoreExport InspIRCd : public classbase
 
  public:
 	ConnectionManager *Connections;
-
-	FOpenBackend *FOpen;
 
 	MimeManager *MimeTypes;
 	
@@ -426,6 +423,4 @@ class CoreExport InspIRCd : public classbase
 	}
 };
 
-
-#include "backend.h" // XXX move this to the right place when fopen is moved out of it
 #endif
