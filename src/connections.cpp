@@ -317,7 +317,10 @@ void Connection::SendError(int code, const std::string &text)
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
 	RespondType = HTTP_RESPOND_FLUSH;
 	this->SendHeaders(data.length(), code, text, empty);
+	State = HTTP_SEND_DATA;
 	this->Write(data);
+	// Flush the write buffer now instead of waiting an iteration, since we've written all we need to
+	this->FlushWriteBuf();
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
