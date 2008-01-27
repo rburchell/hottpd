@@ -153,6 +153,7 @@ class CoreExport Connection : public EventHandler
 
 	std::string method;
 	std::string uri;
+	std::string uriquery;
 	std::string upath;
 	enum
 	{

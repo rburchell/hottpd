@@ -225,39 +225,96 @@ void Connection::CheckRequest(int newpos)
 
 void Connection::HandleURI()
 {
-	// TODO absolute URLs (i.e. http://[HOST HEADER VALUE]/blah), hex decoding, query string
+	// TODO absolute URLs (i.e. http://[HOST HEADER VALUE]/blah)
 	if (uri[0] != '/')
 		return;
 	
-	utils::sepstream sep(uri, '/');
-	std::string ptoken;
-	
-	std::string sanepath = "/";
-	
-	while (sep.GetToken(ptoken))
+	std::string sanepath;
+	std::string pathpart;
+	for (std::string::const_iterator i = uri.begin() + 1; ; ++i)
 	{
-		if (!ptoken.length() || (ptoken == "."))
-			continue;
+		char c = (i == uri.end()) ? 0 : *i;
 		
-		if (ptoken == "..")
+		if (c == '%')
 		{
-			std::string::size_type spos = sanepath.rfind('/');
-			if ((spos == std::string::npos) || (spos == 0))
+			// URL Encoded value
+			if (((i + 1) == uri.end()) || ((i + 2) == uri.end()))
+			{
+				// Without an actual value. Idiots.
+				i = uri.end() - 1;
 				continue;
+			}
 			
-			sanepath = sanepath.substr(0, spos - 1);
-			continue;
+			unsigned char v = utils::unhexchar(*(i + 1), *(i + 2));
+			if ((v < 32) || (v == 127))
+			{
+				ServerInstance->Log(DEBUG, "URLEncoded unprintable character %d removed from URI.", v);
+				i += 2;
+				continue;
+			}
+			
+			if (v != '/')
+			{
+				// Slashes are *NOT* allowed. They will be parsed like a normal /. Other characters are fine.
+				pathpart.push_back(v);
+				i += 2;
+				continue;
+			}
+			
+			// Parse this as if it were the normal character
+			i += 2;
+			c = v;
 		}
 		
-		if (sanepath[sanepath.length() - 1] != '/')
-			sanepath += "/";
-		sanepath += ptoken;
+		if (!c || (c == '/'))
+		{
+			// End of the URL *or* a path seperator
+			
+			if (!pathpart.length() || (pathpart == "."))
+			{
+				// Do nothing; these are meaningless and will be cleaned from the path
+			}
+			else if (pathpart == "..")
+			{
+				std::string::size_type sloc = sanepath.rfind('/', sanepath.length() - 2);
+				if (sloc != std::string::npos)
+					sanepath.erase(sloc + 1);
+				else
+					sanepath.clear();
+			}
+			else
+			{
+				sanepath.append(pathpart);
+				if (c)
+					sanepath.push_back('/');
+			}
+			
+			pathpart.clear();
+			
+			if (!c)
+				break;
+		}
+		else if (c == '?')
+		{
+			// Begin query
+			uriquery.assign<std::string::const_iterator>(i + 1, uri.end());
+			i = uri.end() - 1;
+		}
+		else if (c == '#')
+		{
+			// The client should not be sending this. Idiot.
+			i = uri.end() - 1;
+		}
+		else
+		{
+			pathpart.push_back(c);
+		}
 	}
 	
 	upath = ServerInstance->Config->DocRoot;
-	if (upath[upath.length() - 1] != '/')
-		upath += "/";
-	upath.append(sanepath.substr(1));
+	if ((upath[upath.length() - 1] != '/') && (sanepath[0] != '/'))
+		upath.push_back('/');
+	upath.append(sanepath);
 	
 	ServerInstance->Log(DEBUG, "Mapped URI '%s' to path %s", uri.c_str(), upath.c_str());
 }
@@ -387,6 +444,7 @@ void Connection::EndRequest()
 	headers.Clear();
 	method.clear();
 	uri.clear();
+	uriquery.clear();
 	upath.clear();
 	http_version = HTTP_UNSPECIFIED;
 	State = HTTP_WAIT_REQUEST;
