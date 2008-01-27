@@ -220,13 +220,12 @@ void Connection::CheckRequest(int newpos)
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
 		keepalive = false;
 	
-	
 	ServeData();
  }
 
 void Connection::HandleURI()
 {
-	// TODO absolute URLs (i.e. http://[HOST HEADER VALUE]/blah), hex decoding
+	// TODO absolute URLs (i.e. http://[HOST HEADER VALUE]/blah), hex decoding, query string
 	if (uri[0] != '/')
 		return;
 	
@@ -321,6 +320,7 @@ void Connection::SendError(int code, const std::string &text)
 	this->Write(data);
 	// Flush the write buffer now instead of waiting an iteration, since we've written all we need to
 	this->FlushWriteBuf();
+	// End request will be triggered once the write buffer is empty
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
@@ -368,15 +368,22 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 		
 	if (!size)
 	{
-		if (keepalive)
-			ResetRequest();
-		else
-			ServerInstance->Connections->Delete(this);
+		// No request body, so we're done now
+		EndRequest();
 	}
 }
 
-void Connection::ResetRequest()
+void Connection::EndRequest()
 {
+	ServerInstance->Log(DEBUG, "End request");
+	
+	if (!keepalive)
+	{
+		State = HTTP_FINISHED;
+		ServerInstance->Connections->Delete(this);
+		return;
+	}
+	
 	headers.Clear();
 	method.clear();
 	uri.clear();
@@ -388,7 +395,13 @@ void Connection::ResetRequest()
 	rfilesize = rfilesent = 0;
 	
 	if (requestbuf.length())
+	{
+		/* XXX should this be delayed to the next iteration to avoid letting a
+		 * connection hog the process? If so, it would need to trigger regardless
+		 * of a read event... */
+		
 		this->CheckRequest(0);
+	}
 }
 
 void Connection::SendStaticData()
@@ -423,10 +436,7 @@ void Connection::SendStaticData()
 	else if (rfilesent == rfilesize)
 	{
 		ServerInstance->Log(DEBUG, "Response backend finished serving request");
-		if (keepalive)
-			this->ResetRequest();
-		else
-			ServerInstance->Connections->Delete(this);
+		EndRequest();
 	}
 	else
 	{
@@ -499,10 +509,7 @@ void Connection::FlushWriteBuf()
 		
 		if ((RespondType == HTTP_RESPOND_FLUSH) && (State == HTTP_SEND_DATA))
 		{
-			if (keepalive)
-				this->CheckRequest(0);
-			else
-				ServerInstance->Connections->Delete(this);
+			EndRequest();
 		}
 		else if ((State == HTTP_SEND_HEADERS) && (RespondType == HTTP_RESPOND_BACKEND))
 		{

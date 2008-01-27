@@ -218,7 +218,7 @@ class CoreExport Connection : public EventHandler
 
 	void SendError(int code, const std::string &text);
 
-	void ResetRequest();
+	void EndRequest();
 
 	void SendStaticData();
 	
