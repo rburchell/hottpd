@@ -94,6 +94,12 @@ std::string utils::hex(const unsigned char *raw, size_t rawsz)
 	return hexbuf;
 }
 
+unsigned char utils::unhexchar(char a, char b)
+{
+	static const char *hex = "0123456789abcdef";
+	
+}
+
 utils::stringjoiner::stringjoiner(const std::string &seperator, const std::vector<std::string> &sequence, int begin, int end)
 {
 	for (int v = begin; v < end; v++)
