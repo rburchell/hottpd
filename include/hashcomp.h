@@ -49,7 +49,14 @@ namespace utils
 	 * @return The hex string.
 	 */
 	CoreExport std::string hex(const unsigned char *raw, size_t rawsz);
-
+	
+	/** Convert two hex characters into the byte they represent
+	 * @param a The first hex byte (first 4 bits)
+	 * @param b The second hex byte (last 4 bits)
+	 * @return The value in decimal
+	 */
+	CoreExport unsigned char unhexchar(char a, char b);
+	
 	/** utils::stringjoiner joins string lists into a string, using
 	 * the given seperator string.
 	 * This class can join a vector of std::string, a deque of
