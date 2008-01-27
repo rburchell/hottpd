@@ -337,6 +337,10 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	bool NoAtime;
 	
+	/** Maximum number of keepalive requests per connection (0 = keepalive disabled)
+	 */
+	int KeepAliveMax;
+	
 	/** Saved argv from startup
 	 */
 	char** argv;

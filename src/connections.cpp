@@ -25,7 +25,7 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	http_version = HTTP_UNSPECIFIED;
 	// XXX - Make keepalive by default an option?
 	keepalive = true;
-	rfilesize = rfilesent = 0;
+	rfilesize = rfilesent = RequestsCompleted = 0;
 	ResponseBackend = NULL;
 	RespondType = HTTP_RESPOND_FLUSH;
 }
@@ -225,9 +225,15 @@ void Connection::CheckRequest(int newpos)
 	// In the interest of convention, make the method uppercase
 	std::transform(method.begin(), method.end(), method.begin(), ::toupper);
 	
-	// Parse a few important headers
+	// Important header checks for internal state and RFC compatibility
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
 		keepalive = false;
+	
+	if ((RequestsCompleted + 1) >= ServerInstance->Config->KeepAliveMax)
+	{
+		ServerInstance->Log(DEBUG, "Closing connection after request due to keepalive limit");
+		keepalive = false;
+	}
 	
 	ServeData();
  }
@@ -442,6 +448,8 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 void Connection::EndRequest()
 {
 	ServerInstance->Log(DEBUG, "End request");
+	
+	RequestsCompleted++;
 	
 	if (!keepalive)
 	{

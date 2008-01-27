@@ -28,4 +28,6 @@ performance
 	#stat-cache-time = 2 // Set to 0 to disable the stat cache
 	#noatime = yes
 	#max-conn-queue = 128 // Set to system maximum by default
+	/* Maximum requests in a keepalive connection. 0 or 1 disables keepalive entirely (bad idea, usually) */
+	#keepalive-max = 30
 }

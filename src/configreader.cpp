@@ -39,6 +39,7 @@ ServerConfig::ServerConfig(InspIRCd* Instance) : ServerInstance(Instance)
 	LogLevel = DEFAULT;
 	StatCacheDuration = 2;
 	NoAtime = FollowSymLinks = true;
+	KeepAliveMax = 30;
 }
 
 void ServerConfig::ClearStack()
@@ -381,6 +382,7 @@ void ServerConfig::Read(bool bail)
 		{"performance", "stat-cache-time", "2", new ValueContainerInt(&this->StatCacheDuration), DT_INTEGER, NoValidation},
 		{"performance", "noatime", "yes", new ValueContainerBool(&this->NoAtime), DT_BOOLEAN, NoValidation},
 		{"performance", "max-conn-queue", SOMAXCONN_S, new ValueContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},
+		{"performance", "keepalive-max", "30", new ValueContainerInt(&this->KeepAliveMax), DT_INTEGER, NoValidation},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 

@@ -150,7 +150,9 @@ class CoreExport Connection : public EventHandler
 	/** The request buffer from this connection.
 	 */
 	std::string requestbuf;
-
+	
+	int RequestsCompleted;
+	
 	std::string method;
 	std::string uri;
 	std::string uriquery;
