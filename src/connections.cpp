@@ -167,6 +167,12 @@ void Connection::CheckRequest(int newpos)
 
 	ServerInstance->Log(DEBUG, "Got headers.");
 	
+	/* BIG HUGE WARNING THAT YOU SHOULD READ BEFORE YOU MAKE AN INFINITE LOOP!
+	 *
+	 * Erase from the requestbuf before you call anything like SendError, etc.
+	 * Not doing so has very unfortunate consequences, k?
+	 */
+	
 	std::string::size_type hbegin = 0, hend;
 	for (; (hend = requestbuf.find("\r\n", hbegin)) != std::string::npos; hbegin = hend + 2)
 	{
@@ -183,6 +189,7 @@ void Connection::CheckRequest(int newpos)
 
 			if (method.empty() || uri.empty() || tmpversion.empty())
 			{
+				requestbuf.erase(0, reqend + 4);
 				SendError(400, "Bad Request");
 				return;
 			}
@@ -190,6 +197,7 @@ void Connection::CheckRequest(int newpos)
 			std::transform(tmpversion.begin(), tmpversion.end(), tmpversion.begin(), ::toupper);
 			if (tmpversion != "HTTP/1.1")
 			{
+				requestbuf.erase(0, reqend + 4);
 				SendError(505, "Version Not Supported");
 				return;
 			}
@@ -203,6 +211,7 @@ void Connection::CheckRequest(int newpos)
 			std::string::size_type fieldsep = cheader.find(':');
 			if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
 			{
+				requestbuf.erase(0, reqend + 4);
 				SendError(400, "Bad Request");
 				return;
 			}
