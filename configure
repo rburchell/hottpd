@@ -659,7 +659,8 @@ should NOT be used. You should probably specify a newer compiler.\n\n";
 	}
 
 	if ($config{HAS_GNUTLS} eq "y") {
-		yesno(USE_GNUTLS, "Would you like to enable SSL Support?");
+		#yesno(USE_GNUTLS, "Would you like to enable SSL Support?");
+		$config{USE_GNUTLS} = "n";
 		if ($config{USE_GNUTLS} eq "y") {
 			print "\nUsing GnuTLS SSL module.\n";
 		}
