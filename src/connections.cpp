@@ -489,8 +489,10 @@ void Connection::SendStaticData()
 	ServerInstance->Log(DEBUG, "Sending response with backend");
 	
 	int oflags = O_RDONLY;
+#ifdef O_NOATIME
 	if (ServerInstance->Config->NoAtime)
 		oflags |= O_NOATIME;
+#endif
 	if (!ServerInstance->Config->FollowSymLinks)
 		oflags |= O_NOFOLLOW;
 	
