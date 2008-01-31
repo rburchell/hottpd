@@ -195,14 +195,25 @@ void Connection::CheckRequest(int newpos)
 			}
 
 			std::transform(tmpversion.begin(), tmpversion.end(), tmpversion.begin(), ::toupper);
-			if (tmpversion != "HTTP/1.1")
+			
+			if (tmpversion == "HTTP/1.1")
+			{
+				http_version = HTTP_1_1;
+			}
+			else if (tmpversion == "HTTP/1.0")
+			{
+				http_version = HTTP_1_0;
+
+				// HTTP 1.0 defaults to Connection: Close (but only set this on the first request of the connection)
+				if (!RequestsCompleted)
+					keepalive = false;
+			}
+			else
 			{
 				requestbuf.erase(0, reqend + 4);
 				SendError(505, "Version Not Supported");
 				return;
 			}
-			
-			http_version = HTTP_1_1;
 		}
 		else
 		{
@@ -228,6 +239,8 @@ void Connection::CheckRequest(int newpos)
 	// Important header checks for internal state and RFC compatibility
 	if (strcasecmp(headers.GetHeader("Connection").c_str(), "close") == 0)
 		keepalive = false;
+	else if (strcasecmp(headers.GetHeader("Connection").c_str(), "keep-alive") == 0)
+		keepalive = true;
 	
 	if ((RequestsCompleted + 1) >= ServerInstance->Config->KeepAliveMax)
 	{
@@ -399,7 +412,12 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 {
 	State = HTTP_SEND_HEADERS;
 	
-	this->Write("HTTP/1.1 "+ConvToStr(response)+" "+rtext+"\r\n");
+	if (http_version == HTTP_1_0)
+		this->Write("HTTP/1.0 ");
+	else
+		this->Write("HTTP/1.1 ");
+	
+	this->Write(ConvToStr(response)+" "+rtext+"\r\n");
 
 	time_t local = this->ServerInstance->Time();
 	struct tm *timeinfo = gmtime(&local);

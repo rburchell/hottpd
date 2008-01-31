@@ -160,6 +160,7 @@ class CoreExport Connection : public EventHandler
 	enum
 	{
 		HTTP_UNSPECIFIED,
+		HTTP_1_0,
 		HTTP_1_1
 	} http_version;
 	bool keepalive;
