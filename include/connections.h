@@ -167,6 +167,7 @@ class CoreExport Connection : public EventHandler
 	
 	HttpResponder RespondType;
 	Backend *ResponseBackend;
+	int filefd;
 	off_t rfilesize, rfilesent;
 
 	/** If this is set to true, then all read/error operations for the connection

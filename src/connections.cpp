@@ -19,7 +19,7 @@
 Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 {
 	quitting = false;
-	fd = -1;
+	fd = filefd = -1;
 	privip = NULL;
 	State = HTTP_WAIT_REQUEST;
 	http_version = HTTP_UNSPECIFIED;
@@ -44,6 +44,12 @@ Connection::~Connection()
 			delete (sockaddr_in6*)privip;
 		}
 #endif
+	}
+	
+	if (filefd > -1)
+	{
+		close(filefd);
+		filefd = -1;
 	}
 }
 
@@ -368,11 +374,42 @@ void Connection::ServeData()
 			return;
 		}
 		
-		// Stat will follow symlinks, so this check will be safe even when symlinks are enabled. If they are off, the open() will fail.
+		// Stat will follow symlinks, so this refers to the actual destination file. Follow symlink checks are elsewhere
 		if (!S_ISREG(fst->st_mode))
 		{
 			// This isn't a normal file
 			this->SendError(403, "Forbidden");
+			return;
+		}
+		
+		int oflags = O_RDONLY;
+		// While cool, O_NOATIME causes an EPERM when trying to open a file not owned by this user (read isn't enough).
+/*#ifdef O_NOATIME
+		if (ServerInstance->Config->NoAtime)
+			oflags |= O_NOATIME;
+#endif*/
+		
+		if (filefd > -1)
+			close(filefd);
+		
+		filefd = open(upath.c_str(), oflags);
+		if (filefd < 0)
+		{
+			switch (errno)
+			{
+				case EACCES:
+					this->SendError(403, "Forbidden");
+					break;
+				case ENOENT:
+				case ENOTDIR:
+					this->SendError(404, "File Not Found");
+					break;
+				default:
+					ServerInstance->Log(DEBUG, "open() to serve file '%s' failed with error: %s", upath.c_str(), strerror(errno));
+					this->SendError(500, "Internal Server Error");
+					break;
+			}
+			
 			return;
 		}
 		
@@ -487,6 +524,12 @@ void Connection::EndRequest()
 	RespondType = HTTP_RESPOND_FLUSH;
 	rfilesize = rfilesent = 0;
 	
+	if (filefd > -1)
+	{
+		close(filefd);
+		filefd = -1;
+	}
+	
 	if (requestbuf.length())
 	{
 		/* XXX should this be delayed to the next iteration to avoid letting a
@@ -499,27 +542,12 @@ void Connection::EndRequest()
 
 void Connection::SendStaticData()
 {
-	/* Right now this is doing an open() every time it runs; i'm not sure if this
-	 * is optimal for efficiency or not. Contrary to what you'd think, open is 
-	 * actually a very fast syscall, and it might be a more efficient use of resources
-	 * than keeping a fd around for every connection serving a file -Special */
-	
 	ServerInstance->Log(DEBUG, "Sending response with backend");
 	
-	int oflags = O_RDONLY;
-#ifdef O_NOATIME
-	if (ServerInstance->Config->NoAtime)
-		oflags |= O_NOATIME;
-#endif
-	if (!ServerInstance->Config->FollowSymLinks)
-		oflags |= O_NOFOLLOW;
-	
-	int filefd = open(upath.c_str(), oflags);
 	if (filefd < 0)
 	{
-		ServerInstance->Log(DEBUG, "open() failed while serving a response. Closing connection to maintain sanity. Error: %s", strerror(errno));
+		ServerInstance->Log(DEBUG, "Backend triggered but connection has no open file - closing connection");
 		ServerInstance->Connections->Delete(this);
-		return;
 	}
 	
 	int re = ResponseBackend->ServeFile(GetFd(), filefd, rfilesent, rfilesize);
@@ -538,8 +566,6 @@ void Connection::SendStaticData()
 		// More data to send; poll for write
 		ServerInstance->SE->WantWrite(this);
 	}
-	
-	close(filefd);
 }
 
 
@@ -764,7 +790,7 @@ void Connection::HandleEvent(EventType et, int errornum)
 				this->ReadData();
 		break;
 		case EVENT_WRITE:
-			if ((State == HTTP_SEND_DATA) && (RespondType == HTTP_RESPOND_FLUSH))
+			if ((State == HTTP_SEND_DATA) && (RespondType == HTTP_RESPOND_BACKEND))
 				this->SendStaticData();
 			else
 				this->FlushWriteBuf();
