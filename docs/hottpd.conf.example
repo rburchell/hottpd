@@ -13,7 +13,6 @@ server
 	#moduledir = "/path/to/modules"
 	#customversion = "hottpd"
 	#pidfile = "/path/to/pid"
-	#follow-symlinks = yes
 }
 
 // You can have multiple bind sections
@@ -30,4 +29,9 @@ performance
 	#max-conn-queue = 128 // Set to system maximum by default
 	/* Maximum requests in a keepalive connection. 0 or 1 disables keepalive entirely (bad idea, usually) */
 	#keepalive-max = 30
+}
+
+security
+{
+	#follow-symlinks = yes
 }

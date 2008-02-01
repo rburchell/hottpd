@@ -19,17 +19,22 @@ FileSystem::FileSystem(InspIRCd *Instance)
 {
 }
 
-int FileSystem::Stat(const char *path, struct stat *&buf, bool fromcache)
+int FileSystem::Stat(const char *path, struct stat *&buf, bool followlink, bool fromcache)
 {
 	if (ServerInstance->Config->StatCacheDuration < 1)
 	{
 		// Cache disabled; simply wrap the call
 		buf = &this->static_stat;
-		return stat(path, &this->static_stat);
+		if (followlink)
+			return stat(path, &this->static_stat);
+		else
+			return lstat(path, &this->static_stat);
 	}
 	
-	std::map<std::string,StatCacheItem*>::iterator it = StatCache.find(path);
-	if (it != StatCache.end())
+	std::map<std::string,StatCacheItem*> *cache = (followlink) ? &StatCache : &LinkStatCache;
+	
+	std::map<std::string,StatCacheItem*>::iterator it = cache->find(path);
+	if (it != cache->end())
 	{
 		StatCacheItem *v = it->second;
 		
@@ -52,21 +57,39 @@ int FileSystem::Stat(const char *path, struct stat *&buf, bool fromcache)
 			// If fromcache is off, we must delete the cache because it would be overwritten later
 			ServerInstance->Log(DEBUG, "Expiring stat cache for %s", path);
 			delete v;
-			StatCache.erase(it);
+			cache->erase(it);
 		}
 	}
 	
 	StatCacheItem *result = new StatCacheItem;
 	result->created = ServerInstance->Time();
 	
-	result->result = stat(path, &result->value);
+	if (followlink)
+		result->result = stat(path, &result->value);
+	else
+		result->result = lstat(path, &result->value);
+	
 	if (result->result < 0)
 		result->error = errno;
 	else
 		result->error = 0;
 	
-	StatCache.insert(std::make_pair<std::string,StatCacheItem*>(path, result));
-	ServerInstance->Log(DEBUG, "Cached stat result (%s) for %s", (result->result < 0) ? "error" : "success", path);
+	cache->insert(std::make_pair<std::string,StatCacheItem*>(path, result));
+	
+	if (!followlink && !S_ISLNK(result->value.st_mode))
+	{
+		// This can be cached in the normal stat cache as well
+		it = StatCache.find(path);
+		if (it != StatCache.end())
+		{
+			delete it->second;
+			StatCache.erase(it);
+		}
+		
+		StatCache.insert(std::make_pair<std::string,StatCacheItem*>(path, result));
+	}
+	
+	ServerInstance->Log(DEBUG, "Cached %sstat result (%s) for %s", (followlink) ? "" : "link ", (result->result < 0) ? "error" : "success", path);
 	
 	buf = &result->value;
 	return result->result;
