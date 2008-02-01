@@ -383,11 +383,11 @@ void Connection::ServeData()
 		}
 		
 		int oflags = O_RDONLY;
-		// While cool, O_NOATIME causes an EPERM when trying to open a file not owned by this user (read isn't enough).
-/*#ifdef O_NOATIME
-		if (ServerInstance->Config->NoAtime)
+#ifdef O_NOATIME
+		// O_NOATIME can only be used on files owned by this user
+		if (ServerInstance->Config->NoAtime && (fst->st_uid == geteuid()))
 			oflags |= O_NOATIME;
-#endif*/
+#endif
 		
 		if (filefd > -1)
 			close(filefd);
