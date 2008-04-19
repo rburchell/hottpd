@@ -63,7 +63,7 @@ void ListenSocket::HandleEvent(EventType, int)
 	}
 
 	socklen_t uslen, length;		// length of our port number
-	int incomingSockfd, in_port;
+	int fd, in_port;
 
 #ifdef IPV6
 	if (this->family == AF_INET6)
@@ -80,9 +80,41 @@ void ListenSocket::HandleEvent(EventType, int)
 
 	do
 	{
-		incomingSockfd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
+		if ((ServerInstance->local_connections.size() + 1) > ServerInstance->Config->SoftLimit ||
+			(ServerInstance->local_connections.size() + 1) >= MAXCLIENTS)
+		{
+			/*
+			 * Don't even *try* to accept under these conditions, get the fuck out of here.
+			 * This will doubtlessly cause more read events, but pulling in the queue is
+			 * going to do no good for us.
+			 *
+			 * XXX: in the future, perhaps a way to avoid monitoring listeners under
+			 * such a condition would be nice.
+			 *		-- w00t
+			 */
+			break;
+		}
 
-		if ((incomingSockfd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
+		fd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
+
+		/*
+		 * XXX -
+		 * This is done as a safety check to keep the file descriptors within an acceptable range.
+		 * If there is ever an fd over 65,535, 65,536 connections must exist to this httpd, which seems
+		 * quite insane, even allowing for modules to create their own connections, so this probably
+		 * would indicate an FD leak if anything - but regardless, we can't actually use any FDs this bug.. so..
+		 * kill it.
+		 */
+#ifndef WINDOWS
+		if ((unsigned int)fd >= MAX_DESCRIPTORS)
+		{
+			close(fd);
+			shutdown(fd, 2);
+			break;
+		}
+#endif
+
+		if ((fd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
 		{
 			char buf[MAXBUF];
 	#ifdef IPV6
@@ -98,15 +130,15 @@ void ListenSocket::HandleEvent(EventType, int)
 				in_port = ntohs(((sockaddr_in*)sock_us)->sin_port);
 			}
 
-			ServerInstance->SE->NonBlocking(incomingSockfd);
-			ServerInstance->Connections->Add(incomingSockfd, in_port, this->family, client);
+			ServerInstance->SE->NonBlocking(fd);
+			ServerInstance->Connections->Add(fd, in_port, this->family, client);
 		}
 		else
 		{
-			ServerInstance->SE->Shutdown(incomingSockfd, 2);
-			ServerInstance->SE->Close(incomingSockfd);
+			ServerInstance->SE->Shutdown(fd, 2);
+			ServerInstance->SE->Close(fd);
 		}
-	} while (ServerInstance->SE->CanMultiaccept && incomingSockfd >= 0);
+	} while (ServerInstance->SE->CanMultiaccept && fd >= 0);
 }
 
 /** This will bind a socket to a port. It works for UDP/TCP.
