@@ -150,7 +150,7 @@ void InspIRCd::QuickExit(int status)
 bool InspIRCd::DaemonSeed()
 {
 #ifdef WINDOWS
-	printf_c("InspIRCd Process ID: \033[1;32m%lu\033[0m\n", GetCurrentProcessId());
+	printf_c("hottpd pid: \033[1;32m%lu\033[0m\n", GetCurrentProcessId());
 	return true;
 #else
 	signal(SIGTERM, InspIRCd::QuickExit);
@@ -369,8 +369,8 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 	if ((Config->ports.size() == 0) && (found_ports > 0))
 	{
-		printf("\nERROR: I couldn't bind any ports! Are you sure you didn't start InspIRCd twice?\n");
-		Log(DEFAULT,"ERROR: I couldn't bind any ports! Are you sure you didn't start InspIRCd twice?");
+		printf("\nERROR: I couldn't bind any ports! Are you sure you didn't start hottpd twice?\n");
+		Log(DEFAULT,"ERROR: I couldn't bind any ports! Are you sure you didn't start hottpd twice?");
 		Exit(EXIT_STATUS_BIND);
 	}
 
@@ -420,7 +420,7 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 	}
 #endif
 	
-	printf("\nInspIRCd is now running!\n");
+	printf("\nhottpd is now running!\n");
 	Log(DEFAULT,"Startup complete.");
 
 	this->WritePID(Config->PID);
