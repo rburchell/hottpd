@@ -345,12 +345,64 @@ void Connection::HandleURI()
 		}
 	}
 	
-	upath = ServerInstance->Config->DocRoot;
-	if ((upath[upath.length() - 1] != '/') && (sanepath[0] != '/'))
-		upath.push_back('/');
-	upath.append(sanepath);
+	uri.clear();
+	if (sanepath[0] != '/')
+		uri.push_back('/');
 	
-	ServerInstance->Log(DEBUG, "Mapped URI '%s' to path %s", uri.c_str(), upath.c_str());
+	uri.append(sanepath);
+	
+	ServerInstance->Log(DEBUG, "Cleaned URI to '%s'", uri.c_str());
+}
+
+bool Connection::CheckFilePath(const std::string &basedir, const std::string &path, struct stat *&fst)
+{
+	std::string fullpath(basedir);
+	
+	if (fullpath[fullpath.length() - 1] == '/')
+		fullpath.erase(fullpath.end() - 1);
+	
+	int l = fullpath.length();
+	
+	fullpath.append(path);
+	std::string::iterator i = fullpath.begin() + l;
+	
+	for (i++; i != fullpath.end(); i++)
+	{
+		if (*i == '/')
+		{
+			if (ServerInstance->FileSys->Stat(std::string(fullpath.begin(), i).c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
+				return false;
+			
+			if (!S_ISDIR(fst->st_mode))
+			{
+				if (S_ISREG(fst->st_mode))
+				{
+					// Pathinfo!
+					ServerInstance->Log(DEBUG, "PathInfo found: '%s'", std::string(i + 1, fullpath.end()).c_str());
+					
+					upath = std::string(fullpath.begin(), i);
+					return false;
+				}
+				else
+				{
+					errno = EACCES;
+					return false;
+				}
+			}
+		}
+	}
+	
+	if (ServerInstance->FileSys->Stat(fullpath.c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
+		return false;
+	
+	if (!S_ISREG(fst->st_mode))
+	{
+		errno = EACCES;
+		return false;
+	}
+	
+	upath = fullpath;
+	return true;
 }
 
 void Connection::ServeData()
@@ -361,24 +413,26 @@ void Connection::ServeData()
 	{
 		HandleURI();
 		
-		// Check if the file exists
-		struct stat *fst;
-		if (ServerInstance->FileSys->Stat(upath.c_str(), fst) < 0)
-		{
-			if (errno == EACCES)
-				this->SendError(403, "Forbidden");
-			else if ((errno == ENOENT) || (errno == ELOOP) || (errno == ENAMETOOLONG) || (errno == ENOTDIR))
-				this->SendError(404, "File Not Found");
-			else
-				this->SendError(500, "Internal Server Error");
-			return;
-		}
+		struct stat *fst = NULL;
 		
-		// Stat will follow symlinks, so this refers to the actual destination file. Follow symlink checks are elsewhere
-		if (!S_ISREG(fst->st_mode))
+		if (!CheckFilePath(ServerInstance->Config->DocRoot, uri, fst))
 		{
-			// This isn't a normal file
-			this->SendError(403, "Forbidden");
+			switch (errno)
+			{
+				case EACCES:
+					this->SendError(403, "Forbidden");
+					break;
+				case ENOENT:
+				case ELOOP:
+				case ENAMETOOLONG:
+				case ENOTDIR:
+					this->SendError(404, "File Not Found");
+					break;
+				default:
+					this->SendError(500, "Internal Server Error");
+					break;
+			}
+			
 			return;
 		}
 		
