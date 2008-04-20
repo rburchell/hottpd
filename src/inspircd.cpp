@@ -137,7 +137,7 @@ void InspIRCd::SetSignals()
 {
 #ifndef WIN32
 	signal(SIGALRM, SIG_IGN);
-	signal(SIGHUP, InspIRCd::SetSignal);
+	signal(SIGHUP,  SIG_IGN);
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 #endif

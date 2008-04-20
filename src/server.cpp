@@ -22,9 +22,6 @@ void InspIRCd::SignalHandler(int signal)
 {
 	switch (signal)
 	{
-		case SIGHUP:
-			Rehash();
-			break;
 		case SIGTERM:
 			Exit(signal);
 			break;
@@ -41,15 +38,6 @@ void InspIRCd::Exit(int status)
 		this->Cleanup();
 	}
 	exit (status);
-}
-
-void InspIRCd::Rehash()
-{
-	this->CloseLog();
-	this->OpenLog(this->Config->argv, this->Config->argc);
-	FOREACH_MOD_I(this, I_OnGarbageCollect, OnGarbageCollect());
-	/*this->Config->Read(false,NULL);*/
-	FOREACH_MOD_I(this,I_OnRehash,OnRehash());
 }
 
 std::string InspIRCd::GetVersionString()

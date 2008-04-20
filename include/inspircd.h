@@ -307,10 +307,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void CloseLog();
 
-	/** Rehash the local server
-	 */
-	void Rehash();
-
 	/** Handles incoming signals after being set
 	 * @param signal the signal recieved
 	 */

@@ -321,7 +321,7 @@ enum Priority { PRIORITY_FIRST, PRIORITY_DONTCARE, PRIORITY_LAST, PRIORITY_BEFOR
 enum Implementation
 {
 	I_BEGIN,
-	I_OnConnectionConnect, I_OnConnectionDisconnect, I_OnRehash,
+	I_OnConnectionConnect, I_OnConnectionDisconnect,
 	I_OnCleanup, I_OnLoadModule, I_OnUnloadModule,
 	I_OnBackgroundTimer,
 	I_OnEvent, I_OnRequest,
@@ -380,13 +380,6 @@ class CoreExport Module : public Extensible
 	 * @param user The user who is disconnecting
 	 */
 	virtual void OnConnectionDisconnect(Connection* user);
-
-	/** Called on rehash.
-	 * This method is called when a SIGHUP is received from the operating system.
-	 * You should use it to reload any files so that your module keeps in step with the
-	 * rest of the application.
-	 */
- 	virtual void OnRehash();
 
 	/** Called before your module is unloaded to clean up Extensibles.
 	 * This method is called once for every connection,

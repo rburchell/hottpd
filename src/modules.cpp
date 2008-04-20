@@ -105,7 +105,6 @@ std::string Event::GetEventID()
 		Module::~Module() { }
 void		Module::OnConnectionConnect(Connection*) { }
 void		Module::OnConnectionDisconnect(Connection*) { }
-void		Module::OnRehash() { }
 Version		Module::GetVersion() { return Version(1,0,0,0,VF_VENDOR,-1); }
 void		Module::OnLoadModule(Module*, const std::string&) { }
 void		Module::OnUnloadModule(Module*, const std::string&) { }

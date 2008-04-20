@@ -21,8 +21,8 @@ class ModuleTest : public Module
 	ModuleTest(InspIRCd *Srv)
 		: Module(Srv)
 	{
-		Implementation eventlist[] = { I_OnRehash, I_OnConnectionConnect, I_OnConnectionDisconnect };
-		ServerInstance->Modules->Attach(eventlist, this, 3);
+		Implementation eventlist[] = { I_OnConnectionConnect, I_OnConnectionDisconnect };
+		ServerInstance->Modules->Attach(eventlist, this, 2);
 	}
 	
 	virtual ~ModuleTest()
@@ -32,11 +32,6 @@ class ModuleTest : public Module
 	virtual Version GetVersion()
 	{
 		return Version(1, 0, 0, 0, VF_VENDOR, API_VERSION);
-	}
-	
-	virtual void OnRehash()
-	{
-		ServerInstance->Log(DEBUG, "Module rehash triggered");
 	}
 	
 	virtual void OnConnectionConnect(Connection *conn)
