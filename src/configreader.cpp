@@ -378,9 +378,12 @@ void ServerConfig::Read(bool bail)
 		{"server",	"moduledir",	MOD_PATH,		new ValueContainerChar (this->ModPath),			DT_CHARPTR,  NoValidation},
 		{"server",	"customversion","",			new ValueContainerChar (this->CustomVersion),		DT_CHARPTR,  NoValidation},
 		{"server",	"pidfile",		"",			new ValueContainerChar (this->PID),			DT_CHARPTR,  NoValidation},
+
 		{"security",  "follow-symlinks", "yes", new ValueContainerBool(&this->FollowSymLinks), DT_BOOLEAN, NoValidation},
 		{"security",  "user", "", new ValueContainerChar(this->SetUser), DT_CHARPTR, NoValidation},
 		{"security",  "group", "", new ValueContainerChar(this->SetGroup), DT_CHARPTR, NoValidation},
+		{"security",  "chroot", "", new ValueContainerChar(this->ChRoot), DT_CHARPTR, NoValidation},
+
 		{"performance", "stat-cache-time", "2", new ValueContainerInt(&this->StatCacheDuration), DT_INTEGER, NoValidation},
 		{"performance", "noatime", "yes", new ValueContainerBool(&this->NoAtime), DT_BOOLEAN, NoValidation},
 		{"performance", "max-conn-queue", SOMAXCONN_S, new ValueContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},

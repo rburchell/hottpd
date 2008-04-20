@@ -411,6 +411,17 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 		}
 	}
 
+	if (*(this->Config->ChRoot))
+	{
+		int ret = chroot(this->Config->ChRoot);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "chroot() failed (bad path?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
 	int bounditems = BindPorts(true, found_ports, pl);
 
 	printf("\n");

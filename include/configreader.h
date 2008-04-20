@@ -324,6 +324,10 @@ class CoreExport ServerConfig : public Extensible
 	/** Base directory for serving HTTP files
 	 */
 	char DocRoot[MAXBUF];
+
+	/** Where to chroot() to.
+	 */
+	char ChRoot[MAXBUF];
 	
 	/** Duration to cache stat() calls (0 is disabled)
 	 */

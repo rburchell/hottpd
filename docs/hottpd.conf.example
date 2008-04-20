@@ -106,4 +106,10 @@ security
 	 * this setting defines what group to drop down to.
 	 */
 	#group = www-data
+
+	/*
+	 * Allows for "security" by changing root (hence 'chroot') to a subdir.
+	 * Can be broken out of, but provides some measure of security
+	 */
+	#chroot = /var/www/
 }
