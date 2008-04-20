@@ -365,63 +365,6 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 	Config->Read(true);
 
-	if (*(this->Config->SetUser))
-	{
-		// setuid
-		struct passwd *u;
-
-		errno = 0;
-		u = getpwnam(this->Config->SetUser);
-
-		if (!u)
-		{
-			this->Log(DEFAULT, "getpwnam() failed (bad user?): %s", strerror(errno));
-			this->QuickExit(0);
-		}
-
-		int ret = setuid(u->pw_uid);
-
-		if (ret == -1)
-		{
-			this->Log(DEFAULT, "setuid() failed (bad user?): %s", strerror(errno));
-			this->QuickExit(0);
-		}
-	}
-
-	if (*(this->Config->SetGroup))
-	{
-		// setgid
-		struct group *g;
-
-		errno = 0;
-		g = getgrnam(this->Config->SetGroup);
-
-		if (!g)
-		{
-			this->Log(DEFAULT, "getgrnam() failed (bad user?): %s", strerror(errno));
-			this->QuickExit(0);
-		}
-
-		int ret = setgid(g->gr_gid);
-
-		if (ret == -1)
-		{
-			this->Log(DEFAULT, "setgid() failed (bad user?): %s", strerror(errno));
-			this->QuickExit(0);
-		}
-	}
-
-	if (*(this->Config->ChRoot))
-	{
-		int ret = chroot(this->Config->ChRoot);
-
-		if (ret == -1)
-		{
-			this->Log(DEFAULT, "chroot() failed (bad path?): %s", strerror(errno));
-			this->QuickExit(0);
-		}
-	}
-
 	int bounditems = BindPorts(true, found_ports, pl);
 
 	printf("\n");
@@ -470,6 +413,66 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 			Log(DEFAULT,"Keeping pseudo-tty open as we are running in the foreground.");
 		}
 	}
+
+
+	if (*(this->Config->ChRoot))
+	{
+		// chroot
+		int ret = chroot(this->Config->ChRoot);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "chroot() failed (bad path?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
+	if (*(this->Config->SetUser))
+	{
+		// setuid
+		struct passwd *u;
+
+		errno = 0;
+		u = getpwnam(this->Config->SetUser);
+
+		if (!u)
+		{
+			this->Log(DEFAULT, "getpwnam() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+
+		int ret = setuid(u->pw_uid);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "setuid() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
+	if (*(this->Config->SetGroup))
+	{
+		// setgid
+		struct group *g;
+
+		errno = 0;
+		g = getgrnam(this->Config->SetGroup);
+
+		if (!g)
+		{
+			this->Log(DEFAULT, "getgrnam() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+
+		int ret = setgid(g->gr_gid);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "setgid() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
 #else
 	WindowsIPC = new IPC(this);
 	if(!Config->nofork)
