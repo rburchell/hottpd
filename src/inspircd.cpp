@@ -22,6 +22,8 @@
 	#include <sys/resource.h>
 	#include <dlfcn.h>
 	#include <getopt.h>
+	#include <pwd.h> // setuid
+	#include <grp.h> // setgid
 
 	/* Some systems don't define RUSAGE_SELF. This should fix them. */
 	#ifndef RUSAGE_SELF
@@ -363,6 +365,52 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 	Config->Read(true);
 
+	if (*(this->Config->SetUser))
+	{
+		// setuid
+		struct passwd *u;
+
+		errno = 0;
+		u = getpwnam(this->Config->SetUser);
+
+		if (!u)
+		{
+			this->Log(DEFAULT, "getpwnam() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+
+		int ret = setuid(u->pw_uid);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "setuid() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
+	if (*(this->Config->SetGroup))
+	{
+		// setgid
+		struct group *g;
+
+		errno = 0;
+		g = getgrnam(this->Config->SetGroup);
+
+		if (!g)
+		{
+			this->Log(DEFAULT, "getgrnam() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+
+		int ret = setgid(g->gr_gid);
+
+		if (ret == -1)
+		{
+			this->Log(DEFAULT, "setgid() failed (bad user?): %s", strerror(errno));
+			this->QuickExit(0);
+		}
+	}
+
 	int bounditems = BindPorts(true, found_ports, pl);
 
 	printf("\n");
@@ -463,6 +511,8 @@ int InspIRCd::Run()
 					 * Socket's old. Kill the fuck out of it.
 					 * We do this to avoid DDOS, and because if we *don't*,
 					 * sockets may end up randomly existing for a very long fucking time.
+					 *
+					 * XXX: if a socket is old, but still writing, we should let it live.
 					 */
 					this->Log(DEBUG, "Culling %d because it's too old", c->GetFd());
 					this->Connections->Delete(c);

@@ -341,6 +341,11 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	int TimeoutIdleLifetime;
 
+	/** Both for set(g|u)id.
+	 */
+	char SetUser[MAXBUF];
+	char SetGroup[MAXBUF];
+
 	/** If symlinks should be followed while serving files
 	 */
 	bool FollowSymLinks;

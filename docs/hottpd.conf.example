@@ -83,13 +83,27 @@ performance
 	 * Keeping this low on static servers is probably a good idea.
 	 */
 	#timeout-idle-lifetime = 5
-
-	//	{"performance", "timeout-frequency", "10", new ValueContainerInt(&this->TimeoutCullFrequency), DT_INTEGER, NoValidation},
-	//	{"performance", "timeout-total-lifetime", "30", new ValueContainerInt(&this->TimeoutTotalLifetime), DT_INTEGER, NoValidation},
-	//	{"performance", "timeout-idle-lifetime", "30", new ValueContainerInt(&this->TimeoutIdleLifetime), DT_INTEGER, NoValidation},
 }
 
 security
 {
+	/*
+	 * Defines if symbolic links should be followed when serving requests
+	 * for directories and files
+	 *  - upside: symbolic links work
+	 *  - downside: can break out of docroot
+	 */
 	#follow-symlinks = yes
+
+	/*
+	 * hottpd can (optionally) drop priviledges after binding ports.
+	 * this setting defines what user to drop down to.
+	 */
+	#user = www-data
+
+	/*
+	 * hottpd can (optionally) drop priviledges after binding ports.
+	 * this setting defines what group to drop down to.
+	 */
+	#group = www-data
 }
