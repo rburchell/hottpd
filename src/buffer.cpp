@@ -18,17 +18,19 @@
 
 void Connection::ReadData()
 {
+	/** A large buffer that may be read into.
+	 */
+	static char ReadBuffer[65535]; // if you change this size, remember to change the read() call below!
+
 	int result = EAGAIN;
 
 	if (this->GetFd() == FD_MAGIC_NUMBER)
 		return;
 
-	char* ReadBuffer = ServerInstance->GetReadBuffer();
-
 #ifndef WIN32
-	result = read(this->fd, ReadBuffer, sizeof(ReadBuffer));
+	result = read(this->fd, (char *)ReadBuffer, 65535);
 #else
-	result = recv(this->fd, (char*)ReadBuffer, sizeof(ReadBuffer), 0);
+	result = recv(this->fd, (char*)ReadBuffer, 65535, 0);
 #endif
 
 	if ((result) && (result != -EAGAIN))

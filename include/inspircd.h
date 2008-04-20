@@ -210,10 +210,6 @@ class CoreExport InspIRCd : public classbase
 	 */
 	time_t OLDTIME;
 
-	/** A 64k buffer used to read client lines into
-	 */
-	char ReadBuffer[65535];
-
 	/** Used when connecting clients
 	 */
 	socklen_t length;
@@ -420,11 +416,6 @@ class CoreExport InspIRCd : public classbase
 	 * @return The return value for this function is undefined.
 	 */
 	int Run();
-
-	char* GetReadBuffer()
-	{
-		return this->ReadBuffer;
-	}
 };
 
 #endif
