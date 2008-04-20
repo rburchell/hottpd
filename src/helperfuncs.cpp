@@ -86,7 +86,7 @@ bool InspIRCd::OpenLog(char**, int)
 	{
 		if (Config->logpath.empty())
 		{
-			Config->logpath = Config->MyDir + "/ircd.log";
+			Config->logpath = Config->MyDir + "/httpd.log";
 		}
 
 		Config->log_file = fopen(Config->logpath.c_str(),"a+");
@@ -108,9 +108,8 @@ bool InspIRCd::OpenLog(char**, int)
 
 /** Refactored by Brain, Jun 2007. Much faster with some clever O(1) array
  * lookups and pointer maths.
- */
-
-/** A lookup table of values for multiplier characters used by
+ *
+ A lookup table of values for multiplier characters used by
  * InspIRCd::Duration(). In this lookup table, the indexes for
  * the ascii values 'm' and 'M' have the value '60', the indexes
  * for the ascii values 'D' and 'd' have a value of '86400', etc.
