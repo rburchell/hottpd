@@ -552,9 +552,6 @@ int InspIRCd::Run()
 		 */
 		if (TIME != OLDTIME)
 		{
-			/* if any connections were quit, take them out */
-			this->GlobalCulls.Apply();
-
 			if (ShuttingDown && this->local_connections.size() == 0)
 				this->Exit(0);
 
@@ -592,6 +589,9 @@ int InspIRCd::Run()
 		 * dispatched to their handlers.
 		 */
 		this->SE->DispatchEvents();
+
+		/* if any connections were quit, take them out */
+		this->GlobalCulls.Apply();
 
 		if (this->s_signal)
 		{
