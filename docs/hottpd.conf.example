@@ -24,10 +24,39 @@ bind
 
 performance
 {
-	#stat-cache-time = 2 // Set to 0 to disable the stat cache
+	/*
+	 * How long to cache stat() entries for
+	 * The longer this is, the better performance will be - but it may take longer for changes to
+	 * show up live/could have possible security implications.
+	 *
+	 * Set to 0 to disable the cache totally.
+	 */
+	#stat-cache-time = 2
+
+	/*
+	 * Don't set access time on files where possible.
+	 * Really a minor, trivial thing (you probably won't notice it anyway).
+	 */
 	#noatime = yes
-	#max-conn-queue = 128 // Set to system maximum by default
-	/* Maximum requests in a keepalive connection. 0 or 1 disables keepalive entirely (bad idea, usually) */
+
+	/*
+	 * How many connections can queue up per listener: all these are accept()ed at once, so you
+	 * won't usually have to set it too high, but higher load sites *will* benefit from a higher setting.
+	 *
+	 * Default setting is system maximum.
+	 */
+	#max-conn-queue = 128
+
+	/*
+	 * Maximum requests in a keepalive connection.
+	 *
+	 * HTTP/1.1 supports multiple requests from one socket connection, resulting in less latency from a
+	 * user perspective (good thing).
+	 *
+	 * As sockets in hottpd are (relatively) cheap, leaving this high isn't too great a worry, and will decrease page load time generally.
+	 *
+	 * 0 or 1 disables keepalive entirely (bad idea, usually)
+	 */
 	#keepalive-max = 30
 }
 
