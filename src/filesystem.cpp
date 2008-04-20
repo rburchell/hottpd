@@ -19,6 +19,65 @@ FileSystem::FileSystem(InspIRCd *Instance)
 {
 }
 
+
+std::string FileSystem::CheckFilePath(const std::string &basedir, const std::string &path, struct stat *&fst)
+{
+	std::string fullpath(basedir);
+	
+	if (fullpath[fullpath.length() - 1] == '/')
+		fullpath.erase(fullpath.end() - 1);
+	
+	// Skip the basedir in this process
+	int l = fullpath.length();
+	
+	fullpath.append(path);
+	std::string::iterator i = fullpath.begin() + l;
+	
+	/*
+	 * This is climbing up the entire directory tree and stating each item,
+	 * used because it's necessary for the FollowSymLinks setting when off, and
+	 * because it's the only way pathinfo can work. In the interest of ricering,
+	 * we may want to add a short circuit for this when followsymlinks is on or
+	 * possibly add an option to disable pathinfo.
+	 */
+	
+	for (i++; i != fullpath.end(); i++)
+	{
+		if (*i == '/')
+		{
+			if (this->Stat(std::string(fullpath.begin(), i).c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
+				return std::string();
+			
+			if (!S_ISDIR(fst->st_mode))
+			{
+				if (S_ISREG(fst->st_mode))
+				{
+					// Pathinfo!
+					ServerInstance->Log(DEBUG, "PathInfo found: '%s'", std::string(i + 1, fullpath.end()).c_str());
+					
+					return std::string(fullpath.begin(), i);;
+				}
+				else
+				{
+					errno = EACCES;
+					return std::string();
+				}
+			}
+		}
+	}
+	
+	if (this->Stat(fullpath.c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
+		return  std::string();
+	
+	if (!S_ISREG(fst->st_mode))
+	{
+		errno = EACCES;
+		return std::string();
+	}
+	
+	return fullpath;
+}
+
 int FileSystem::Stat(const char *path, struct stat *&buf, bool followlink, bool fromcache)
 {
 	if (ServerInstance->Config->StatCacheDuration < 1)

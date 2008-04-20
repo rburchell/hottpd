@@ -44,6 +44,8 @@ class CoreExport FileSystem
 	FileSystem(InspIRCd *Instance);
 	
 	int Stat(const char *path, struct stat *&buf, bool followlink = true, bool fromcache = true);
+
+	std::string CheckFilePath(const std::string &basedir, const std::string &path, struct stat *&fst);
 };
 
 #endif

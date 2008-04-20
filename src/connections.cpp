@@ -413,64 +413,6 @@ void Connection::HandleURI()
 	ServerInstance->Log(DEBUG, "Cleaned URI to '%s'", uri.c_str());
 }
 
-bool Connection::CheckFilePath(const std::string &basedir, const std::string &path, struct stat *&fst)
-{
-	std::string fullpath(basedir);
-	
-	if (fullpath[fullpath.length() - 1] == '/')
-		fullpath.erase(fullpath.end() - 1);
-	
-	// Skip the basedir in this process
-	int l = fullpath.length();
-	
-	fullpath.append(path);
-	std::string::iterator i = fullpath.begin() + l;
-	
-	/* This is climbing up the entire directory tree and stating each item,
-	 * used because it's necessary for the FollowSymLinks setting when off, and
-	 * because it's the only way pathinfo can work. In the interest of ricering,
-	 * we may want to add a short circuit for this when followsymlinks is on or
-	 * possibly add an option to disable pathinfo. */
-	
-	for (i++; i != fullpath.end(); i++)
-	{
-		if (*i == '/')
-		{
-			if (ServerInstance->FileSys->Stat(std::string(fullpath.begin(), i).c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
-				return false;
-			
-			if (!S_ISDIR(fst->st_mode))
-			{
-				if (S_ISREG(fst->st_mode))
-				{
-					// Pathinfo!
-					ServerInstance->Log(DEBUG, "PathInfo found: '%s'", std::string(i + 1, fullpath.end()).c_str());
-					
-					upath = std::string(fullpath.begin(), i);
-					return true;
-				}
-				else
-				{
-					errno = EACCES;
-					return false;
-				}
-			}
-		}
-	}
-	
-	if (ServerInstance->FileSys->Stat(fullpath.c_str(), fst, ServerInstance->Config->FollowSymLinks) < 0)
-		return false;
-	
-	if (!S_ISREG(fst->st_mode))
-	{
-		errno = EACCES;
-		return false;
-	}
-	
-	upath = fullpath;
-	return true;
-}
-
 void Connection::ServeData()
 {
 	ServerInstance->Log(DEBUG, "ServeData: %s: %s", method.c_str(), uri.c_str());
@@ -482,7 +424,9 @@ void Connection::ServeData()
 		
 		struct stat *fst = NULL;
 		
-		if (!CheckFilePath(ServerInstance->Config->DocRoot, uri, fst))
+		upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, uri, fst);
+
+		if (upath.empty())
 		{
 			switch (errno)
 			{

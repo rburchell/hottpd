@@ -224,8 +224,6 @@ class CoreExport Connection : public EventHandler
 	
 	void CheckRequest(int newpos);
 
-	bool CheckFilePath(const std::string &basedir, const std::string &path, struct stat *&fst);
-
 	void ServeData();
 
 	void SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders);
