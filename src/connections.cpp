@@ -126,6 +126,14 @@ bool Connection::AddBuffer(const std::string &a)
 	
 	if (State == HTTP_RECV_REQBODY)
 	{
+		/*
+		 * Note!
+		 *
+		 * Don't be clever here, we *must* only take what we can to the request body
+		 * (i.e. NO MORE than RequestBodyLength!). It would be naughty to accept any
+		 * more than content-length bytes for the request body, primarily
+		 * thanks to pipelining. So, we take what we can, and shove the rest in the request buffer.
+		 */
 		unsigned int remains = RequestBodyLength - RequestBody.length();
 		
 		if (remains < a.length())
@@ -267,7 +275,17 @@ void Connection::CheckRequest(int newpos)
 	
 	// Check for a request body
 	if (headers.IsSet("Content-Length"))
+	{
 		RequestBodyLength = atoi(headers.GetHeader("Content-Length").c_str());
+
+		if (RequestBodyLength > ServerInstance->Config->MaxPostBody)
+		{
+			// Sorry, lardy. Don't try send so much crap.
+			keepalive = false;
+			SendError(413, "Request Entity Too Large");
+			return;
+		}
+	}
 	
 	if (headers.IsSet("Transfer-Encoding"))
 	{

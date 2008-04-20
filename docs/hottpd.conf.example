@@ -83,6 +83,12 @@ performance
 	 * Keeping this low on static servers is probably a good idea.
 	 */
 	#timeout-idle-lifetime = 5
+
+	/*
+	 * Maximum amount of data that may be sent in a POST, in bytes.
+	 * XXX make this a bit more flexible ;p
+	 */
+	#max-post-body = 1024
 }
 
 security

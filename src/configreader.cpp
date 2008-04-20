@@ -391,6 +391,7 @@ void ServerConfig::Read(bool bail)
 		{"performance", "timeout-frequency", "10", new ValueContainerInt(&this->TimeoutCullFrequency), DT_INTEGER, NoValidation},
 		{"performance", "timeout-total-lifetime", "30", new ValueContainerInt(&this->TimeoutTotalLifetime), DT_INTEGER, NoValidation},
 		{"performance", "timeout-idle-lifetime", "5", new ValueContainerInt(&this->TimeoutIdleLifetime), DT_INTEGER, NoValidation},
+		{"performance", "max-post-body", "1024", new ValueContainerInt(&this->MaxPostBody), DT_INTEGER, NoValidation},
 		{NULL,		NULL,		NULL,			NULL,							DT_NOTHING,  NoValidation}
 	};
 
