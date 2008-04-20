@@ -150,6 +150,10 @@ class CoreExport Connection : public EventHandler
 	/** The request buffer from this connection.
 	 */
 	std::string requestbuf;
+
+	/** The last time socket polled as readable/writable, used by idle timeout code
+	 */
+	time_t LastSocketEvent;
 	
 	int RequestsCompleted;
 	

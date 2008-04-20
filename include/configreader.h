@@ -328,7 +328,19 @@ class CoreExport ServerConfig : public Extensible
 	/** Duration to cache stat() calls (0 is disabled)
 	 */
 	int StatCacheDuration;
-	
+
+	/** How often to check socket list for timed out connections
+	 */
+	int TimeoutCullFrequency;
+
+	/** How old a socket must exist at least to be timed out
+	 */
+	int TimeoutTotalLifetime;
+
+	/** How long a socket must be eventless to be timed out
+	 */
+	int TimeoutIdleLifetime;
+
 	/** If symlinks should be followed while serving files
 	 */
 	bool FollowSymLinks;

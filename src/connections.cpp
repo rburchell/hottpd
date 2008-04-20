@@ -26,6 +26,7 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	// XXX - Make keepalive by default an option?
 	keepalive = true;
 	rfilesize = rfilesent = RequestsCompleted = 0;
+	LastSocketEvent = ServerInstance->Time();
 	ResponseBackend = NULL;
 	RespondType = HTTP_RESPOND_FLUSH;
 }
@@ -837,6 +838,8 @@ void Connection::Write(const char *text, ...)
 void Connection::HandleEvent(EventType et, int errornum)
 {
 	/* WARNING: May delete this connection! */
+	LastSocketEvent = ServerInstance->Time();
+
 	switch (et)
 	{
 		case EVENT_READ:

@@ -173,7 +173,7 @@ bool InspIRCd::DaemonSeed()
 	}
 	setsid ();
 	umask (007);
-	printf("InspIRCd Process ID: \033[1;32m%lu\033[0m\n",(unsigned long)getpid());
+	printf("hottpd pid: \033[1;32m%lu\033[0m\n",(unsigned long)getpid());
 
 	signal(SIGTERM, InspIRCd::SetSignal);
 
@@ -428,7 +428,7 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 
 int InspIRCd::Run()
 {
-	int times = 0;
+	int times = 1;
 
 	while (true)
 	{
@@ -448,9 +448,35 @@ int InspIRCd::Run()
 
 		times++;
 
-		if (times > 10)
+		if (times > this->Config->TimeoutCullFrequency)
 		{
-			times = 0;
+			this->Log(DEBUG, "culling old sockets");
+			times = 1;
+
+			for (std::vector<Connection*>::const_iterator i = this->local_connections.begin(); i != this->local_connections.end(); i++)
+			{
+				Connection *c = (*i);
+
+				if (TIME >= (c->age + this->Config->TimeoutTotalLifetime))
+				{
+					/*
+					 * Socket's old. Kill the fuck out of it.
+					 * We do this to avoid DDOS, and because if we *don't*,
+					 * sockets may end up randomly existing for a very long fucking time.
+					 */
+					this->Log(DEBUG, "Culling %d because it's too old", c->GetFd());
+					this->Connections->Delete(c);
+				}
+				else if (TIME >= (c->LastSocketEvent + this->Config->TimeoutIdleLifetime))
+				{
+					/*
+					 * Socket hasn't been doing anything for quite a while.
+					 * Kill the fuck out of it.
+					 */
+					this->Log(DEBUG, "Culling %d because it's too idle", c->GetFd());
+					this->Connections->Delete(c);
+				}
+			}
 		}
 
 		/* Run background module timers every few seconds

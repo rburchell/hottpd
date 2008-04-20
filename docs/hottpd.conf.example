@@ -58,6 +58,35 @@ performance
 	 * 0 or 1 disables keepalive entirely (bad idea, usually)
 	 */
 	#keepalive-max = 30
+
+	/*
+	 * How many cycles before checking connections for being idle
+	 * On a lightly loaded server, you may wish to leave this quite low.
+	 * On a higher loaded server, you could set this up a bit higher to
+	 * help lower CPU use.
+	 */
+	#timeout-frequency = 10
+
+	/*
+	 * How long (total, not including keepalive) can a socket exist before
+	 * being killed. As connections are (somewhat) cheap, if you have users
+	 * making a lot of different page requests, keeping this up a bit can make
+	 * things seem a bit faster for them if they have keepalive turned on.
+	 *
+	 * However, keeping it up too high makes it easier to DDOS your server.
+	 */
+	#timeout-total-lifetime = 30
+
+	/*
+	 * How long may a connection exist without being read/written to.
+	 * (idle connections are usually useless anyway).
+	 * Keeping this low on static servers is probably a good idea.
+	 */
+	#timeout-idle-lifetime = 5
+
+	//	{"performance", "timeout-frequency", "10", new ValueContainerInt(&this->TimeoutCullFrequency), DT_INTEGER, NoValidation},
+	//	{"performance", "timeout-total-lifetime", "30", new ValueContainerInt(&this->TimeoutTotalLifetime), DT_INTEGER, NoValidation},
+	//	{"performance", "timeout-idle-lifetime", "30", new ValueContainerInt(&this->TimeoutIdleLifetime), DT_INTEGER, NoValidation},
 }
 
 security
