@@ -107,6 +107,7 @@ bool Connection::AddBuffer(const std::string &a)
 			ServerInstance->Log(DEBUG, "Request body: %s", RequestBody.c_str());
 			ServerInstance->Log(DEBUG, "Finished reading request body (%d bytes). Serving request.", RequestBodyLength);
 			ServeData();
+			return true;
 		}
 	}
 	else
@@ -119,16 +120,17 @@ bool Connection::AddBuffer(const std::string &a)
 		
 		requestbuf.append(a);
 
-		if (requestbuf.length() > 5120)
-		{
-			// XXX arbitrary limit; needs discussion of a proper default
-			ServerInstance->Log(DEBUG, "Too much data in buffer; dropping");
-			return false;
-		}
-		
 		if (State == HTTP_WAIT_REQUEST)
 			this->CheckRequest(nspos);		
 	}
+
+	if (requestbuf.length() > 5120)
+	{
+		// XXX arbitrary limit; needs discussion of a proper default
+		ServerInstance->Log(DEBUG, "Too much data in buffer; dropping");
+		return false;
+	}
+	
 
 	return true;
 }
