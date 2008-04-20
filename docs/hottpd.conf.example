@@ -65,7 +65,7 @@ performance
 	 * On a higher loaded server, you could set this up a bit higher to
 	 * help lower CPU use.
 	 */
-	#timeout-frequency = 10
+	#timeout-frequency = 120
 
 	/*
 	 * How long (total, not including keepalive) can a socket exist before

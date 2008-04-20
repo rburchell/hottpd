@@ -514,7 +514,7 @@ int InspIRCd::Run()
 
 		if (times > this->Config->TimeoutCullFrequency)
 		{
-			this->Log(DEBUG, "culling old sockets");
+			this->Log(DEBUG, "Timing out old connections.");
 			times = 1;
 
 			for (std::vector<Connection*>::const_iterator i = this->local_connections.begin(); i != this->local_connections.end(); i++)
@@ -530,7 +530,7 @@ int InspIRCd::Run()
 					 *
 					 * XXX: if a socket is old, but still writing, we should let it live.
 					 */
-					this->Log(DEBUG, "Culling %d because it's too old", c->GetFd());
+					this->Log(DEBUG, "Timing out %d because it's too old", c->GetFd());
 					this->Connections->Delete(c);
 				}
 				else if (TIME >= (c->LastSocketEvent + this->Config->TimeoutIdleLifetime))
@@ -539,7 +539,7 @@ int InspIRCd::Run()
 					 * Socket hasn't been doing anything for quite a while.
 					 * Kill the fuck out of it.
 					 */
-					this->Log(DEBUG, "Culling %d because it's too idle", c->GetFd());
+					this->Log(DEBUG, "Timing out %d because it's too idle", c->GetFd());
 					this->Connections->Delete(c);
 				}
 			}

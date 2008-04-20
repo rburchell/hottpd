@@ -388,7 +388,7 @@ void ServerConfig::Read(bool bail)
 		{"performance", "noatime", "yes", new ValueContainerBool(&this->NoAtime), DT_BOOLEAN, NoValidation},
 		{"performance", "max-conn-queue", SOMAXCONN_S, new ValueContainerInt(&this->MaxConn), DT_INTEGER, ValidateMaxConn},
 		{"performance", "keepalive-max", "30", new ValueContainerInt(&this->KeepAliveMax), DT_INTEGER, NoValidation},
-		{"performance", "timeout-frequency", "10", new ValueContainerInt(&this->TimeoutCullFrequency), DT_INTEGER, NoValidation},
+		{"performance", "timeout-frequency", "120", new ValueContainerInt(&this->TimeoutCullFrequency), DT_INTEGER, NoValidation},
 		{"performance", "timeout-total-lifetime", "30", new ValueContainerInt(&this->TimeoutTotalLifetime), DT_INTEGER, NoValidation},
 		{"performance", "timeout-idle-lifetime", "5", new ValueContainerInt(&this->TimeoutIdleLifetime), DT_INTEGER, NoValidation},
 		{"performance", "max-post-body", "1024", new ValueContainerInt(&this->MaxPostBody), DT_INTEGER, NoValidation},
