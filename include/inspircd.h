@@ -179,6 +179,14 @@ class CoreExport InspIRCd : public classbase
 	 */
 	void SetSignals();
 
+	/** True if in the middle of graceful shutdown
+	 */
+	bool ShuttingDown;
+
+	/** Initiate a graceful shutdown
+	 */
+	void GracefulShutdown();
+
 	/** Daemonize the ircd and close standard input/output streams
 	 * @return True if the program daemonized succesfully
 	 */

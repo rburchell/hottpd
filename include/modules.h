@@ -321,7 +321,7 @@ enum Priority { PRIORITY_FIRST, PRIORITY_DONTCARE, PRIORITY_LAST, PRIORITY_BEFOR
 enum Implementation
 {
 	I_BEGIN,
-	I_OnConnectionConnect, I_OnConnectionDisconnect,
+	I_OnConnectionConnect, I_OnConnectionDisconnect, I_OnGracefulShutdown,
 	I_OnCleanup, I_OnLoadModule, I_OnUnloadModule,
 	I_OnBackgroundTimer,
 	I_OnEvent, I_OnRequest,
@@ -380,6 +380,13 @@ class CoreExport Module : public Extensible
 	 * @param user The user who is disconnecting
 	 */
 	virtual void OnConnectionDisconnect(Connection* user);
+
+	/** Called when "rehashing" (shutting down cleanly).
+	 * This method is called when a SIGHUP is received from the operating system.
+	 * All listeners are closed at this point, and app will terminate when all connections
+	 * are closed.
+	 */
+ 	virtual void OnGracefulShutdown();
 
 	/** Called before your module is unloaded to clean up Extensibles.
 	 * This method is called once for every connection,

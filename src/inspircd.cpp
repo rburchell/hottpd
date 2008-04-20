@@ -137,7 +137,7 @@ void InspIRCd::SetSignals()
 {
 #ifndef WIN32
 	signal(SIGALRM, SIG_IGN);
-	signal(SIGHUP,  SIG_IGN);
+	signal(SIGHUP,  InspIRCd::SetSignal);
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, SIG_IGN);
 #endif
@@ -230,6 +230,8 @@ InspIRCd::InspIRCd(int argc, char** argv) : GlobalCulls(this)
 	FailedPortList pl;
 	int do_version = 0, do_nofork = 0, do_debug = 0, do_nolog = 0, do_root = 0;    /* flag variables */
 	char c = 0;
+
+	ShuttingDown = false;
 
 	SocketEngineFactory* SEF = new SocketEngineFactory();
 	SE = SEF->Create(this);
@@ -552,6 +554,9 @@ int InspIRCd::Run()
 		{
 			/* if any connections were quit, take them out */
 			this->GlobalCulls.Apply();
+
+			if (ShuttingDown && this->local_connections.size() == 0)
+				this->Exit(0);
 
 			if ((TIME % 3600) == 0)
 			{

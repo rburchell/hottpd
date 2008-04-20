@@ -22,6 +22,9 @@ void InspIRCd::SignalHandler(int signal)
 {
 	switch (signal)
 	{
+		case SIGHUP:
+			GracefulShutdown();
+			break;
 		case SIGTERM:
 			Exit(signal);
 			break;
@@ -38,6 +41,24 @@ void InspIRCd::Exit(int status)
 		this->Cleanup();
 	}
 	exit (status);
+}
+
+/*
+ * Graceful shutdown.
+ *  This is rehash, but simpler (we can't plain reload conf, as we may be chroot/setuid'd)
+ *  so instead, we close all listeners, and shut down "when we can" (when all clients fuck off).
+ *
+ *  New process can bind and take new requests instantly.
+ */
+void InspIRCd::GracefulShutdown()
+{
+	for (unsigned int i = 0; i < Config->ports.size(); i++)
+	{
+		/* This calls the constructor and closes the listening socket */
+		delete Config->ports[i];
+	}
+	ShuttingDown = true;
+	FOREACH_MOD_I(this,I_OnGracefulShutdown, OnGracefulShutdown());
 }
 
 std::string InspIRCd::GetVersionString()
