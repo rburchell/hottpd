@@ -23,7 +23,6 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	privip = NULL;
 	State = HTTP_WAIT_REQUEST;
 	http_version = HTTP_UNSPECIFIED;
-	// XXX - Make keepalive by default an option?
 	keepalive = true;
 	rfilesize = rfilesent = RequestsCompleted = 0;
 	LastSocketEvent = ServerInstance->Time();
@@ -332,6 +331,7 @@ void Connection::HandleURI()
 		else if (c == '?')
 		{
 			// Begin query
+			// TODO URLEncode support
 			uriquery.assign<std::string::const_iterator>(i + 1, uri.end());
 			i = uri.end() - 1;
 		}
@@ -366,6 +366,12 @@ bool Connection::CheckFilePath(const std::string &basedir, const std::string &pa
 	
 	fullpath.append(path);
 	std::string::iterator i = fullpath.begin() + l;
+	
+	/* This is climbing up the entire directory tree and stating each item,
+	 * used because it's necessary for the FollowSymLinks setting when off, and
+	 * because it's the only way pathinfo can work. In the interest of ricering,
+	 * we may want to add a short circuit for this when followsymlinks is on or
+	 * possibly add an option to disable pathinfo. */
 	
 	for (i++; i != fullpath.end(); i++)
 	{
