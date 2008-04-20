@@ -117,7 +117,7 @@ void Connection::CheckRequest(int newpos)
 	{
 		RequestBodyLength = atoi(headers.GetHeader("Content-Length").c_str());
 
-		if (RequestBodyLength > ServerInstance->Config->MaxPostBody)
+		if (RequestBodyLength > (unsigned int)ServerInstance->Config->MaxPostBody)
 		{
 			// Sorry, lardy. Don't try send so much crap.
 			keepalive = false;
@@ -177,8 +177,14 @@ void Connection::HandleURI()
 				continue;
 			}
 			
-			unsigned char v = utils::unhexchar(*(i + 1), *(i + 2));
-			if ((v < 32) || (v == 127))
+            char v;
+            if (!utils::unhexchar(v, *(i + 1), *(i + 2)))
+            {
+                ServerInstance->Log(DEBUG, "URLEncoded value is invalid (not hex)");
+                i += 2;
+                continue;
+            }
+            if ((v < 32) || (v == 127))
 			{
 				ServerInstance->Log(DEBUG, "URLEncoded unprintable character %d removed from URI.", v);
 				i += 2;

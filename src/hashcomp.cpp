@@ -94,7 +94,7 @@ std::string utils::hex(const unsigned char *raw, size_t rawsz)
 	return hexbuf;
 }
 
-unsigned char utils::unhexchar(char a, char b)
+bool utils::unhexchar(char &dest, char a, char b)
 {
 	static int hex_lookup[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1,
 		-1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -103,9 +103,10 @@ unsigned char utils::unhexchar(char a, char b)
 	};
 	
 	if ((b < 48) || (b > 102) || (a < 48) || (a > 102))
-		return 0;
+		return false;
 	
-	return (unsigned char) (hex_lookup[a - 48] * 16) + hex_lookup[b - 48];
+	dest = (hex_lookup[a - 48] * 16) + hex_lookup[b - 48];
+	return true;
 }
 
 utils::stringjoiner::stringjoiner(const std::string &seperator, const std::vector<std::string> &sequence, int begin, int end)
