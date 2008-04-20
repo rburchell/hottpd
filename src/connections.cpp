@@ -116,12 +116,6 @@ void Connection::ReadData()
 	}
 }
 
-/** NOTE: We cannot pass a const reference to this method.
- * The string is changed by the workings of the method,
- * so that if we pass const ref, we end up copying it to
- * something we can change anyway. Makes sense to just let
- * the compiler do that copy for us.
- */
 bool Connection::AddBuffer(const std::string &a)
 {
 	if (!a.length())
