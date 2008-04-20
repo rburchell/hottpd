@@ -503,7 +503,7 @@ int InspIRCd::Run()
 		static struct tm * stime;
 		static char window_title[100];
 #endif
-
+		
 		/* time() seems to be a pretty expensive syscall, so avoid calling it too much.
 		 * Once per loop iteration is pleanty.
 		 */

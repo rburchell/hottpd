@@ -169,6 +169,9 @@ class CoreExport Connection : public EventHandler
 	} http_version;
 	bool keepalive;
 	
+	unsigned int RequestBodyLength;
+	std::string RequestBody;
+	
 	HttpResponder RespondType;
 	Backend *ResponseBackend;
 	int filefd;

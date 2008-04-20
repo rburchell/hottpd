@@ -24,6 +24,7 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	State = HTTP_WAIT_REQUEST;
 	http_version = HTTP_UNSPECIFIED;
 	keepalive = true;
+	RequestBodyLength = 0;
 	rfilesize = rfilesent = RequestsCompleted = 0;
 	LastSocketEvent = ServerInstance->Time();
 	ResponseBackend = NULL;
@@ -131,8 +132,24 @@ bool Connection::AddBuffer(const std::string &a)
 	
 	if (State == HTTP_RECV_REQBODY)
 	{
-		// We don't do request bodies yet :P
-		return false;
+		unsigned int remains = RequestBodyLength - RequestBody.length();
+		
+		if (remains < a.length())
+		{
+			RequestBody.append(a.begin(), a.begin() + remains);
+			// The rest of this goes into the request buffer
+			requestbuf.append(a);
+		}
+		else
+			RequestBody.append(a);
+		
+		if (RequestBody.length() == RequestBodyLength)
+		{
+			// Done reading the request body
+			ServerInstance->Log(DEBUG, "Request body: %s", RequestBody.c_str());
+			ServerInstance->Log(DEBUG, "Finished reading request body (%d bytes). Serving request.", RequestBodyLength);
+			ServeData();
+		}
 	}
 	else
 	{
@@ -254,6 +271,35 @@ void Connection::CheckRequest(int newpos)
 		keepalive = false;
 	}
 	
+	// Check for a request body
+	if (headers.IsSet("Content-Length"))
+		RequestBodyLength = atoi(headers.GetHeader("Content-Length").c_str());
+	
+	if (headers.IsSet("Transfer-Encoding"))
+	{
+		ServerInstance->Log(DEBUG, "Transfer encoded request bodies are not yet supported");
+		keepalive = false;
+		SendError(500, "Internal Server Error");
+		return;
+	}
+	
+	if (RequestBodyLength > 0)
+	{
+		if (method != "POST")
+		{
+			// We currently only accept bodies for POST requests.
+			ServerInstance->Log(DEBUG, "Rejecting non-POST request with a request body");
+			// This will kill the connection, which we must do because the client will send the request body anyway.
+			keepalive = false;
+			SendError(500, "Internal Server Error");
+			return;
+		}
+		
+		ServerInstance->Log(DEBUG, "Reading %d bytes for the request body", RequestBodyLength);
+		State = HTTP_RECV_REQBODY;
+		return;
+	}
+	
 	ServeData();
  }
 
@@ -362,6 +408,7 @@ bool Connection::CheckFilePath(const std::string &basedir, const std::string &pa
 	if (fullpath[fullpath.length() - 1] == '/')
 		fullpath.erase(fullpath.end() - 1);
 	
+	// Skip the basedir in this process
 	int l = fullpath.length();
 	
 	fullpath.append(path);
@@ -388,7 +435,7 @@ bool Connection::CheckFilePath(const std::string &basedir, const std::string &pa
 					ServerInstance->Log(DEBUG, "PathInfo found: '%s'", std::string(i + 1, fullpath.end()).c_str());
 					
 					upath = std::string(fullpath.begin(), i);
-					return false;
+					return true;
 				}
 				else
 				{
@@ -415,8 +462,9 @@ bool Connection::CheckFilePath(const std::string &basedir, const std::string &pa
 void Connection::ServeData()
 {
 	ServerInstance->Log(DEBUG, "ServeData: %s: %s", method.c_str(), uri.c_str());
-
-	if (method == "GET")
+	
+	// In the future, these might be handled differently. For now they're identical (Except that POST can have a body)
+	if ((method == "GET") || (method == "POST"))
 	{
 		HandleURI();
 		
@@ -579,7 +627,9 @@ void Connection::EndRequest()
 	uri.clear();
 	uriquery.clear();
 	upath.clear();
+	RequestBody.clear();
 	http_version = HTTP_UNSPECIFIED;
+	RequestBodyLength = 0;
 	State = HTTP_WAIT_REQUEST;
 	ResponseBackend = NULL;
 	RespondType = HTTP_RESPOND_FLUSH;
