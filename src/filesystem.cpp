@@ -76,19 +76,6 @@ int FileSystem::Stat(const char *path, struct stat *&buf, bool followlink, bool 
 	
 	cache->insert(std::make_pair<std::string,StatCacheItem*>(path, result));
 	
-	if (!followlink && !S_ISLNK(result->value.st_mode))
-	{
-		// This can be cached in the normal stat cache as well
-		it = StatCache.find(path);
-		if (it != StatCache.end())
-		{
-			delete it->second;
-			StatCache.erase(it);
-		}
-		
-		StatCache.insert(std::make_pair<std::string,StatCacheItem*>(path, result));
-	}
-	
 	ServerInstance->Log(DEBUG, "Cached %sstat result (%s) for %s", (followlink) ? "" : "link ", (result->result < 0) ? "error" : "success", path);
 	
 	buf = &result->value;
