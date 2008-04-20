@@ -106,6 +106,7 @@ std::string Event::GetEventID()
 void		Module::OnConnectionConnect(Connection*) { }
 void		Module::OnConnectionDisconnect(Connection*) { }
 void		Module::OnGracefulShutdown() { }
+int		Module::OnPreRequest(Connection *, const std::string &method, const std::string &vhost, const std::string &dir, const std::string &file) { return 0; }
 Version		Module::GetVersion() { return Version(1,0,0,0,VF_VENDOR,-1); }
 void		Module::OnLoadModule(Module*, const std::string&) { }
 void		Module::OnUnloadModule(Module*, const std::string&) { }

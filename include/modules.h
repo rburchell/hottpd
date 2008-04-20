@@ -327,6 +327,7 @@ enum Implementation
 	I_OnEvent, I_OnRequest,
 	I_OnRawSocketAccept, I_OnRawSocketClose, I_OnRawSocketWrite, I_OnRawSocketRead,
 	I_OnRawSocketConnect, I_OnGarbageCollect, I_OnBufferFlushed,
+	I_OnPreRequest,
 	I_END
 };
 
@@ -366,6 +367,15 @@ class CoreExport Module : public Extensible
 	 * Version::Version
 	 */
 	virtual Version GetVersion();
+
+	/** Called before a request is served, after headers have been parsed.
+	 * @param c The connection making the request
+	 * @param m The method of the request (GET, POST, etc)
+	 * @param v The HTTP Host header, if supplied, blank if not.
+	 * @param d The directory requested (e.g. /, or /static/files/
+	 * @param f The file requested in the directory (e.g. style.css)
+	 */
+	virtual int OnPreRequest(Connection *c, const std::string &m, const std::string &v, const std::string &d, const std::string &f);
 
 	/** Called when a user connects.
 	 * The details of the connecting user are available to you in the parameter Connection *user

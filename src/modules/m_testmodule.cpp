@@ -21,8 +21,8 @@ class ModuleTest : public Module
 	ModuleTest(InspIRCd *Srv)
 		: Module(Srv)
 	{
-		Implementation eventlist[] = { I_OnConnectionConnect, I_OnConnectionDisconnect };
-		ServerInstance->Modules->Attach(eventlist, this, 2);
+		Implementation eventlist[] = { I_OnConnectionConnect, I_OnConnectionDisconnect, I_OnPreRequest };
+		ServerInstance->Modules->Attach(eventlist, this, 3);
 	}
 	
 	virtual ~ModuleTest()
@@ -42,6 +42,12 @@ class ModuleTest : public Module
 	virtual void OnConnectionDisconnect(Connection *conn)
 	{
 		ServerInstance->Log(DEBUG, "Module disconnect connection triggered");
+	}
+
+	virtual int OnPreRequest(Connection *c, const std::string &method, const std::string &vhost, const std::string &dir, const std::string &file)
+	{
+		ServerInstance->Log(DEBUG, "Got a %s request from %d on %s for %s and file %s", method.c_str(), c->GetFd(), vhost.c_str(), dir.c_str(), file.c_str());
+		return 0;
 	}
 };
 

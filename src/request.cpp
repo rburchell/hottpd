@@ -150,6 +150,22 @@ void Connection::CheckRequest(int newpos)
 		State = HTTP_RECV_REQBODY;
 		return;
 	}
+
+	int MOD_RESULT = 0;
+
+	std::string dir;
+	std::string file;
+	size_t pos = 0;
+
+	// Find last /
+	pos = uri.rfind('/');
+	// dir is everything including the last /
+	dir = uri.substr(0, (pos + 1));
+	// file is everything after the last /
+	file = uri.substr((pos + 1), uri.length());
+
+	std::string vhost = headers.GetHeader("Host");
+	FOREACH_RESULT_I(ServerInstance, I_OnPreRequest, OnPreRequest(this, method, vhost.empty() ? "" : vhost, dir, file));
 	
 	ServeData();
  }
