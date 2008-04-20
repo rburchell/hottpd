@@ -110,6 +110,8 @@ security
 	/*
 	 * Allows for "security" by changing root (hence 'chroot') to a subdir.
 	 * Can be broken out of, but provides some measure of security
+	 *
+	 * Note, if you set chroot, you will need to change your docroot.
 	 */
 	#chroot = /var/www/
 }
