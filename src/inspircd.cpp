@@ -552,6 +552,7 @@ int InspIRCd::Run()
 		 */
 		if (TIME != OLDTIME)
 		{
+			this->Log(DEBUG, "Tick");
 			if (ShuttingDown && this->local_connections.size() == 0)
 				this->Exit(0);
 

@@ -151,8 +151,6 @@ void Connection::CheckRequest(int newpos)
 		return;
 	}
 
-	int MOD_RESULT = 0;
-
 	std::string dir;
 	std::string file;
 	size_t pos = 0;
@@ -167,11 +165,14 @@ void Connection::CheckRequest(int newpos)
 	file = uri.substr((pos + 1), uri.length());
 
 	std::string vhost = headers.GetHeader("Host");
+
+	int MOD_RESULT = 0;
 	FOREACH_RESULT_I(ServerInstance, I_OnPreRequest, OnPreRequest(this, method, vhost.empty() ? "" : vhost, dir, file));
 
-	if (MOD_RESULT == 1);
+	if (MOD_RESULT == 1)
 	{
 		// Module handled the request, get out. Assume module sent headers etc.
+		ServerInstance->Log(DEBUG, "Module handled request for us");
 		return;
 	}
 
