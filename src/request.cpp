@@ -157,6 +157,8 @@ void Connection::CheckRequest(int newpos)
 	std::string file;
 	size_t pos = 0;
 
+	HandleURI();
+
 	// Find last /
 	pos = uri.rfind('/');
 	// dir is everything including the last /
@@ -166,6 +168,20 @@ void Connection::CheckRequest(int newpos)
 
 	std::string vhost = headers.GetHeader("Host");
 	FOREACH_RESULT_I(ServerInstance, I_OnPreRequest, OnPreRequest(this, method, vhost.empty() ? "" : vhost, dir, file));
+
+	if (MOD_RESULT == 1);
+	{
+		// Module handled the request, get out. Assume module sent headers etc.
+		return;
+	}
+
+	// In the future, these might be handled differently. For now they're identical (Except that POST can have a body)
+	if ((method != "GET") && (method != "POST"))
+	{
+		this->SendError(501, "Not Implemented");
+		keepalive = false;
+		return;
+	}
 	
 	ServeData();
  }
@@ -279,83 +295,71 @@ void Connection::ServeData()
 {
 	ServerInstance->Log(DEBUG, "ServeData: %s: %s", method.c_str(), uri.c_str());
 	
-	// In the future, these might be handled differently. For now they're identical (Except that POST can have a body)
-	if ((method == "GET") || (method == "POST"))
-	{
-		HandleURI();
+	struct stat *fst = NULL;
 		
-		struct stat *fst = NULL;
-		
-		upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, uri, fst);
+	upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, uri, fst);
 
-		if (upath.empty())
+	if (upath.empty())
+	{
+		switch (errno)
 		{
-			switch (errno)
-			{
-				case EACCES:
-					this->SendError(403, "Forbidden");
-					break;
-				case ENOENT:
-				case ELOOP:
-				case ENAMETOOLONG:
-				case ENOTDIR:
-					this->SendError(404, "File Not Found");
-					break;
-				default:
-					this->SendError(500, "Internal Server Error");
-					break;
-			}
-			
-			return;
+			case EACCES:
+				this->SendError(403, "Forbidden");
+				break;
+			case ENOENT:
+			case ELOOP:
+			case ENAMETOOLONG:
+			case ENOTDIR:
+				this->SendError(404, "File Not Found");
+				break;
+			default:
+				this->SendError(500, "Internal Server Error");
+			break;
 		}
+			
+		return;
+	}
 		
-		int oflags = O_RDONLY;
+	int oflags = O_RDONLY;
 #ifdef O_NOATIME
-		// O_NOATIME can only be used on files owned by this user
-		if (ServerInstance->Config->NoAtime && (fst->st_uid == geteuid()))
-			oflags |= O_NOATIME;
+	// O_NOATIME can only be used on files owned by this user
+	if (ServerInstance->Config->NoAtime && (fst->st_uid == geteuid()))
+		oflags |= O_NOATIME;
 #endif
 		
-		if (filefd > -1)
-			close(filefd);
+	if (filefd > -1)
+		close(filefd);
 		
-		filefd = open(upath.c_str(), oflags);
-		if (filefd < 0)
+	filefd = open(upath.c_str(), oflags);
+	if (filefd < 0)
+	{
+		switch (errno)
 		{
-			switch (errno)
-			{
-				case EACCES:
-					this->SendError(403, "Forbidden");
-					break;
-				case ENOENT:
-				case ENOTDIR:
-					this->SendError(404, "File Not Found");
-					break;
-				default:
-					ServerInstance->Log(DEBUG, "open() to serve file '%s' failed with error: %s", upath.c_str(), strerror(errno));
-					this->SendError(500, "Internal Server Error");
-					break;
-			}
-			
-			return;
+			case EACCES:
+				this->SendError(403, "Forbidden");
+				break;
+			case ENOENT:
+			case ENOTDIR:
+				this->SendError(404, "File Not Found");
+				break;
+			default:
+				ServerInstance->Log(DEBUG, "open() to serve file '%s' failed with error: %s", upath.c_str(), strerror(errno));
+				this->SendError(500, "Internal Server Error");
+				break;
 		}
 		
-		// Don't set request state here; SendHeaders() will do that.
+		return;
+	}
 		
-		rfilesize = fst->st_size;
-		rfilesent = 0;
-		RespondType = HTTP_RESPOND_BACKEND;
-		ResponseBackend = WriteBackend::GetInstance(ServerInstance);
+	// Don't set request state here; SendHeaders() will do that.
+	rfilesize = fst->st_size;
+	rfilesent = 0;
+	RespondType = HTTP_RESPOND_BACKEND;
+	ResponseBackend = WriteBackend::GetInstance(ServerInstance);
 
-		HTTPHeaders empty;
-		this->SendHeaders(fst->st_size, 200, "OK", empty);
-		
-		// When the headers have finished being sent, sending of data will be automatically triggered.
-	}
-	else
-	{
-		this->SendError(501, "Not Implemented");
-	}
+	HTTPHeaders empty;
+	// When the headers have finished being sent, sending of data will be automatically triggered.
+	this->SendHeaders(fst->st_size, 200, "OK", empty);
 }
 
 void Connection::SendHeaders(unsigned long size, int response, const std::string &rtext, HTTPHeaders &rheaders)
