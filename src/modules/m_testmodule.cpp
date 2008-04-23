@@ -46,6 +46,12 @@ class ModuleTest : public Module
 
 	virtual int OnPreRequest(Connection *c, const std::string &method, const std::string &vhost, const std::string &dir, const std::string &file)
 	{
+		c->RespondType = HTTP_RESPOND_MODULE;
+		HTTPHeaders empty;
+		c->SendHeaders(4, 200, "OK", empty);
+		c->Write("lawl");
+		c->State = HTTP_SEND_DATA;
+
 		ServerInstance->Log(DEBUG, "Got a %s request from %d on %s for %s and file %s", method.c_str(), c->GetFd(), vhost.c_str(), dir.c_str(), file.c_str());
 		return 0;
 	}
