@@ -420,12 +420,13 @@ void Connection::SendHeaders(unsigned long size, int response, const std::string
 
 void Connection::EndRequest()
 {
-	ServerInstance->Log(DEBUG, "End request");
+	ServerInstance->Log(DEBUG, "Ending request ***");
 	
 	RequestsCompleted++;
 	
 	if (!keepalive)
 	{
+		ServerInstance->Log(DEBUG, "NOT keepalive, killing!");
 		State = HTTP_FINISHED;
 		ServerInstance->Connections->Delete(this);
 		return;
