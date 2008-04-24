@@ -102,7 +102,7 @@ our ($opt_use_gnutls, $opt_rebuild, $opt_use_openssl, $opt_nointeractive, $opt_n
     $opt_noepoll, $opt_nokqueue, $opt_disablerpath, $opt_ipv6, $opt_ipv6links,
     $opt_noipv6links, $opt_ident, $opt_quit, $opt_topic, $opt_maxbuf, $opt_kick,
     $opt_gecos, $opt_away, $opt_modes, $opt_disable_debug, $opt_maxchans,
-    $opt_opermaxchans);
+    $opt_opermaxchans, $opt_maxclients, $fd_scan_fail);
 
 our ($opt_cc, $opt_base_dir, $opt_config_dir, $opt_module_dir, $opt_binary_dir,
     $opt_library_dir);
