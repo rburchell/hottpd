@@ -75,6 +75,16 @@ void Connection::CheckRequest(int newpos)
 			else
 			{
 				requestbuf.erase(0, reqend + 4);
+				/*
+				 * Note: You may expect that this is a fatal error, however, it may not be.
+				 * The connection is left open so that the connection may re-send the request
+				 * in a supported HTTP version.
+				 * i.e.:
+				 * I: GET / HTTP/1.2
+				 * O: Error 505
+				 * I: GET / HTTP/1.1
+				 * O: Data.
+				 */
 				SendError(505, "Version Not Supported", false);
 				return;
 			}
