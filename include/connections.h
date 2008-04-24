@@ -23,17 +23,10 @@
 enum HttpState
 {
 	HTTP_WAIT_REQUEST = 0, /* Waiting for a full request */
-	HTTP_RECV_REQBODY, /* Waiting to finish recieving POST data */
+	HTTP_RECV_REQBODY, /* Waiting to finish recieving request data */
 	HTTP_SEND_HEADERS, /* Sending response headers */
 	HTTP_SEND_DATA, /* Sending response body */
 	HTTP_FINISHED
-};
-
-enum HttpResponder
-{
-	HTTP_RESPOND_FLUSH = 0, /* Response is complete when the write bufer is empty */
-	HTTP_RESPOND_BACKEND, /* Responding with a file backend */
-	HTTP_RESPOND_MODULE /* Response is operating externally; end will be manually signalled */
 };
 
 class Backend;
@@ -172,7 +165,8 @@ class CoreExport Connection : public EventHandler
 	unsigned int RequestBodyLength;
 	std::string RequestBody;
 	
-	HttpResponder RespondType;
+	bool ResponseBufferDone;
+	
 	Backend *ResponseBackend;
 	int filefd;
 	off_t rfilesize, rfilesent;

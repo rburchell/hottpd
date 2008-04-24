@@ -27,8 +27,8 @@ Connection::Connection(InspIRCd* Instance) : ServerInstance(Instance)
 	RequestBodyLength = 0;
 	rfilesize = rfilesent = RequestsCompleted = 0;
 	LastSocketEvent = ServerInstance->Time();
+	ResponseBufferDone = false;
 	ResponseBackend = NULL;
-	RespondType = HTTP_RESPOND_FLUSH;
 }
 
 Connection::~Connection()
@@ -65,13 +65,16 @@ void Connection::SendError(int code, const std::string &text, bool fatal = false
 	HTTPHeaders empty;
 	empty.SetHeader("Content-Type", "text/html");
 	std::string data = "<html><head></head><body>" + text + "<br><small>Powered by Hottpd</small></body></html>";
-	RespondType = HTTP_RESPOND_FLUSH;
+	
+	ResponseBackend = NULL;
 	this->SendHeaders(data.length(), code, text, empty);
+
 	State = HTTP_SEND_DATA;
 	this->Write(data);
+	ResponseBufferDone = true;
+
 	// Flush the write buffer now instead of waiting an iteration, since we've written all we need to
 	this->FlushWriteBuf();
-	// End request will be triggered once the write buffer is empty
 
 	if (fatal)
 	{
@@ -203,7 +206,7 @@ void Connection::HandleEvent(EventType et, int errornum)
 				this->ReadData();
 		break;
 		case EVENT_WRITE:
-			if ((State == HTTP_SEND_DATA) && (RespondType == HTTP_RESPOND_BACKEND))
+			if ((State == HTTP_SEND_DATA) && ResponseBackend)
 				this->SendStaticData();
 			else
 				this->FlushWriteBuf();
@@ -213,4 +216,3 @@ void Connection::HandleEvent(EventType et, int errornum)
 		break;
 	}
 }
-

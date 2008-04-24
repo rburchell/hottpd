@@ -362,7 +362,6 @@ void Connection::ServeData()
 	// Don't set request state here; SendHeaders() will do that.
 	rfilesize = fst->st_size;
 	rfilesent = 0;
-	RespondType = HTTP_RESPOND_BACKEND;
 	ResponseBackend = WriteBackend::GetInstance(ServerInstance);
 
 	HTTPHeaders empty;
@@ -449,7 +448,7 @@ void Connection::EndRequest()
 	RequestBodyLength = 0;
 	State = HTTP_WAIT_REQUEST;
 	ResponseBackend = NULL;
-	RespondType = HTTP_RESPOND_FLUSH;
+	ResponseBufferDone = false;
 	rfilesize = rfilesent = 0;
 	
 	if (filefd > -1)

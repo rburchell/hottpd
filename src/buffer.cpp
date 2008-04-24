@@ -132,7 +132,6 @@ bool Connection::AddBuffer(const std::string &a)
 		ServerInstance->Log(DEBUG, "Too much data in buffer; dropping");
 		return false;
 	}
-	
 
 	return true;
 }
@@ -181,11 +180,12 @@ void Connection::FlushWriteBuf()
 	{
 		FOREACH_MOD(I_OnBufferFlushed,OnBufferFlushed(this));
 		
-		if ((RespondType == HTTP_RESPOND_FLUSH) && (State == HTTP_SEND_DATA))
+		if ((State == HTTP_SEND_DATA) && ResponseBufferDone)
 		{
+			ServerInstance->Log(DEBUG, "Ending request after emptying write buffer because ResponseBufferDone is true");
 			EndRequest();
 		}
-		else if ((State == HTTP_SEND_HEADERS) && (RespondType == HTTP_RESPOND_BACKEND))
+		else if ((State == HTTP_SEND_HEADERS) && ResponseBackend)
 		{
 			State = HTTP_SEND_DATA;
 			SendStaticData();
@@ -221,4 +221,5 @@ void Connection::Write(const char *text, ...)
 
 	this->Write(std::string(textbuffer));
 }
+
 
