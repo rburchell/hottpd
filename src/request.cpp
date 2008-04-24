@@ -54,7 +54,7 @@ void Connection::CheckRequest(int newpos)
 			if (method.empty() || uri.empty() || tmpversion.empty())
 			{
 				requestbuf.erase(0, reqend + 4);
-				SendError(400, "Bad Request");
+				SendError(400, "Bad Request", false);
 				return;
 			}
 
@@ -75,7 +75,7 @@ void Connection::CheckRequest(int newpos)
 			else
 			{
 				requestbuf.erase(0, reqend + 4);
-				SendError(505, "Version Not Supported");
+				SendError(505, "Version Not Supported", false);
 				return;
 			}
 		}
@@ -87,7 +87,7 @@ void Connection::CheckRequest(int newpos)
 			if ((fieldsep == std::string::npos) || (fieldsep == 0) || (fieldsep == cheader.length() - 1))
 			{
 				requestbuf.erase(0, reqend + 4);
-				SendError(400, "Bad Request");
+				SendError(400, "Bad Request", false);
 				return;
 			}
 	
@@ -106,6 +106,7 @@ void Connection::CheckRequest(int newpos)
 	else if (strcasecmp(headers.GetHeader("Connection").c_str(), "keep-alive") == 0)
 		keepalive = true;
 	
+	// XXX: I'd think this would be better done on EndRequest
 	if ((RequestsCompleted + 1) >= ServerInstance->Config->KeepAliveMax)
 	{
 		ServerInstance->Log(DEBUG, "Closing connection after request due to keepalive limit");
@@ -120,8 +121,7 @@ void Connection::CheckRequest(int newpos)
 		if (RequestBodyLength > (unsigned int)ServerInstance->Config->MaxPostBody)
 		{
 			// Sorry, lardy. Don't try send so much crap.
-			keepalive = false;
-			SendError(413, "Request Entity Too Large");
+			SendError(413, "Request Entity Too Large", true);
 			return;
 		}
 	}
@@ -129,8 +129,7 @@ void Connection::CheckRequest(int newpos)
 	if (headers.IsSet("Transfer-Encoding"))
 	{
 		ServerInstance->Log(DEBUG, "Transfer encoded request bodies are not yet supported");
-		keepalive = false;
-		SendError(500, "Internal Server Error");
+		SendError(500, "Internal Server Error", true);
 		return;
 	}
 	
@@ -141,8 +140,7 @@ void Connection::CheckRequest(int newpos)
 			// We currently only accept bodies for POST requests.
 			ServerInstance->Log(DEBUG, "Rejecting non-POST request with a request body");
 			// This will kill the connection, which we must do because the client will send the request body anyway.
-			keepalive = false;
-			SendError(500, "Internal Server Error");
+			SendError(500, "Internal Server Error", true);
 			return;
 		}
 		
@@ -179,8 +177,7 @@ void Connection::CheckRequest(int newpos)
 	// In the future, these might be handled differently. For now they're identical (Except that POST can have a body)
 	if ((method != "GET") && (method != "POST"))
 	{
-		this->SendError(501, "Not Implemented");
-		keepalive = false;
+		this->SendError(501, "Not Implemented", true);
 		return;
 	}
 	
@@ -305,16 +302,16 @@ void Connection::ServeData()
 		switch (errno)
 		{
 			case EACCES:
-				this->SendError(403, "Forbidden");
+				this->SendError(403, "Forbidden", false);
 				break;
 			case ENOENT:
 			case ELOOP:
 			case ENAMETOOLONG:
 			case ENOTDIR:
-				this->SendError(404, "File Not Found");
+				this->SendError(404, "File Not Found", false);
 				break;
 			default:
-				this->SendError(500, "Internal Server Error");
+				this->SendError(500, "Internal Server Error", false);
 			break;
 		}
 			
@@ -337,15 +334,15 @@ void Connection::ServeData()
 		switch (errno)
 		{
 			case EACCES:
-				this->SendError(403, "Forbidden");
+				this->SendError(403, "Forbidden", false);
 				break;
 			case ENOENT:
 			case ENOTDIR:
-				this->SendError(404, "File Not Found");
+				this->SendError(404, "File Not Found", false);
 				break;
 			default:
 				ServerInstance->Log(DEBUG, "open() to serve file '%s' failed with error: %s", upath.c_str(), strerror(errno));
-				this->SendError(500, "Internal Server Error");
+				this->SendError(500, "Internal Server Error", false);
 				break;
 		}
 		

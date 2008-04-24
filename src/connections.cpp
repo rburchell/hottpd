@@ -60,7 +60,7 @@ void Connection::CloseSocket()
 	ServerInstance->SE->Close(this);
 }
 
-void Connection::SendError(int code, const std::string &text)
+void Connection::SendError(int code, const std::string &text, bool fatal = false)
 {
 	HTTPHeaders empty;
 	empty.SetHeader("Content-Type", "text/html");
@@ -72,6 +72,12 @@ void Connection::SendError(int code, const std::string &text)
 	// Flush the write buffer now instead of waiting an iteration, since we've written all we need to
 	this->FlushWriteBuf();
 	// End request will be triggered once the write buffer is empty
+
+	if (fatal)
+	{
+		// Semi-hack. Disabling keepalive means connection is closed ASAP.
+		keepalive = false;
+	}
 }
 
 void Connection::SetSockAddr(int protocol_family, const char* ip, int port)
