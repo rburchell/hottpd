@@ -14,17 +14,20 @@ package make::configure;
 
 require 5.8.0;
 
+use strict;
+use warnings FATAL => qw(all);
+
 use Exporter 'import';
 use POSIX;
 use make::utilities;
-@EXPORT = qw(promptnumeric dumphash is_dir getmodules getrevision getcompilerflags getlinkerflags getdependencies nopedantic resolve_directory yesno showhelp promptstring_s);
+our @EXPORT = qw(promptnumeric dumphash is_dir getmodules getrevision getcompilerflags getlinkerflags getdependencies nopedantic resolve_directory yesno showhelp promptstring_s);
 
 my $no_svn = 0;
 
 sub yesno {
 	my ($flag,$prompt) = @_;
-	print "$prompt [\033[1;32m$main::config{$flag}\033[0m] -> ";
-	chomp($tmp = <STDIN>);
+	print "$prompt [\e[1;32m$main::config{$flag}\e[0m] -> ";
+	chomp(my $tmp = <STDIN>);
 	if ($tmp eq "") { $tmp = $main::config{$flag} }
 	if (($tmp eq "") || ($tmp =~ /^y/i))
 	{
@@ -57,7 +60,7 @@ sub getrevision {
 	if ($data eq "")
 	{
 		$no_svn = 1;
-		$rev = "0";
+		my $rev = "0";
 		return $rev;
 	}
 	$data =~ /Revision: (\d+)/;
@@ -71,7 +74,7 @@ sub getrevision {
 
 sub getcompilerflags {
 	my ($file) = @_;
-	open(FLAGS, $file);
+	open(FLAGS, $file) or return "";
 	while (<FLAGS>) {
 		if ($_ =~ /^\/\* \$CompileFlags: (.+) \*\/$/) {
 			close(FLAGS);
@@ -79,12 +82,12 @@ sub getcompilerflags {
 		}
 	}
 	close(FLAGS);
-	return undef;
+	return "";
 }
 
 sub getlinkerflags {
 	my ($file) = @_;
-	open(FLAGS, $file);
+	open(FLAGS, $file) or return "";
 	while (<FLAGS>) {
 		if ($_ =~ /^\/\* \$LinkerFlags: (.+) \*\/$/) {
 			close(FLAGS);
@@ -92,12 +95,12 @@ sub getlinkerflags {
 		}
 	}
 	close(FLAGS);
-	return undef;
+	return "";
 }
 
 sub getdependencies {
 	my ($file) = @_;
-	open(FLAGS, $file);
+	open(FLAGS, $file) or return "";
 	while (<FLAGS>) {
 		if ($_ =~ /^\/\* \$ModDep: (.+) \*\/$/) {
 			close(FLAGS);
@@ -105,12 +108,12 @@ sub getdependencies {
 		}
 	}
 	close(FLAGS);
-	return undef;
+	return "";
 }
 
 sub nopedantic {
 	my ($file) = @_;
-	open(FLAGS, $file);
+	open(FLAGS, $file) or return "";
 	while (<FLAGS>) {
 		if ($_ =~ /^\/\* \$NoPedantic \*\/$/) {
 			close(FLAGS);
@@ -125,12 +128,12 @@ sub getmodules
 {
 	my $i = 0;
 	print "Detecting modules ";
-	opendir(DIRHANDLE, "src/modules");
-	foreach $name (sort readdir(DIRHANDLE))
+	opendir(DIRHANDLE, "src/modules") or die("WTF, missing src/modules!");
+	foreach my $name (sort readdir(DIRHANDLE))
 	{
 		if ($name =~ /^m_(.+)\.cpp$/)
 		{
-			$mod = $1;
+			my $mod = $1;
 			$main::modlist[$i++] = $mod;
 			print ".";
 		}
@@ -146,8 +149,8 @@ sub promptnumeric($$)
 	while (!$continue)
 	{
 		print "Please enter the maximum $prompt?\n";
-		print "[\033[1;32m$main::config{$configitem}\033[0m] -> ";
-		chomp($var = <STDIN>);
+		print "[\e[1;32m$main::config{$configitem}\e[0m] -> ";
+		chomp(my $var = <STDIN>);
 		if ($var eq "")
 		{
 			$var = $main::config{$configitem};
@@ -168,7 +171,7 @@ sub promptstring_s($$)
 	my ($prompt,$default) = @_;
 	my $var;
 	print "$prompt\n";
-	print "[\033[1;32m$default\033[0m] -> ";
+	print "[\e[1;32m$default\e[0m] -> ";
 	chomp($var = <STDIN>);
 	$var = $default if $var eq "";
 	print "\n";
@@ -177,17 +180,26 @@ sub promptstring_s($$)
 
 sub dumphash()
 {
-	print "\n\033[1;32mPre-build configuration is complete!\033[0m\n\n";
-	print "\033[0mBase install path:\033[1;32m\t\t$main::config{BASE_DIR}\033[0m\n";
-	print "\033[0mConfig path:\033[1;32m\t\t\t$main::config{CONFIG_DIR}\033[0m\n";
-	print "\033[0mModule path:\033[1;32m\t\t\t$main::config{MODULE_DIR}\033[0m\n";
-	print "\033[0mLibrary path:\033[1;32m\t\t\t$main::config{LIBRARY_DIR}\033[0m\n";
-	print "\033[0mMax connections:\033[1;32m\t\t$main::config{MAX_CLIENT}\033[0m\n";
-	print "\033[0mCompiler program:\033[1;32m\t\t$main::config{CC}\033[0m\n";
-	print "\033[0mGCC Version Found:\033[1;32m\t\t$main::config{GCCVER}.x\033[0m\n";
-	print "\033[0mIPv6 Support:\033[1;32m\t\t\t$main::config{IPV6}\033[0m\n";
-	print "\033[0mIPv6 Parsing:\033[1;32m\t\t\t$main::config{SUPPORT_IP6LINKS}\033[0m\n";
-	print "\033[0mGnuTLS Support:\033[1;32m\t\t\t$main::config{USE_GNUTLS}\033[0m\n";
+	print "\n\e[1;32mPre-build configuration is complete!\e[0m\n\n";
+	print "\e[0mBase install path:\e[1;32m\t\t$main::config{BASE_DIR}\e[0m\n";
+	print "\e[0mConfig path:\e[1;32m\t\t\t$main::config{CONFIG_DIR}\e[0m\n";
+	print "\e[0mModule path:\e[1;32m\t\t\t$main::config{MODULE_DIR}\e[0m\n";
+	print "\e[0mLibrary path:\e[1;32m\t\t\t$main::config{LIBRARY_DIR}\e[0m\n";
+	print "\e[0mMax nickname length:\e[1;32m\t\t$main::config{NICK_LENGT}\e[0m\n";
+	print "\e[0mMax channel length:\e[1;32m\t\t$main::config{CHAN_LENGT}\e[0m\n";
+	print "\e[0mMax mode length:\e[1;32m\t\t$main::config{MAXI_MODES}\e[0m\n";
+	print "\e[0mMax ident length:\e[1;32m\t\t$main::config{MAX_IDENT}\e[0m\n";
+	print "\e[0mMax quit length:\e[1;32m\t\t$main::config{MAX_QUIT}\e[0m\n";
+	print "\e[0mMax topic length:\e[1;32m\t\t$main::config{MAX_TOPIC}\e[0m\n";
+	print "\e[0mMax kick length:\e[1;32m\t\t$main::config{MAX_KICK}\e[0m\n";
+	print "\e[0mMax name length:\e[1;32m\t\t$main::config{MAX_GECOS}\e[0m\n";
+	print "\e[0mMax away length:\e[1;32m\t\t$main::config{MAX_AWAY}\e[0m\n";
+	print "\e[0mGCC Version Found:\e[1;32m\t\t$main::config{GCCVER}.x\e[0m\n";
+	print "\e[0mCompiler program:\e[1;32m\t\t$main::config{CC}\e[0m\n";
+	print "\e[0mIPv6 Support:\e[1;32m\t\t\t$main::config{IPV6}\e[0m\n";
+	print "\e[0mIPv6 to IPv4 Links:\e[1;32m\t\t$main::config{SUPPORT_IP6LINKS}\e[0m\n";
+	print "\e[0mGnuTLS Support:\e[1;32m\t\t\t$main::config{USE_GNUTLS}\e[0m\n";
+	print "\e[0mOpenSSL Support:\e[1;32m\t\t$main::config{USE_OPENSSL}\e[0m\n\n";
 }
 
 sub is_dir
@@ -208,11 +220,11 @@ sub is_dir
 
 sub showhelp
 {
-	chomp($PWD = `pwd`);
+	chomp(my $PWD = `pwd`);
 	print "Usage: configure [options]
 
 *** NOTE: NON-INTERACTIVE CONFIGURE IS *NOT* SUPPORTED BY THE ***
-*** HOTTPD DEVELOPMENT TEAM. DO NOT ASK FOR HELP REGARDING    ***
+*** INSPIRCD DEVELOPMENT TEAM. DO NOT ASK FOR HELP REGARDING  ***
 ***     NON-INTERACTIVE CONFIGURE ON THE FORUMS OR ON IRC!    ***
 
 Options: [defaults in brackets after descriptions]
@@ -237,8 +249,9 @@ InspIRCd 1.0.x, are also allowed.
                                  is also specified}
   --clean                      Remove .config.cache file and go interactive
   --enable-gnutls              Enable GnuTLS module [no]
-  --with-max-clients=[n]       Specify maximum number of users
-                               which may connect locally
+  --enable-openssl             Enable OpenSSL module [no]
+  --with-nick-length=[n]       Specify max. nick length [32]
+  --with-channel-length=[n]    Specify max. channel length [64]
   --enable-optimization=[n]    Optimize using -O[n] gcc flag
   --enable-epoll               Enable epoll() where supported [set]
   --enable-kqueue              Enable kqueue() where supported [set]
@@ -252,6 +265,17 @@ InspIRCd 1.0.x, are also allowed.
   --disable-remote-ipv6        Do not allow remote ipv6 servers [not set]
   --with-cc=[filename]         Use an alternative g++ binary to
                                build InspIRCd [g++]
+  --with-ident-length=[n]      Specify max length of ident [12]
+  --with-quit-length=[n]       Specify max length of quit [200]
+  --with-topic-length=[n]      Specify max length of topic [350]
+  --with-kick-length=[n]       Specify max length of kick [200]
+  --with-gecos-length=[n]      Specify max length of gecos [150]
+  --with-away-length=[n]       Specify max length of away [150]
+  --with-max-modes=[n]         Specify max modes per line which
+                               have parameters [20]
+  --with-maxbuf=[n]            Change the per message buffer size [512]
+                               DO NOT ALTER THIS OPTION WITHOUT GOOD REASON
+                               AS IT *WILL* BREAK CLIENTS!!!
   --prefix=[directory]         Base directory to install into (if defined,
                                can automatically define config, module, bin
 			       and library dirs as subdirectories of prefix)
@@ -264,6 +288,9 @@ InspIRCd 1.0.x, are also allowed.
                                [$PWD/bin]
   --library-dir=[directory]    Library directory for core libraries
                                [$PWD/lib]
+  --list-extras                Show current status of extra modules
+  --enable-extras=[extras]     Enable the specified list of extras
+  --disable-extras=[extras]    Disable the specified list of extras
   --help                       Show this help text and exit
 
 ";
@@ -271,4 +298,5 @@ InspIRCd 1.0.x, are also allowed.
 }
 
 1;
+
 
