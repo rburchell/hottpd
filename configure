@@ -1713,7 +1713,7 @@ EOM
 	print FH "$all\n\n";
 
 	my $deps = calcdeps("src/inspircd.cpp");
-	print FH "inspircd: inspircd.cpp $deps $all_libsonly\n";
+	print FH "hottpd: inspircd.cpp $deps $all_libsonly\n";
 	print FH "$othercrap\n";
 
 	foreach my $cpp (sort keys %filelist)
