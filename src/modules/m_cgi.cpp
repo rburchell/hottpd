@@ -151,8 +151,6 @@ class ModuleCGI : public Module
 
 				while (result != 0)
 				{
-					*ReadBuffer = '\0';
-
 					#ifndef WIN32
 						result = read(from_child_fd[0], (char *)ReadBuffer, 65535);
 					#else
@@ -169,10 +167,18 @@ class ModuleCGI : public Module
 					}
 					else
 					{
-						ServerInstance->Log(DEBUG, "read returned %d bytes (%s)", result, ReadBuffer);
+						ReadBuffer[result] = '\0';
+						ServerInstance->Log(DEBUG, "read returned %d bytes", result);
 						res += ReadBuffer;
 					}
 				}
+
+				if (res.length() == 0)
+				{
+					return 0; // let core handle it, probably not executable
+				}
+
+				ServerInstance->Log(DEBUG, "total request size: %d", res.length());
 
 				HTTPHeaders empty;
 				c->SendHeaders(res.length(), 200, "OK", empty);
