@@ -23,10 +23,23 @@ class CoreExport CGIRequest : public EventHandler
 class ModuleCGI : public Module
 {
  private:
-	 
+	 std::map<std::string, std::string> CGITypes;
+
  public:
 	ModuleCGI(InspIRCd *Srv) : Module(Srv)
 	{
+		// Read config.
+		ConfigReader Conf(ServerInstance);
+		CGITypes.clear();
+
+		for (int i = 0; i < Conf.Enumerate("cgi"); i++)
+		{
+			std::string extension = Conf.ReadValue("cgi", "extension", i);
+			std::string executable = Conf.ReadValue("cgi", "executable", i);
+
+			CGITypes[extension] = executable;
+		}
+
 		Implementation eventlist[] = { I_OnPreRequest };
 		ServerInstance->Modules->Attach(eventlist, this, 1);
 	}
@@ -59,6 +72,33 @@ class ModuleCGI : public Module
 		pid_t forkres;
     	struct stat *fst = NULL;
 		std::string upath;
+		std::string exe;
+
+		// probably requesting a dir, drop it.
+		if (file.empty())
+			return 0;
+
+		size_t pos;
+
+		pos = file.rfind('.');
+
+		// we can't touch something with no extension.
+		if (pos == std::string::npos)
+			return 0;
+
+		std::string ext = file.substr((pos + 1), file.length());
+
+		// . on the end of the file - what madness is this?
+		if (ext.empty())
+			return 0;
+
+		std::map<std::string, std::string>::iterator i = CGITypes.find(ext);
+
+		// defined CGI type?
+		if (i == CGITypes.end())
+			return 0;
+
+		exe = i->second;
 
 		/* before anything, get the full path and make sure we can access it! (XXX copy paste :() */
 		upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, c->uri, fst);
@@ -131,7 +171,23 @@ class ModuleCGI : public Module
 				setenv("SERVER_SOFTWARE", "hottpd", 1);
 				// TODO: set moar here.
 
-				execvp(upath.c_str(), NULL);
+				if (exe.empty())
+				{
+					// no exe defined, invoke the proc itself
+					execvp(upath.c_str(), NULL);
+				}
+				else
+				{
+					// Custom handler defined for this type, run it with the file as a param
+					// XXX: we really should copy these strings rather than casting.
+					char *argv[3];
+					argv[0] = (char *)exe.c_str();
+					argv[1] = (char *)upath.c_str();
+					argv[2] = NULL;
+
+					execvp(exe.c_str(), argv);
+				}
+
 				exit(0);
 				break;
 			default:
