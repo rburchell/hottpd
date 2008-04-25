@@ -107,6 +107,12 @@ void Connection::CheckRequest(int newpos)
 
 	requestbuf.erase(0, reqend + 4);
 
+	if (method.empty() || uri.empty() || http_version == HTTP_UNSPECIFIED)
+	{
+		SendError(400, "Bad Request", false);
+		return;
+	}
+	
 	// In the interest of convention, make the method uppercase
 	std::transform(method.begin(), method.end(), method.begin(), ::toupper);
 	
