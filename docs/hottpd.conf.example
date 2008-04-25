@@ -154,7 +154,8 @@ security
  *    cgi::extension - the file extension checked for. only files with an extension matched
  *                     by a cgi:: block will be executed as CGI.
  *    cgi::executable - optional setting to choose what executable files with this extention
- *                      are parsed with.
+ *                      are parsed with. If no executable is provided, the requested file is
+ *                      executed directly.
  */
 #cgi
 #{
