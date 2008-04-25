@@ -146,28 +146,38 @@ class ModuleCGI : public Module
 
 
 				static char ReadBuffer[65535]; // if you change this size, remember to change the read() call below!
-
+				std::string res;
 				int result = EAGAIN;
 
-				#ifndef WIN32
-					result = read(from_child_fd[0], (char *)ReadBuffer, 65535);
-				#else
-					result = recv(from_child_fd[0], (char*)ReadBuffer, 65535, 0);
-				#endif
+				while (result != 0)
+				{
+					*ReadBuffer = '\0';
 
-				if (result == -1)
-				{
-					ServerInstance->Log(DEBUG, "read returned error, %s", strerror(errno));
-				}
-				else
-				{
-					ServerInstance->Log(DEBUG, "read returned %d bytes", result);
+					#ifndef WIN32
+						result = read(from_child_fd[0], (char *)ReadBuffer, 65535);
+					#else
+						result = recv(from_child_fd[0], (char*)ReadBuffer, 65535, 0);
+					#endif
+
+					if (result == -1)
+					{
+						if (errno != EAGAIN)
+						{
+							ServerInstance->Log(DEBUG, "read returned error, %s", strerror(errno));
+							break;
+						}
+					}
+					else
+					{
+						ServerInstance->Log(DEBUG, "read returned %d bytes (%s)", result, ReadBuffer);
+						res += ReadBuffer;
+					}
 				}
 
 				HTTPHeaders empty;
-				c->SendHeaders(4, 200, "OK", empty);
-				c->Write(ReadBuffer);
+				c->SendHeaders(res.length(), 200, "OK", empty);
 				c->State = HTTP_SEND_DATA;
+				c->Write(res);
 				c->ResponseBufferDone = true;
 
 				close(from_child_fd[0]);
