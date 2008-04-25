@@ -121,3 +121,43 @@ security
 	 */
 	#chroot = /var/www/
 }
+
+
+
+/******************************************************************************************
+ *                                MODULE CONFIGURATION                                    *
+ ******************************************************************************************/
+
+/*
+ * The following section lists and gives information on all modules available for use with
+ * hottpd, and how they may be configured.
+ *
+ * Due to the highly modular (and extensible) nature of hottpd, no modules are enabled by
+ * default. Please read this section carefully, and enable the modules that suit your needs.
+ */
+
+
+/*
+ * m_cgi
+ *  m_cgi is used to process server-side scripting and to run applications on the server.
+ *  An example of CGI use would be python, PHP or C applications.
+ */
+#module
+#{
+#	name = m_cgi
+#}
+
+/*
+ * After loading m_cgi, you should define one or more cgi blocks. These set the behaviour
+ * of CGI applications themselves.
+ *
+ *    cgi::extension - the file extension checked for. only files with an extension matched
+ *                     by a cgi:: block will be executed as CGI.
+ *    cgi::executable - optional setting to choose what executable files with this extention
+ *                      are parsed with.
+ */
+#cgi
+#{
+#	extension = php
+#	executable = "/usr/bin/php"
+#}

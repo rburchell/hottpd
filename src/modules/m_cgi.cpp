@@ -96,9 +96,13 @@ class ModuleCGI : public Module
 
 		// defined CGI type?
 		if (i == CGITypes.end())
+		{
 			return 0;
+		}
 
 		exe = i->second;
+
+		ServerInstance->Log(DEBUG, "%s has an exe of %s", i->first.c_str(), i->second.c_str());
 
 		/* before anything, get the full path and make sure we can access it! (XXX copy paste :() */
 		upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, c->uri, fst);
