@@ -83,7 +83,7 @@ void Connection::SendError(int code, const std::string &text, bool fatal = false
 	}
 }
 
-void Connection::SetSockAddr(int protocol_family, const char* ip, int port)
+void Connection::SetSockAddr(int protocol_family, const char* mip, int port)
 {
 	switch (protocol_family)
 	{
@@ -93,7 +93,7 @@ void Connection::SetSockAddr(int protocol_family, const char* ip, int port)
 			sockaddr_in6* sin = new sockaddr_in6;
 			sin->sin6_family = AF_INET6;
 			sin->sin6_port = port;
-			inet_pton(AF_INET6, ip, &sin->sin6_addr);
+			inet_pton(AF_INET6, mip, &sin->sin6_addr);
 			this->privip = (sockaddr*)sin;
 		}
 		break;
@@ -103,7 +103,7 @@ void Connection::SetSockAddr(int protocol_family, const char* ip, int port)
 			sockaddr_in* sin = new sockaddr_in;
 			sin->sin_family = AF_INET;
 			sin->sin_port = port;
-			inet_pton(AF_INET, ip, &sin->sin_addr);
+			inet_pton(AF_INET, mip, &sin->sin_addr);
 			this->privip = (sockaddr*)sin;
 		}
 		break;
