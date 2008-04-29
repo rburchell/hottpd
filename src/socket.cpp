@@ -63,7 +63,7 @@ void ListenSocket::HandleEvent(EventType, int)
 	}
 
 	socklen_t uslen, length;		// length of our port number
-	int fd, in_port;
+	int nfd, in_port;
 
 #ifdef IPV6
 	if (this->family == AF_INET6)
@@ -95,7 +95,7 @@ void ListenSocket::HandleEvent(EventType, int)
 			break;
 		}
 
-		fd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
+		nfd = ServerInstance->SE->Accept(this, (sockaddr*)client, &length);
 
 		/*
 		 * XXX -
@@ -106,15 +106,15 @@ void ListenSocket::HandleEvent(EventType, int)
 		 * kill it.
 		 */
 #ifndef WINDOWS
-		if ((unsigned int)fd >= MAX_DESCRIPTORS)
+		if ((unsigned int)nfd >= MAX_DESCRIPTORS)
 		{
-			close(fd);
-			shutdown(fd, 2);
+			close(nfd);
+			shutdown(nfd, 2);
 			break;
 		}
 #endif
 
-		if ((fd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
+		if ((nfd > -1) && (!ServerInstance->SE->GetSockName(this, sock_us, &uslen)))
 		{
 			char buf[MAXBUF];
 	#ifdef IPV6
@@ -130,15 +130,15 @@ void ListenSocket::HandleEvent(EventType, int)
 				in_port = ntohs(((sockaddr_in*)sock_us)->sin_port);
 			}
 
-			ServerInstance->SE->NonBlocking(fd);
-			ServerInstance->Connections->Add(fd, in_port, this->family, client);
+			ServerInstance->SE->NonBlocking(nfd);
+			ServerInstance->Connections->Add(nfd, in_port, this->family, client);
 		}
 		else
 		{
-			ServerInstance->SE->Shutdown(fd, 2);
-			ServerInstance->SE->Close(fd);
+			ServerInstance->SE->Shutdown(nfd, 2);
+			ServerInstance->SE->Close(nfd);
 		}
-	} while (ServerInstance->SE->CanMultiaccept && fd >= 0);
+	} while (ServerInstance->SE->CanMultiaccept && nfd >= 0);
 }
 
 /** This will bind a socket to a port. It works for UDP/TCP.
