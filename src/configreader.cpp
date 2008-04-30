@@ -47,7 +47,7 @@ void ServerConfig::ClearStack()
 	include_stack.clear();
 }
 
-bool ServerConfig::CheckOnce(char* tag)
+bool ServerConfig::CheckOnce(const char* tag)
 {
 	int count = ConfValueEnum(this->config_data, tag);
 
@@ -367,7 +367,7 @@ void ServerConfig::Read(bool bail)
 	errstr.clear();
 
 	/* These tags MUST occur and must ONLY occur once in the config file */
-	static char* Once[] = { "server", NULL };
+	static const char* Once[] = { "server", NULL };
 
 	/* These tags can occur ONCE or not at all */
 	InitialConfig Values[] = {
@@ -1302,15 +1302,16 @@ ValueItem::ValueItem(bool value)
 	v = n.str();
 }
 
-ValueItem::ValueItem(char* value)
+ValueItem::ValueItem(const char* value)
 {
 	v = value;
 }
 
+/*
 void ValueItem::Set(char* value)
 {
 	v = value;
-}
+}*/
 
 void ValueItem::Set(const char* value)
 {

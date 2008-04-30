@@ -61,9 +61,9 @@ class ValueItem
 	/** Initialize with a bool */
 	ValueItem(bool value);
 	/** Initialize with a char pointer */
-	ValueItem(char* value);
-	/** Change value to a char pointer */
-	void Set(char* value);
+	ValueItem(const char* value);
+//	/** Change value to a char pointer */
+//	void Set(const char* value);
 	/** Change value to a const char pointer */
 	void Set(const char* val);
 	/** Change value to an int */
@@ -159,11 +159,11 @@ typedef bool (*MultiNotify)(ServerConfig* conf, const char*);
 struct InitialConfig
 {
 	/** Tag name */
-	char* tag;
+	const char* tag;
 	/** Value name */
-	char* value;
+	const char* value;
 	/** Default, if not defined */
-	char* default_value;
+	const char* default_value;
 	/** Value containers */
 	ValueContainerBase* val;
 	/** Data types */
@@ -180,9 +180,9 @@ struct MultiConfig
 	/** Tag name */
 	const char*	tag;
 	/** One or more items within tag */
-	char*		items[17];
+	const char*		items[17];
 	/** One or more defaults for items within tags */
-	char*		items_default[17];
+	const char*		items_default[17];
 	/** One or more data types */
 	int		datatype[17];
 	/** Initialization function */
@@ -218,7 +218,7 @@ class CoreExport ServerConfig : public Extensible
 
 	/** Check that there is only one of each configuration item
 	 */
-	bool CheckOnce(char* tag);
+	bool CheckOnce(const char* tag);
 
  public:
 
