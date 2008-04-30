@@ -85,6 +85,15 @@ performance
 	#timeout-idle-lifetime = 5
 
 	/*
+	 * How many processes may be spawned to handle dynamic content?
+	 * It is NOT a good idea to set this *overly* high, or you will begin
+	 * to rape your server.
+	 *
+	 * The ideal setting is around one per core.
+	 */
+	#max-dynamic-processes = 2
+
+	/*
 	 * Maximum amount of data that may be sent in a POST, in bytes.
 	 * XXX make this a bit more flexible ;p
 	 */

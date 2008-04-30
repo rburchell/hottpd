@@ -292,6 +292,10 @@ class CoreExport ServerConfig : public Extensible
 	 */
 	unsigned int SoftLimit;
 
+	/** The maximum number of CGI processes that may be started
+	 */
+	int MaximumDynamicProcesses;
+
 	/** True if the DEBUG loglevel is selected.
 	 */
 	int debugging;
