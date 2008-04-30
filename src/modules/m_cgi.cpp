@@ -13,17 +13,126 @@
 
 /* $ModDesc: Provides support for CGI applications */
 
-/*
+static int total_cgi_processes = 0;
+
 class CoreExport CGIRequest : public EventHandler
 {
-	CGIRequest(Connection *parent, 
+ private:
+	InspIRCd *ServerInstance;
+	Connection *c;
+	std::string rbuf;
+
+ public:
+	bool done;
+
+	CGIRequest(InspIRCd *Instance, Connection *parent) : ServerInstance(Instance), c(parent), done(false)
+	{
+		ServerInstance->Log(DEBUG, "Created CGI request");
+		total_cgi_processes++;
+	}
+
+	~CGIRequest()
+	{
+		ServerInstance->Log(DEBUG, "Destroying CGI request");
+		this->Close(false);
+		total_cgi_processes--;
+	}
+
+	virtual void HandleEvent(EventType et, int errornum = 0)
+	{
+		switch (et)
+		{
+			case EVENT_READ:
+				this->OnRead();
+				break;
+			case EVENT_WRITE:
+				/* ignore */
+				break;
+			case EVENT_ERROR:
+				ServerInstance->Log(DEBUG, "Error CGI socket %d (%d: %s)", GetFd(), errno, strerror(errno));
+				this->Close(true);
+				break;
+		}
+	}
+
+	void Close(bool SendResponse)
+	{
+		/*
+		 * Remove ident socket from engine, and close it, but dont detatch it
+		 * from its parent user class, or attempt to delete its memory.
+		 */
+		if (GetFd() > -1)
+		{
+			ServerInstance->Log(DEBUG, "Close CGI socket %d", GetFd());
+			ServerInstance->SE->DelFd(this);
+			ServerInstance->SE->Close(GetFd());
+			ServerInstance->SE->Shutdown(GetFd(), SHUT_WR);
+			this->SetFd(-1);
+			done = true;
+
+
+			if (SendResponse)
+			{
+				// Send response
+				ServerInstance->Log(DEBUG, "Sending response. Total request size: %d", rbuf.length());
+
+				HTTPHeaders empty;
+				c->SendHeaders(rbuf.length(), 200, "OK", empty);
+				c->State = HTTP_SEND_DATA;
+				c->Write(rbuf);
+				c->ResponseBufferDone = true;
+			}
+		}
+	}
+
+
+	void OnRead()
+	{
+		static char ReadBuffer[65535]; // if you change this size, remember to change the read() call below!
+		std::string res;
+		int result = 1; // set to 1 so while executes once at least
+
+		#ifndef WIN32
+			result = read(this->fd, (char *)ReadBuffer, 65535);
+		#else
+			result = recv(this->fd, (char*)ReadBuffer, 65535, 0);
+		#endif
+
+		if (result == -1)
+		{
+			if (errno != EAGAIN)
+			{
+				throw "CGI read errored";
+				ServerInstance->Log(DEBUG, "read returned error, %s", strerror(errno));
+				return;
+			}
+		}
+		else
+		{
+			ReadBuffer[result] = '\0';
+			//ServerInstance->Log(DEBUG, "read returned %d bytes", result);
+			rbuf += ReadBuffer;
+		}
+
+		if (result == 0)
+		{
+			ServerInstance->Log(DEBUG, "CGI returned EOF");
+
+			if (rbuf.length() == 0)
+			{
+				throw "rbuf length 0 after reading CGI (how to handle this?)";
+			}
+
+			this->Close(true);
+		}
+	}
 };
-*/
 
 class ModuleCGI : public Module
 {
  private:
-	 std::map<std::string, std::string> CGITypes;
+	std::map<std::string, std::string> CGITypes;
+	std::map<Connection *, CGIRequest *> CGIRequests;
 
  public:
 	ModuleCGI(InspIRCd *Srv) : Module(Srv)
@@ -40,8 +149,8 @@ class ModuleCGI : public Module
 			CGITypes[extension] = executable;
 		}
 
-		Implementation eventlist[] = { I_OnPreRequest };
-		ServerInstance->Modules->Attach(eventlist, this, 1);
+		Implementation eventlist[] = { I_OnPreRequest, I_OnBufferFlushed, I_OnConnectionDisconnect };
+		ServerInstance->Modules->Attach(eventlist, this, 3);
 	}
 	
 	virtual ~ModuleCGI()
@@ -51,6 +160,60 @@ class ModuleCGI : public Module
 	virtual Version GetVersion()
 	{
 		return Version(1, 0, 0, 0, VF_VENDOR, API_VERSION);
+	}
+
+	virtual void OnBufferFlushed(Connection *c)
+	{
+		std::map<Connection *, CGIRequest *>::iterator i = CGIRequests.find(c);
+
+		ServerInstance->Log(DEBUG, "Buffer flushed for %d", c->GetFd());
+
+		if (i != CGIRequests.end())
+		{
+			ServerInstance->Log(DEBUG, "Deleted");
+			delete i->second;
+			CGIRequests.erase(i);
+		}
+	}
+
+	virtual void OnConnectionDisconnect(Connection *c)
+	{
+		std::map<Connection *, CGIRequest *>::iterator i = CGIRequests.find(c);
+
+		ServerInstance->Log(DEBUG, "Disconnect for %d", c->GetFd());
+		if (i != CGIRequests.end())
+		{
+			ServerInstance->Log(DEBUG, "Deleted");
+			delete i->second;
+			CGIRequests.erase(i);
+		}
+	}
+
+	// Also cull completed requests that are just hanging around..
+	virtual void OnBackgroundTimer(time_t now)
+	{
+		bool go_again = true;
+
+		while (go_again)
+		{
+			go_again = false;
+
+			std::map<Connection *, CGIRequest *>::iterator i;
+
+			ServerInstance->Log(DEBUG, "Going again");
+			
+			for (i = CGIRequests.begin(); i != CGIRequests.end(); i++)
+			{
+				if (i->second->done)
+				{
+					ServerInstance->Log(DEBUG, "Deleting %d", i->first->GetFd());
+					delete i->second;
+					CGIRequests.erase(i);
+					go_again = true;
+					break;
+				}
+			}
+		}
 	}
 
 	virtual int OnPreRequest(Connection *c, const std::string &method, const std::string &vhost, const std::string &dir, const std::string &file)
@@ -70,7 +233,7 @@ class ModuleCGI : public Module
 		int to_child_fd[2];
 		int from_child_fd[2];
 		pid_t forkres;
-    	struct stat *fst = NULL;
+		struct stat *fst = NULL;
 		std::string upath;
 		std::string exe;
 
@@ -100,9 +263,14 @@ class ModuleCGI : public Module
 			return 0;
 		}
 
-		exe = i->second;
+		if (total_cgi_processes + 1 > ServerInstance->Config->MaximumDynamicProcesses)
+		{
+			// error 500
+			c->SendError(500, "Internal error", true);
+			return 1;
+		}
 
-		ServerInstance->Log(DEBUG, "%s has an exe of %s", i->first.c_str(), i->second.c_str());
+		exe = i->second;
 
 		/* before anything, get the full path and make sure we can access it! (XXX copy paste :() */
 		upath = ServerInstance->FileSys->CheckFilePath(ServerInstance->Config->DocRoot, c->uri, fst);
@@ -204,68 +372,24 @@ class ModuleCGI : public Module
 				// We may need to write stuff to CGI here. Let's assume we don't.
 				close(to_child_fd[1]);
 
+				// read from_child_fd[0].
+				CGIRequest *cr = new CGIRequest(ServerInstance, c);
+				cr->SetFd(from_child_fd[0]);
 
-				static char ReadBuffer[65535]; // if you change this size, remember to change the read() call below!
-				std::string res;
-				int result = EAGAIN;
-
-				while (result != 0)
+				if (!ServerInstance->SE->AddFd(cr))
 				{
-					#ifndef WIN32
-						result = read(from_child_fd[0], (char *)ReadBuffer, 65535);
-					#else
-						result = recv(from_child_fd[0], (char*)ReadBuffer, 65535, 0);
-					#endif
-
-					if (result == -1)
-					{
-						if (errno != EAGAIN)
-						{
-							ServerInstance->Log(DEBUG, "read returned error, %s", strerror(errno));
-							break;
-						}
-					}
-					else
-					{
-						ReadBuffer[result] = '\0';
-						ServerInstance->Log(DEBUG, "read returned %d bytes", result);
-						res += ReadBuffer;
-					}
+					ServerInstance->Log(DEBUG,"Internal error on CGI connection(!)");
+					delete cr;
+					return 1;
 				}
 
-				if (res.length() == 0)
-				{
-					return 0; // let core handle it, probably not executable
-				}
+				CGIRequests[c] = cr;
 
-				ServerInstance->Log(DEBUG, "total request size: %d", res.length());
-
-				HTTPHeaders empty;
-				c->SendHeaders(res.length(), 200, "OK", empty);
-				c->State = HTTP_SEND_DATA;
-				c->Write(res);
-				c->ResponseBufferDone = true;
-
-				close(from_child_fd[0]);
 				return 1;
 				break;
 		}
 
-		
-
 		return 1;
-		/*
-
-
-		HTTPHeaders empty;
-		c->SendHeaders(4, 200, "OK", empty);
-		c->State = HTTP_SEND_DATA;
-		c->Write("lawl");
-		c->ResponseBufferDone = true;
-
-		ServerInstance->Log(DEBUG, "Got a %s request from %d on %s for %s and file %s", method.c_str(), c->GetFd(), vhost.c_str(), dir.c_str(), file.c_str());
-		return 1;
-		*/
 	}
 };
 
