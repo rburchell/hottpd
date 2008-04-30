@@ -273,7 +273,7 @@ class CoreExport Connection : public EventHandler
 	 * @param text The format string for text to send to the connection
 	 * @param ... POD-type format arguments
 	 */
-	void Write(const char *text, ...);
+	void Write(const char *text, ...) __attribute__((format(printf, 2, 3)));
 
 	/** Handle socket event.
 	 * From EventHandler class.

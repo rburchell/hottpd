@@ -28,6 +28,11 @@
 /* Change off_t to a 64bit type on supporting systems, for support of files >2gb */
 #define _FILE_OFFSET_BITS 64
 
+/* Remove attributes on non-gnu compilers */
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
+
 #include <time.h>
 #include <string>
 #include <sstream>
@@ -382,7 +387,7 @@ class CoreExport InspIRCd : public classbase
 	 * @param text Format string of to write to the log
 	 * @param ... Format arguments of text to write to the log
 	 */
-	void Log(int level, const char* text, ...);
+	void Log(int level, const char* text, ...) __attribute__((format(printf, 3, 4)));
 
 	/** Output a log message to the ircd.log file
 	 * The text will only be output if the current loglevel
