@@ -341,6 +341,8 @@ class ModuleCGI : public Module
 
 				// Set environment variables: this doesn't cause problems, because we fork()ed. (we probably *should not* assume this succeeds)
 				setenv("SERVER_SOFTWARE", "hottpd", 1);
+				setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
+				setenv("SCRIPT_FILENAME", upath.c_str(), 1);
 				// TODO: set moar here.
 
 				if (exe.empty())

@@ -169,5 +169,5 @@ security
 #cgi
 #{
 #	extension = php
-#	executable = "/usr/bin/php"
+#	executable = "/usr/bin/php-cgi"
 #}
